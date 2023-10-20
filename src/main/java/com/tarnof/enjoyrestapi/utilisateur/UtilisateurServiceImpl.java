@@ -1,7 +1,5 @@
-package com.tarnof.enjoyrestapi.service;
+package com.tarnof.enjoyrestapi.utilisateur;
 
-import com.tarnof.enjoyrestapi.entity.Utilisateur;
-import com.tarnof.enjoyrestapi.repository.UtilisateurRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,7 +16,6 @@ public class UtilisateurServiceImpl implements UtilisateurService{
     @Override
     public Utilisateur creerUtilisateur(Utilisateur utilisateur) {
         try{
-            System.out.println("---------------Dans le service-----------");
             utilisateur.setMotDePasse(bCryptPasswordEncoder.encode(utilisateur.getMotDePasse()));
             return utilisateurRepository.save(utilisateur);
         } catch (Exception e){

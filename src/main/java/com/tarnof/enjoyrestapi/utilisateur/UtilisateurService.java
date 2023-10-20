@@ -1,6 +1,6 @@
-package com.tarnof.enjoyrestapi.service;
+package com.tarnof.enjoyrestapi.utilisateur;
 
-import com.tarnof.enjoyrestapi.entity.Utilisateur;
+import com.tarnof.enjoyrestapi.utilisateur.Utilisateur;
 import org.springframework.stereotype.Service;
 import java.util.List;
 

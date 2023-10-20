@@ -1,10 +1,19 @@
-package com.tarnof.enjoyrestapi.entity;
+package com.tarnof.enjoyrestapi.sejour;
 
+import com.tarnof.enjoyrestapi.utilisateur.Utilisateur;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Date;
 import java.util.List;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 public class Sejour {
     @Id
