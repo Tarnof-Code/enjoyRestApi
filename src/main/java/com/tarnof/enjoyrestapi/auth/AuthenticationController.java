@@ -23,7 +23,7 @@ public class AuthenticationController {
     public ResponseEntity<AuthenticationResponse> connexion (
             @RequestBody AuthenticationRequest request
     ) {
-        System.out.println("++++++++++++++++++ JE SUIS LA+++++++++++++++++");
+        System.out.println("++++++++++++++++++ Auth controller+++++++++++++++++");
         return ResponseEntity.ok(service.authenticate(request));
 
     }

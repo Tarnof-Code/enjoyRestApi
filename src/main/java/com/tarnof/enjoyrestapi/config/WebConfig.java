@@ -14,21 +14,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
 
-/*
-@Configuration
-@EnableWebMvc
-public class WebConfig implements WebMvcConfigurer {
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry
-                .addMapping("/**")
-                .allowedMethods("GET","POST")
-                .allowedOrigins("http://127.0.0.1:5173")
-                .allowedHeaders("Authorization");
-    }
-}
-*/
-
 @Configuration
 @EnableWebMvc
 public class WebConfig {
