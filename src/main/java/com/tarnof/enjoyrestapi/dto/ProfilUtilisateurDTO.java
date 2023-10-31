@@ -1,4 +1,4 @@
-package com.tarnof.enjoyrestapi.utilisateur;
+package com.tarnof.enjoyrestapi.dto;
 import lombok.Data;
 
 import java.util.Date;

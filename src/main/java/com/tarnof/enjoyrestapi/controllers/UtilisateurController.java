@@ -1,5 +1,8 @@
-package com.tarnof.enjoyrestapi.utilisateur;
+package com.tarnof.enjoyrestapi.controllers;
 
+import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.services.UtilisateurService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

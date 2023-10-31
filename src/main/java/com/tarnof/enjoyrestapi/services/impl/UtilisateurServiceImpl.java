@@ -1,5 +1,9 @@
-package com.tarnof.enjoyrestapi.utilisateur;
+package com.tarnof.enjoyrestapi.services.impl;
 
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
+import com.tarnof.enjoyrestapi.services.UtilisateurService;
+import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -8,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class UtilisateurServiceImpl implements UtilisateurService{
+public class UtilisateurServiceImpl implements UtilisateurService {
     @Autowired
     private UtilisateurRepository utilisateurRepository;
     @Autowired

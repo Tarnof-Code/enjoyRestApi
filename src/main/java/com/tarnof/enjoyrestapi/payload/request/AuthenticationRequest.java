@@ -1,4 +1,4 @@
-package com.tarnof.enjoyrestapi.auth;
+package com.tarnof.enjoyrestapi.payload.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

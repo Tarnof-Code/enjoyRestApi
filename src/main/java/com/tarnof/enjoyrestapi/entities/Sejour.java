@@ -1,6 +1,5 @@
-package com.tarnof.enjoyrestapi.sejour;
+package com.tarnof.enjoyrestapi.entities;
 
-import com.tarnof.enjoyrestapi.utilisateur.Utilisateur;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

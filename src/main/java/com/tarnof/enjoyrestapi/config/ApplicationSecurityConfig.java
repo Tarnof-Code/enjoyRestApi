@@ -1,6 +1,6 @@
 package com.tarnof.enjoyrestapi.config;
 
-import com.tarnof.enjoyrestapi.utilisateur.UtilisateurRepository;
+import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,8 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
 @RequiredArgsConstructor
-public class ApplicationConfig {
-
+public class ApplicationSecurityConfig {
     private final UtilisateurRepository utilisateurRepository;
 
     @Bean
