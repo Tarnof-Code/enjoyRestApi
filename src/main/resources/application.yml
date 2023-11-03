@@ -12,7 +12,7 @@ application:
   security:
     jwt:
       secret-key: 14290291d47c678b771a4bfa5795117661a1684351e710d319734bd5695eeb79
-      expiration: 900000 # 15 min en ms
+      expiration: 30000 # 30 sec en ms
       cookie-name: jwt-cookie
       refresh-token:
         expiration: 1296000000 # 15 jours en ms

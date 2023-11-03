@@ -10,12 +10,14 @@ import com.tarnof.enjoyrestapi.repositories.RefreshTokenRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.JwtService;
 import com.tarnof.enjoyrestapi.services.RefreshTokenService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.WebUtils;
 
 import java.time.Instant;
 import java.util.Base64;
@@ -33,6 +35,8 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Value("${application.security.jwt.refresh-token.expiration}")
     private long refreshExpiration;
+    @Value("${application.security.jwt.refresh-token.cookie-name}")
+    private String refreshTokenName;
 
     @Override
     public RefreshToken createRefreshToken(int userId) {
@@ -61,12 +65,12 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     public Optional<RefreshToken> findByToken(String token) {
-        return Optional.empty();
+        return refreshTokenRepository.findByToken(token);
     }
 
     @Override
     public RefreshTokenResponse generateNewToken(RefreshTokenRequest request) {
-        Utilisateur utilisateur = refreshTokenRepository.findByToken(request.getRefreshToken())
+        Utilisateur utilisateur = findByToken(request.getRefreshToken())
                 .map(this::verifyExpiration)
                 .map(RefreshToken::getUtilisateur)
                 .orElseThrow(() -> new TokenException(request.getRefreshToken(),"Refresh token does not exist"));
@@ -80,22 +84,41 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     }
 
     @Override
+    public Optional<RefreshToken> findByUtilisateur(Utilisateur utilisateur) {
+        return refreshTokenRepository.findByUtilisateur(utilisateur);
+    }
+
+    @Override
     public ResponseCookie generateRefreshTokenCookie(String token) {
-        return null;
+        return ResponseCookie.from(refreshTokenName, token)
+                .path("/")
+                .maxAge(refreshExpiration/1000) // 15 days in seconds
+                .httpOnly(true)
+                //.secure(true)
+                //.sameSite("Strict")
+                .build();
     }
 
     @Override
     public String getRefreshTokenFromCookies(HttpServletRequest request) {
-        return null;
+        Cookie cookie = WebUtils.getCookie(request, refreshTokenName);
+        System.out.println(cookie.getValue());
+        if (cookie != null) {
+            return cookie.getValue();
+        } else {
+            return "";
+        }
     }
 
     @Override
     public void deleteByToken(String token) {
-
+        refreshTokenRepository.findByToken(token).ifPresent(refreshTokenRepository::delete);
     }
 
     @Override
     public ResponseCookie getCleanRefreshTokenCookie() {
-        return null;
+        return ResponseCookie.from(refreshTokenName, "")
+                .path("/")
+                .build();
     }
 }

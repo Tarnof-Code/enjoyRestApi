@@ -70,13 +70,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .map(SimpleGrantedAuthority::getAuthority)
                 .toList();
         var jwt = jwtService.generateToken(utilisateur);
-    //    var refreshToken = refreshTokenService.createRefreshToken(utilisateur.getId());
+        var refreshTokenValue = refreshTokenService.findByUtilisateur(utilisateur)
+                .orElseThrow(() -> new IllegalArgumentException("Refresh token introuvable"));
+
         return AuthenticationResponse.builder()
                 .accessToken(jwt)
                 .roles(roles)
                 .email(utilisateur.getEmail())
                 .id(Long.valueOf(utilisateur.getId()))
-       //         .refreshToken(refreshToken.getToken())
+                .refreshToken(refreshTokenValue.getToken())
                 .tokenType( TokenType.BEARER.name())
                 .build();
     }
