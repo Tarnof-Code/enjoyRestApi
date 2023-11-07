@@ -102,7 +102,6 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Override
     public String getRefreshTokenFromCookies(HttpServletRequest request) {
         Cookie cookie = WebUtils.getCookie(request, refreshTokenName);
-        System.out.println(cookie.getValue());
         if (cookie != null) {
             return cookie.getValue();
         } else {
