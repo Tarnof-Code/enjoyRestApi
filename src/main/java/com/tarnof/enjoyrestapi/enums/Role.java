@@ -1,6 +1,5 @@
 package com.tarnof.enjoyrestapi.enums;
 
-import com.tarnof.enjoyrestapi.enums.Privilege;
 import lombok.*;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -13,10 +12,22 @@ import static com.tarnof.enjoyrestapi.enums.Privilege.*;
 @RequiredArgsConstructor
 public enum Role {
     ADMIN(
-            Set.of(READ_PRIVILEGE,WRITE_PRIVILEGE,UPDATE_PRIVILEGE,DELETE_PRIVILEGE)
+            Set.of(GESTION_UTILISATEURS,
+                    GESTION_SEJOURS,
+                    GESTION_SANITAIRE,
+                    GESTION_PLANNINGS)
     ),
-    USER(
-            Set.of(READ_PRIVILEGE,WRITE_PRIVILEGE)
+    DIRECTEUR(
+            Set.of(GESTION_SEJOURS,
+                    GESTION_SANITAIRE,
+                    GESTION_PLANNINGS)
+    ),
+    ANIMATEUR(
+            Set.of(GESTION_PLANNINGS)
+    ),
+    ASSISTANT_SANITAIRE(
+            Set.of(GESTION_SANITAIRE,
+                    GESTION_PLANNINGS)
     );
 
 

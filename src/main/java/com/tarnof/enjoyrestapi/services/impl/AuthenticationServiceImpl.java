@@ -1,6 +1,6 @@
 package com.tarnof.enjoyrestapi.services.impl;
 
-import com.tarnof.enjoyrestapi.enums.Role;
+
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.TokenType;
 import com.tarnof.enjoyrestapi.payload.request.AuthenticationRequest;

@@ -1,8 +1,8 @@
 package com.tarnof.enjoyrestapi.enums;
 
 public enum Privilege {
-    READ_PRIVILEGE,
-    WRITE_PRIVILEGE,
-    DELETE_PRIVILEGE,
-    UPDATE_PRIVILEGE;
+    GESTION_UTILISATEURS,
+    GESTION_SEJOURS,
+    GESTION_SANITAIRE,
+    GESTION_PLANNINGS;
 }
