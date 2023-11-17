@@ -76,10 +76,12 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                 .orElseThrow(() -> new TokenException(request.getRefreshToken(),"Refresh token does not exist"));
 
         String token = jwtService.generateToken(utilisateur);
+        var role = utilisateur.getRole();
         return RefreshTokenResponse.builder()
                 .accessToken(token)
                 .refreshToken(request.getRefreshToken())
                 .tokenType(TokenType.BEARER.name())
+                .role(role)
                 .build();
     }
 

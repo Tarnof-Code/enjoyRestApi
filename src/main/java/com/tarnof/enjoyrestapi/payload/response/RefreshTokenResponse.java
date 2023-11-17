@@ -1,6 +1,7 @@
 package com.tarnof.enjoyrestapi.payload.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.enums.TokenType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,5 +20,6 @@ public class RefreshTokenResponse {
     private String refreshToken;
     @JsonProperty("token_type")
     private String tokenType;
+    private Role role;
 
 }

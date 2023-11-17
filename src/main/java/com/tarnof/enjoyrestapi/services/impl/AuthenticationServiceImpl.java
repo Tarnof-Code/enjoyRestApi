@@ -44,17 +44,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         var jwt = jwtService.generateToken(utilisateur);
         var refreshToken = refreshTokenService.createRefreshToken(utilisateur.getId());
 
-        var roles = utilisateur.getRole().getAuthorities()
+    /*    var roles = utilisateur.getRole().getAuthorities()
                 .stream()
                 .map(SimpleGrantedAuthority::getAuthority)
                 .toList();
+    */
+        var role = utilisateur.getRole();
 
         return AuthenticationResponse.builder()
                 .accessToken(jwt)
                 .email(utilisateur.getEmail())
                 .id(Long.valueOf(utilisateur.getId()))
                 .refreshToken(refreshToken.getToken())
-                .roles(roles)
+                .role(role)
                 .tokenType( TokenType.BEARER.name())
                 .build();
     }
@@ -65,17 +67,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 new UsernamePasswordAuthenticationToken(request.getEmail(),request.getMotDePasse()));
 
         var utilisateur = utilisateurRepository.findByEmail(request.getEmail()).orElseThrow(() -> new IllegalArgumentException("Invalid email   or password."));
-        var roles = utilisateur.getRole().getAuthorities()
+        /*var roles = utilisateur.getRole().getAuthorities()
                 .stream()
                 .map(SimpleGrantedAuthority::getAuthority)
                 .toList();
+
+         */
+        var role = utilisateur.getRole();
         var jwt = jwtService.generateToken(utilisateur);
         var refreshTokenValue = refreshTokenService.findByUtilisateur(utilisateur)
                 .orElseThrow(() -> new IllegalArgumentException("Refresh token introuvable"));
 
         return AuthenticationResponse.builder()
                 .accessToken(jwt)
-                .roles(roles)
+                .role(role)
                 .email(utilisateur.getEmail())
                 .id(Long.valueOf(utilisateur.getId()))
                 .refreshToken(refreshTokenValue.getToken())

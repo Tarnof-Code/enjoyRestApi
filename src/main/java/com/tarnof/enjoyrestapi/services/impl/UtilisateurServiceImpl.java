@@ -49,6 +49,7 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     @Override
     public ProfilUtilisateurDTO mapUtilisateurToProfilDTO(Utilisateur utilisateur) {
         ProfilUtilisateurDTO profilDTO = new ProfilUtilisateurDTO();
+        profilDTO.setRole(utilisateur.getRole());
         profilDTO.setNom(utilisateur.getNom());
         profilDTO.setPrenom(utilisateur.getPrenom());
         profilDTO.setGenre(utilisateur.getGenre());

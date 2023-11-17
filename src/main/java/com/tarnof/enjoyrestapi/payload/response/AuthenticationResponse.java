@@ -1,6 +1,7 @@
 package com.tarnof.enjoyrestapi.payload.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.tarnof.enjoyrestapi.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,7 +16,9 @@ import java.util.List;
 public class AuthenticationResponse {
     private Long id;
     private String email;
-    private List<String> roles;
+
+    //private List<String> roles;
+    private Role role;
     @JsonProperty("access_token")
     private String accessToken;
     @JsonProperty("refresh_token")
