@@ -1,10 +1,7 @@
 package com.tarnof.enjoyrestapi.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 
@@ -17,7 +14,7 @@ public class RefreshToken {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long id;
-
+    @ToString.Exclude
     @OneToOne
     @JoinColumn(name = "utilisateur_id", referencedColumnName = "id")
     private Utilisateur utilisateur;

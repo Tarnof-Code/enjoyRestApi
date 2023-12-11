@@ -33,8 +33,9 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     @Override
     public List<Utilisateur> getAllUtilisateurs() {
         try{
-         //   System.out.println(utilisateurRepository.findAll());
-            return (List<Utilisateur>) utilisateurRepository.findAll();
+            List<Utilisateur> listeUtilisateurs = utilisateurRepository.findAll();
+         //   System.out.println("+++++++++++++++++++++++++++++++++" + listeUtilisateurs + "+++++++++++++++++++");
+            return listeUtilisateurs;
         } catch (Exception e){
             e.printStackTrace();
             return null;
@@ -56,6 +57,7 @@ public class UtilisateurServiceImpl implements UtilisateurService {
         profilDTO.setEmail(utilisateur.getEmail());
         profilDTO.setTelephone(utilisateur.getTelephone());
         profilDTO.setDateNaissance(utilisateur.getDateNaissance());
+        profilDTO.setDateExpirationRefreshToken(utilisateur.getRefreshToken().getExpiryDate());
         return profilDTO;
     }
 

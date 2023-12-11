@@ -19,8 +19,9 @@ public class UtilisateurController {
 
     @GetMapping("/liste")
     public List<Utilisateur> consulterLaListeDesUtilisateurs(){
-    //    System.out.println("+++++++++++++++Consultation des users++++++++++++++");
-        return utilisateurService.getAllUtilisateurs();
+        List<Utilisateur> listeUtilisateurs = utilisateurService.getAllUtilisateurs();
+        System.out.println("Dans le controller+++++++++++++++"+listeUtilisateurs+"++++++++++++++");
+        return listeUtilisateurs;
     }
 
     @GetMapping("/profil")

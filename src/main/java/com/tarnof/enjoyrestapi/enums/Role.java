@@ -25,7 +25,7 @@ public enum Role {
     ANIMATEUR(
             Set.of(GESTION_PLANNINGS)
     ),
-    ASSISTANT_SANITAIRE(
+    ANIMATEUR_AS(
             Set.of(GESTION_SANITAIRE,
                     GESTION_PLANNINGS)
     );

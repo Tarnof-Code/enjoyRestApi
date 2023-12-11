@@ -2,6 +2,7 @@ package com.tarnof.enjoyrestapi.dto;
 import com.tarnof.enjoyrestapi.enums.Role;
 import lombok.Data;
 
+import java.time.Instant;
 import java.util.Date;
 
 @Data
@@ -13,5 +14,7 @@ public class ProfilUtilisateurDTO {
     private String email;
     private String telephone;
     private Date dateNaissance;
+    private Instant dateExpirationRefreshToken;
+
 
 }
