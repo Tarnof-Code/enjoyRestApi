@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UtilisateurServiceImpl implements UtilisateurService {
@@ -31,11 +32,12 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     }
 
     @Override
-    public List<Utilisateur> getAllUtilisateurs() {
+    public List<ProfilUtilisateurDTO> getAllUtilisateursDTO() {
         try{
             List<Utilisateur> listeUtilisateurs = utilisateurRepository.findAll();
-         //   System.out.println("+++++++++++++++++++++++++++++++++" + listeUtilisateurs + "+++++++++++++++++++");
-            return listeUtilisateurs;
+            return listeUtilisateurs.stream()
+                    .map(this::mapUtilisateurToProfilDTO)
+                    .collect(Collectors.toList());
         } catch (Exception e){
             e.printStackTrace();
             return null;
@@ -57,7 +59,7 @@ public class UtilisateurServiceImpl implements UtilisateurService {
         profilDTO.setEmail(utilisateur.getEmail());
         profilDTO.setTelephone(utilisateur.getTelephone());
         profilDTO.setDateNaissance(utilisateur.getDateNaissance());
-        profilDTO.setDateExpirationRefreshToken(utilisateur.getRefreshToken().getExpiryDate());
+        profilDTO.setDateExpirationCompte(utilisateur.getDateExpirationCompte());
         return profilDTO;
     }
 

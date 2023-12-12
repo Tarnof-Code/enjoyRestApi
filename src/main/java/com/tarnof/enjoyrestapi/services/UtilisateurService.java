@@ -9,7 +9,7 @@ import java.util.Optional;
 @Service
 public interface UtilisateurService {
     public Utilisateur creerUtilisateur(Utilisateur utilisateur);
-    public List<Utilisateur> getAllUtilisateurs();
+    public List<ProfilUtilisateurDTO> getAllUtilisateursDTO();
     public Utilisateur modifierUtilisateur(Utilisateur utilisateur);
     public void supprimerUtilisateur(int id);
     public Optional<Utilisateur> profilUtilisateur(String email);

@@ -14,7 +14,7 @@ public class ProfilUtilisateurDTO {
     private String email;
     private String telephone;
     private Date dateNaissance;
-    private Instant dateExpirationRefreshToken;
+    private Instant dateExpirationCompte;
 
 
 }

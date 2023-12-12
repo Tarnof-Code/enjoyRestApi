@@ -33,7 +33,7 @@ public class Utilisateur implements UserDetails {
     private Date dateNaissance;
     private String motDePasse;
     @Transient
-    private Instant accountDateExpiration;
+    private Instant dateExpirationCompte;
     @JsonIgnore
     @OneToOne(mappedBy = "utilisateur", cascade = CascadeType.ALL)
     private RefreshToken refreshToken;
@@ -61,7 +61,7 @@ public class Utilisateur implements UserDetails {
     }
 
     @Transient
-    public Instant getAccountDateExpiration(){
+    public Instant getDateExpirationCompte(){
         if (refreshToken != null && refreshToken.getExpiryDate() != null) {
             return refreshToken.getExpiryDate();
         }
