@@ -22,6 +22,11 @@ public enum Role {
                     GESTION_SANITAIRE,
                     GESTION_PLANNINGS)
     ),
+    ADJ_DIRECTION(
+            Set.of(GESTION_SEJOURS,
+                    GESTION_SANITAIRE,
+                    GESTION_PLANNINGS)
+    ),
     ANIM(
             Set.of(GESTION_PLANNINGS)
     ),
