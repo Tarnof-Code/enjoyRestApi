@@ -1,8 +1,5 @@
 package com.tarnof.enjoyrestapi.services.impl;
-
-
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
-import com.tarnof.enjoyrestapi.enums.TokenType;
 import com.tarnof.enjoyrestapi.payload.request.AuthenticationRequest;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.payload.response.AuthenticationResponse;
@@ -13,11 +10,9 @@ import com.tarnof.enjoyrestapi.services.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.UUID;
 
 @Service @Transactional
@@ -49,12 +44,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         utilisateur = utilisateurRepository.save(utilisateur);
         var jwt = jwtService.generateToken(utilisateur);
         var refreshToken = refreshTokenService.createRefreshToken(utilisateur.getId());
-
-    /*    var roles = utilisateur.getRole().getAuthorities()
-                .stream()
-                .map(SimpleGrantedAuthority::getAuthority)
-                .toList();
-    */
         var role = utilisateur.getRole();
 
         return AuthenticationResponse.builder()
@@ -63,15 +52,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .role(role)
                 .tokenId(utilisateur.getTokenId())
                 .build();
-
-      /*  return AuthenticationResponse.builder()
-                .accessToken(jwt)
-                .email(utilisateur.getEmail())
-                .id(Long.valueOf(utilisateur.getId()))
-                .refreshToken(refreshToken.getToken())
-                .role(role)
-                .tokenType( TokenType.BEARER.name())
-                .build(); */
     }
 
     @Override
@@ -98,13 +78,5 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .refreshToken(refreshTokenValue.getToken())
                 .build();
 
-     /*   return AuthenticationResponse.builder()
-                .accessToken(jwt)
-                .role(role)
-                .email(utilisateur.getEmail())
-                .id(Long.valueOf(utilisateur.getId()))
-                .refreshToken(refreshTokenValue.getToken())
-                .tokenType( TokenType.BEARER.name())
-                .build(); */
     }
 }

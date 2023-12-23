@@ -3,9 +3,7 @@ package com.tarnof.enjoyrestapi.entities;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tarnof.enjoyrestapi.enums.Role;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
