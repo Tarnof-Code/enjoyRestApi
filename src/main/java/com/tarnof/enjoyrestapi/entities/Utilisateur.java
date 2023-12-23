@@ -14,13 +14,15 @@ import java.util.*;
 
 @Data
 @Builder
-@NoArgsConstructor
+
 @AllArgsConstructor
 @Entity
 public class Utilisateur implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+    @Column(unique = true)
+    private String tokenId;
     @Enumerated(EnumType.STRING)
     private Role role;
     @ManyToMany
@@ -37,7 +39,6 @@ public class Utilisateur implements UserDetails {
     @JsonIgnore
     @OneToOne(mappedBy = "utilisateur", cascade = CascadeType.ALL)
     private RefreshToken refreshToken;
-
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

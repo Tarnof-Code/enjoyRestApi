@@ -14,6 +14,16 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AuthenticationResponse {
+    private Role role;
+    private String tokenId;
+    @JsonProperty("access_token")
+    private String accessToken;
+    @JsonProperty("refresh_token")
+    private String refreshToken;
+
+}
+/*
+public class AuthenticationResponse {
     private Long id;
     private String email;
 
@@ -26,3 +36,4 @@ public class AuthenticationResponse {
     @JsonProperty("token_type")
     private String tokenType;
 }
+*/

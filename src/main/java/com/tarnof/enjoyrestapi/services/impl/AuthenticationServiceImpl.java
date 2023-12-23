@@ -18,6 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service @Transactional
 @RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
@@ -28,6 +30,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
 
+    private String generateTokenId() {
+        return UUID.randomUUID().toString().replace("-", "");
+    }
     @Override
     public AuthenticationResponse register(RegisterRequest request) {
         var utilisateur = Utilisateur.builder()
@@ -39,6 +44,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .dateNaissance(request.getDateNaissance())
                 .telephone(request.getTelephone())
                 .role(request.getRole())
+                .tokenId(generateTokenId())
                 .build();
         utilisateur = utilisateurRepository.save(utilisateur);
         var jwt = jwtService.generateToken(utilisateur);
@@ -53,12 +59,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         return AuthenticationResponse.builder()
                 .accessToken(jwt)
+                .refreshToken(refreshToken.getToken())
+                .role(role)
+                .tokenId(utilisateur.getTokenId())
+                .build();
+
+      /*  return AuthenticationResponse.builder()
+                .accessToken(jwt)
                 .email(utilisateur.getEmail())
                 .id(Long.valueOf(utilisateur.getId()))
                 .refreshToken(refreshToken.getToken())
                 .role(role)
                 .tokenType( TokenType.BEARER.name())
-                .build();
+                .build(); */
     }
 
     @Override
@@ -79,12 +92,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .orElseThrow(() -> new IllegalArgumentException("Refresh token introuvable"));
 
         return AuthenticationResponse.builder()
+                .tokenId(utilisateur.getTokenId())
+                .accessToken(jwt)
+                .role(role)
+                .refreshToken(refreshTokenValue.getToken())
+                .build();
+
+     /*   return AuthenticationResponse.builder()
                 .accessToken(jwt)
                 .role(role)
                 .email(utilisateur.getEmail())
                 .id(Long.valueOf(utilisateur.getId()))
                 .refreshToken(refreshTokenValue.getToken())
                 .tokenType( TokenType.BEARER.name())
-                .build();
+                .build(); */
     }
 }
