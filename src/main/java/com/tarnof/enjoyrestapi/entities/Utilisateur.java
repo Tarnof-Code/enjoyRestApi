@@ -12,7 +12,7 @@ import java.util.*;
 
 @Data
 @Builder
-
+@NoArgsConstructor
 @AllArgsConstructor
 @Entity
 public class Utilisateur implements UserDetails {
