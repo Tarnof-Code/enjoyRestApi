@@ -45,8 +45,8 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     }
 
     @Override
-    public Optional<Utilisateur> profilUtilisateur(String email) {
-        return utilisateurRepository.findByEmail(email);
+    public Optional<Utilisateur> profilUtilisateur(String tokenId) {
+        return utilisateurRepository.findByTokenId(tokenId);
     }
 
     @Override

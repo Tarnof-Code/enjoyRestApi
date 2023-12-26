@@ -1,5 +1,6 @@
 package com.tarnof.enjoyrestapi.config;
 
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -18,10 +19,25 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class ApplicationSecurityConfig {
     private final UtilisateurRepository utilisateurRepository;
 
+    private boolean isEmail(String identifier) {
+        // Utilisation d'une expression régulière simple pour vérifier si l'identificateur ressemble à une adresse email
+        // Cette vérification est basique et peut nécessiter une adaptation en fonction de vos besoins spécifiques.
+        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z\\p{L}]{2,7}$";
+
+        return identifier.matches(emailRegex);
+    }
+
     @Bean
     public UserDetailsService userDetailsService() {
-        return username -> utilisateurRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+        return identifier -> {
+            if(isEmail(identifier)){
+                return utilisateurRepository.findByEmail(identifier)
+                        .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé avec l'email"));
+            } else {
+                return utilisateurRepository.findByTokenId(identifier)
+                        .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé avec le tokenId"));
+            }
+        };
     }
 
     @Bean

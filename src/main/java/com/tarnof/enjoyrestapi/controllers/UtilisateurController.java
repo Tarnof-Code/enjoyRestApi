@@ -5,6 +5,7 @@ import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.services.UtilisateurService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,14 +19,15 @@ public class UtilisateurController {
     private UtilisateurService utilisateurService;
 
     @GetMapping("/liste")
+    @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
     public List<ProfilUtilisateurDTO> consulterLaListeDesUtilisateurs(){
         List<ProfilUtilisateurDTO> listeUtilisateursDTO = utilisateurService.getAllUtilisateursDTO();
         return listeUtilisateursDTO;
     }
 
     @GetMapping("/profil")
-    public ResponseEntity<ProfilUtilisateurDTO> profilUtilisateur(@RequestParam("email") String email) {
-        Optional<Utilisateur> utilisateur = utilisateurService.profilUtilisateur(email);
+    public ResponseEntity<ProfilUtilisateurDTO> profilUtilisateur(@RequestParam("tokenId") String tokenId) {
+        Optional<Utilisateur> utilisateur = utilisateurService.profilUtilisateur(tokenId);
 
         if (utilisateur.isPresent()) {
             // Mapper l'entité Utilisateur vers le DTO ProfilUtilisateurDTO

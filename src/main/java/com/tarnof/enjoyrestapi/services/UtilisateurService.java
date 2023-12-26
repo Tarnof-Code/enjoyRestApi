@@ -12,6 +12,6 @@ public interface UtilisateurService {
     public List<ProfilUtilisateurDTO> getAllUtilisateursDTO();
     public Utilisateur modifierUtilisateur(Utilisateur utilisateur);
     public void supprimerUtilisateur(int id);
-    public Optional<Utilisateur> profilUtilisateur(String email);
+    public Optional<Utilisateur> profilUtilisateur(String tokenId);
     ProfilUtilisateurDTO mapUtilisateurToProfilDTO(Utilisateur utilisateur);
 }
