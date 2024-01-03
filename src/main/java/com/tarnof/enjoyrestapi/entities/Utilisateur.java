@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.*;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity

@@ -1,6 +1,8 @@
 package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
+import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.UtilisateurService;
 import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
@@ -64,8 +66,23 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     }
 
     @Override
-    public Utilisateur modifierUtilisateur(Utilisateur utilisateur) {
-        return null;
+    public Utilisateur modifierUtilisateur(Utilisateur utilisateur, UpdateUserRequest request) {
+
+        // Vérifier si l'email est déjà utilisé par un autre utilisateur
+        if (!utilisateur.getEmail().equals(request.getEmail()) && utilisateurRepository.existsByEmail(request.getEmail())) {
+            throw new EmailDejaUtiliseException("L'email est déjà utilisé par un autre compte.");
+        }
+         Utilisateur utilisateurModifie = utilisateur.toBuilder()
+                 .prenom(request.getPrenom())
+                 .nom(request.getNom())
+                 .genre(request.getGenre())
+                 .email(request.getEmail())
+                 .telephone(request.getTelephone())
+                 .dateNaissance(request.getDateNaissance())
+                 .build();
+
+         utilisateurRepository.save(utilisateurModifie);
+        return utilisateurModifie;
     }
 
     @Override

@@ -30,6 +30,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
     @Override
     public AuthenticationResponse register(RegisterRequest request) {
+        if(utilisateurRepository.existsByEmail(request.getEmail())){
+            throw new RuntimeException("Un compte avec cette adresse e-mail existe déjà.");
+        }
         var utilisateur = Utilisateur.builder()
                 .prenom(request.getPrenom())
                 .nom(request.getNom())
