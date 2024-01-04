@@ -2,6 +2,8 @@ package com.tarnof.enjoyrestapi.controllers;
 
 import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
+import com.tarnof.enjoyrestapi.handlers.ErrorResponse;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
@@ -13,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,20 +48,34 @@ public class UtilisateurController {
     }
 
     @PostMapping("/modifierInfos")
-    public ResponseEntity<ProfilUtilisateurDTO> modifierUtilisateur(@Valid @RequestBody UpdateUserRequest request) {
-        // Récupérer l'utilisateur depuis la base de données en utilisant son identifiant
-        Optional<Utilisateur> utilisateurOptional = utilisateurService.profilUtilisateur(request.getTokenId());
+    public ResponseEntity<?> modifierUtilisateur(@Valid @RequestBody UpdateUserRequest request) {
+        try {
+            // Récupérer l'utilisateur depuis la base de données en utilisant son identifiant
+            Optional<Utilisateur> utilisateurOptional = utilisateurService.profilUtilisateur(request.getTokenId());
 
-        if (utilisateurOptional.isPresent()) {
-            Utilisateur utilisateur = utilisateurOptional.get();
-           var userUpdated =   utilisateurService.modifierUtilisateur(utilisateur,request);
-            ProfilUtilisateurDTO profilDTO = utilisateurService.mapUtilisateurToProfilDTO(userUpdated);
+            if (utilisateurOptional.isPresent()) {
+                Utilisateur utilisateur = utilisateurOptional.get();
+                var userUpdated = utilisateurService.modifierUtilisateur(utilisateur, request);
+                ProfilUtilisateurDTO profilDTO = utilisateurService.mapUtilisateurToProfilDTO(userUpdated);
 
-            return ResponseEntity.ok(profilDTO);
-        } else {
-            return ResponseEntity.notFound().build();
+                return ResponseEntity.ok(profilDTO);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (EmailDejaUtiliseException e) {
+             ErrorResponse errorResponse = ErrorResponse.builder()
+                    .status(HttpStatus.BAD_REQUEST.value())
+                    .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                    .timestamp(Instant.now())
+                    .message("Cet email est déjà utilisé par un autre compte.")
+                    .path("/modifierInfos")
+                    .build();
+
+            return ResponseEntity.badRequest().body(errorResponse);
         }
     }
+
+
 
 
 

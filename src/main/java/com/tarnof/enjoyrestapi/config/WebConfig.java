@@ -9,9 +9,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
 
@@ -30,7 +28,8 @@ public class WebConfig {
         config.setAllowedHeaders(Arrays.asList(
                 HttpHeaders.AUTHORIZATION,
                 HttpHeaders.CONTENT_TYPE,
-                HttpHeaders.ACCEPT
+                HttpHeaders.ACCEPT,
+                "X-Skip-Token-Refresh"
         ));
         config.setAllowedMethods(Arrays.asList(
                 HttpMethod.GET.name(),
