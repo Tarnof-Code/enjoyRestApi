@@ -20,8 +20,6 @@ public class ApplicationSecurityConfig {
     private final UtilisateurRepository utilisateurRepository;
 
     private boolean isEmail(String identifier) {
-        // Utilisation d'une expression régulière simple pour vérifier si l'identificateur ressemble à une adresse email
-        // Cette vérification est basique et peut nécessiter une adaptation en fonction de vos besoins spécifiques.
         String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z\\p{L}]{2,7}$";
 
         return identifier.matches(emailRegex);

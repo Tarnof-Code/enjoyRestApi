@@ -7,10 +7,12 @@ import com.tarnof.enjoyrestapi.payload.response.RefreshTokenResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseCookie;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.Optional;
 
 public interface RefreshTokenService {
-    RefreshToken createRefreshToken(int userId);
+    RefreshToken createRefreshToken(int userId, Instant dateExpiration);
     RefreshToken verifyExpiration(RefreshToken token);
     Optional<RefreshToken> findByToken(String token);
 

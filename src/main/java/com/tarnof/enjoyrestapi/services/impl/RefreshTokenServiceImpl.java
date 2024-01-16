@@ -21,6 +21,7 @@ import org.springframework.web.util.WebUtils;
 
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,13 +40,13 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     private String refreshTokenName;
 
     @Override
-    public RefreshToken createRefreshToken(int userId) {
+    public RefreshToken createRefreshToken(int userId, Instant dateExpiration) {
         Utilisateur utilisateur = utilisateurRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         RefreshToken refreshToken = RefreshToken.builder()
                 .revoked(false)
                 .utilisateur(utilisateur)
                 .token(Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes()))
-                .expiryDate(Instant.now().plusMillis(refreshExpiration))
+                .expiryDate(dateExpiration)
                 .build();
         return refreshTokenRepository.save(refreshToken);
     }
@@ -94,7 +95,8 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     public ResponseCookie generateRefreshTokenCookie(String token) {
         return ResponseCookie.from(refreshTokenName, token)
                 .path("/")
-                .maxAge(refreshExpiration/1000) // 15 days in seconds
+                .domain("127.0.0.1")
+                .maxAge(refreshExpiration/1000) // refreshExpiration en secondes
                 .httpOnly(true)
                 //.secure(true)
                 //.sameSite("Strict")

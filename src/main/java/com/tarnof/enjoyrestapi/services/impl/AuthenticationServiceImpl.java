@@ -46,7 +46,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .build();
         utilisateur = utilisateurRepository.save(utilisateur);
         var jwt = jwtService.generateToken(utilisateur);
-        var refreshToken = refreshTokenService.createRefreshToken(utilisateur.getId());
+        var refreshToken = refreshTokenService.createRefreshToken(utilisateur.getId(),request.getDateExpiration());
         var role = utilisateur.getRole();
 
         return AuthenticationResponse.builder()
