@@ -11,7 +11,8 @@ import java.util.Optional;
 public interface UtilisateurService {
     public Utilisateur creerUtilisateur(Utilisateur utilisateur);
     public List<ProfilUtilisateurDTO> getAllUtilisateursDTO();
-    public Utilisateur modifierUtilisateur(Utilisateur utilisateur, UpdateUserRequest request);
+    public Utilisateur modifUserByUser(Utilisateur utilisateur, UpdateUserRequest request);
+    public Utilisateur modifUserByAdmin(Utilisateur utilisateur, UpdateUserRequest request);
     public void supprimerUtilisateur(int id);
     public Optional<Utilisateur> profilUtilisateur(String tokenId);
     ProfilUtilisateurDTO mapUtilisateurToProfilDTO(Utilisateur utilisateur);

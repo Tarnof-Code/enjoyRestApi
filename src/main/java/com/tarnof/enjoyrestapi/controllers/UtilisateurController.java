@@ -13,11 +13,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("api/v1/utilisateurs")
@@ -47,15 +51,27 @@ public class UtilisateurController {
         }
     }
 
-    @PostMapping("/modifierInfos")
-    public ResponseEntity<?> modifierUtilisateur(@Valid @RequestBody UpdateUserRequest request) {
+    @PutMapping("/modifierInfos")
+    public ResponseEntity<?> modifierUtilisateur(@Valid @RequestBody UpdateUserRequest request, Authentication authentication) {
         try {
             // Récupérer l'utilisateur depuis la base de données en utilisant son identifiant
             Optional<Utilisateur> utilisateurOptional = utilisateurService.profilUtilisateur(request.getTokenId());
-
+            System.out.println(utilisateurOptional);
             if (utilisateurOptional.isPresent()) {
                 Utilisateur utilisateur = utilisateurOptional.get();
-                var userUpdated = utilisateurService.modifierUtilisateur(utilisateur, request);
+
+                List<String> droits = authentication.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .collect(Collectors.toList());
+
+                Utilisateur userUpdated;
+
+                if(droits.contains("GESTION_UTILISATEURS")) {
+                    userUpdated = utilisateurService.modifUserByAdmin(utilisateur, request);
+                } else {
+                    userUpdated = utilisateurService.modifUserByUser(utilisateur, request);
+                }
+
                 ProfilUtilisateurDTO profilDTO = utilisateurService.mapUtilisateurToProfilDTO(userUpdated);
 
                 return ResponseEntity.ok(profilDTO);
@@ -67,7 +83,7 @@ public class UtilisateurController {
                     .status(HttpStatus.BAD_REQUEST.value())
                     .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
                     .timestamp(Instant.now())
-                    .message("Cet email est déjà utilisé par un autre compte.")
+                    .message(e.getMessage())
                     .path("/modifierInfos")
                     .build();
 

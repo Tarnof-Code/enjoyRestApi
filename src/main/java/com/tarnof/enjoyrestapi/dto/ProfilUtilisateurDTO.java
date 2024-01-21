@@ -7,6 +7,7 @@ import java.util.Date;
 
 @Data
 public class ProfilUtilisateurDTO {
+    private String tokenId;
     private Role role;
     private String nom;
     private String prenom;

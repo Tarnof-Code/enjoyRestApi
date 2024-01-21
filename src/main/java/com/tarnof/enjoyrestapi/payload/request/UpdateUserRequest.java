@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.util.Date;
 
 @Data
@@ -24,4 +25,7 @@ public class UpdateUserRequest {
     private String email;
     private String telephone;
     private Date dateNaissance;
+    private Role role;
+    private Instant dateExpirationCompte;
+
 }
