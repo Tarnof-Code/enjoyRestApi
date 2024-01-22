@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.controllers;
 import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
+import com.tarnof.enjoyrestapi.exceptions.UtilisateurException;
 import com.tarnof.enjoyrestapi.handlers.ErrorResponse;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
@@ -78,7 +79,7 @@ public class UtilisateurController {
             } else {
                 return ResponseEntity.notFound().build();
             }
-        } catch (EmailDejaUtiliseException e) {
+        } catch (UtilisateurException e) {
              ErrorResponse errorResponse = ErrorResponse.builder()
                     .status(HttpStatus.BAD_REQUEST.value())
                     .error(HttpStatus.BAD_REQUEST.getReasonPhrase())

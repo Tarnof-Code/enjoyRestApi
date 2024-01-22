@@ -76,55 +76,45 @@ public class UtilisateurServiceImpl implements UtilisateurService {
 
     @Override
     public Utilisateur modifUserByUser(Utilisateur utilisateur, UpdateUserRequest request) {
-        System.out.println("Dans modifUserByUser  coucou++++++++++++++++");
-        // Vérifier si l'email est déjà utilisé par un autre utilisateur
-        if (!utilisateur.getEmail().equals(request.getEmail()) && utilisateurRepository.existsByEmail(request.getEmail())) {
-            throw new EmailDejaUtiliseException("L'email est déjà utilisé par un autre compte.");
-        }
-         Utilisateur utilisateurModifie = utilisateur.toBuilder()
-                 .prenom(request.getPrenom())
-                 .nom(request.getNom())
-                 .genre(request.getGenre())
-                 .email(request.getEmail())
-                 .telephone(request.getTelephone())
-                 .dateNaissance(request.getDateNaissance())
-                 .build();
-         utilisateurRepository.save(utilisateurModifie);
-        return utilisateurModifie;
+        System.out.println("+++++++++++++++++Dans modifUserByUser++++++++++++++++");
+        return modifUser(utilisateur, request, false);
     }
 
     @Override
     public Utilisateur modifUserByAdmin(Utilisateur utilisateur, UpdateUserRequest request) {
-        System.out.println("Dans modifUserByAdmin  coucou++++++++++++++++");
+        System.out.println("+++++++++++++++++Dans modifUserByAdmin++++++++++++++++");
+        return modifUser(utilisateur, request, true);
+    }
+
+    private Utilisateur modifUser(Utilisateur utilisateur, UpdateUserRequest request, boolean isAdmin) {
+
         // Vérifier si l'email est déjà utilisé par un autre utilisateur
         if (!utilisateur.getEmail().equals(request.getEmail()) && utilisateurRepository.existsByEmail(request.getEmail())) {
             throw new EmailDejaUtiliseException("L'email est déjà utilisé par un autre compte.");
         }
-        Utilisateur utilisateurModifie = utilisateur.toBuilder()
+        Utilisateur.UtilisateurBuilder builder = utilisateur.toBuilder()
                 .prenom(request.getPrenom())
                 .nom(request.getNom())
                 .genre(request.getGenre())
                 .email(request.getEmail())
                 .telephone(request.getTelephone())
-                .dateNaissance(request.getDateNaissance())
-                .role(request.getRole())
-                .build();
+                .dateNaissance(request.getDateNaissance());
 
-        if (utilisateur.getRefreshToken() != null){
-            RefreshToken refreshToken = utilisateur.getRefreshToken();
-            Instant nouvelleDateExpiration = request.getDateExpirationCompte();
-            // Convertir Instant en LocalDateTime
-            LocalDateTime localDateTime = LocalDateTime.ofInstant(nouvelleDateExpiration, ZoneId.systemDefault());
-
-            // Formater LocalDateTime dans le format de la base de données
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
-            String dateExpirationString = localDateTime.format(formatter);
-            refreshToken.setExpiryDate(nouvelleDateExpiration);
-            refreshTokenRepository.save(refreshToken);
+        if (isAdmin) {
+            builder.role(request.getRole());
+            if (utilisateur.getRefreshToken() != null){
+                RefreshToken refreshToken = utilisateur.getRefreshToken();
+                Instant nouvelleDateExpiration = request.getDateExpirationCompte();
+                refreshToken.setExpiryDate(nouvelleDateExpiration);
+                refreshTokenRepository.save(refreshToken);
+            }
         }
+
+        Utilisateur utilisateurModifie = builder.build();
         utilisateurRepository.save(utilisateurModifie);
         return utilisateurModifie;
     }
+
 
 
     @Override

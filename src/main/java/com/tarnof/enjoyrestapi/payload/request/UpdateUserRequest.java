@@ -1,9 +1,11 @@
 package com.tarnof.enjoyrestapi.payload.request;
 
 import com.tarnof.enjoyrestapi.enums.Role;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,12 +21,21 @@ import java.util.Date;
 public class UpdateUserRequest {
     private String tokenId;
     private String prenom;
+    @NotEmpty(message = "Le champ nom ne peut pas être vide.")
+    @Pattern(regexp = "^[a-zA-ZÀ-ÿ]+(([',. -][a-zA-ZÀ-ÿ ])?[a-zA-ZÀ-ÿ]*)*$", message = "Caractères non autorisés")
     private String nom;
+    @NotEmpty(message = "Le champ genre ne peut pas être vide.")
     private String genre;
-    @Email(message = "email format is not valid")
+    @NotEmpty(message = "Le champ email ne peut pas être vide.")
+    @Pattern(regexp = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", message = "Email non valide")
     private String email;
+    @NotEmpty(message = "Le champ N° de téléphone ne peut pas être vide.")
+    @Pattern(regexp = "^0[0-9]{9}$", message = "N° de téléphone non valide")
     private String telephone;
+    @Temporal(TemporalType.DATE)
+    @NotNull(message = "Le champ date de naissance ne peut pas être vide.")
     private Date dateNaissance;
+    @Enumerated(EnumType.STRING)
     private Role role;
     private Instant dateExpirationCompte;
 
