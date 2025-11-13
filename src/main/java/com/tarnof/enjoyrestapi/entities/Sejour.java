@@ -27,10 +27,9 @@ public class Sejour {
     private Utilisateur directeur;
     @ManyToMany
     @JoinTable(
-            name = "sejour_animateurs",
-            joinColumns = @JoinColumn(name = "sejour_id"),
-            inverseJoinColumns = @JoinColumn(name = "animateur_id")
+    name = "sejour_equipe",
+    joinColumns = @JoinColumn(name = "sejour_id"),
+    inverseJoinColumns = @JoinColumn(name = "utilisateur_id")
     )
     private List<Utilisateur> equipe;
-
 }

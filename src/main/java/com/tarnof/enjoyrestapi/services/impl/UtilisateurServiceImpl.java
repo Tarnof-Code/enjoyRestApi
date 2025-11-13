@@ -2,21 +2,24 @@ package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.RefreshToken;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
+import com.tarnof.enjoyrestapi.exceptions.UtilisateurException;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
 import com.tarnof.enjoyrestapi.repositories.RefreshTokenRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.UtilisateurService;
+
+import jakarta.transaction.Transactional;
+
 import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -45,6 +48,19 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     public List<ProfilUtilisateurDTO> getAllUtilisateursDTO() {
         try{
             List<Utilisateur> listeUtilisateurs = utilisateurRepository.findAll();
+            return listeUtilisateurs.stream()
+                    .map(this::mapUtilisateurToProfilDTO)
+                    .collect(Collectors.toList());
+        } catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    @Override
+    public List<ProfilUtilisateurDTO> getUtilisateursByRole(Role role) {
+        try{
+            List<Utilisateur> listeUtilisateurs = utilisateurRepository.findByRole(role);
             return listeUtilisateurs.stream()
                     .map(this::mapUtilisateurToProfilDTO)
                     .collect(Collectors.toList());
@@ -111,6 +127,7 @@ public class UtilisateurServiceImpl implements UtilisateurService {
         }
 
         Utilisateur utilisateurModifie = builder.build();
+        Objects.requireNonNull(utilisateurModifie, "L'utilisateur n'a pas pu être modifié");
         utilisateurRepository.save(utilisateurModifie);
         return utilisateurModifie;
     }
@@ -118,8 +135,14 @@ public class UtilisateurServiceImpl implements UtilisateurService {
 
 
     @Override
-    public void supprimerUtilisateur(int id) {
-
+    @Transactional
+    public void supprimerUtilisateur(String tokenId) {
+        Optional<Utilisateur> utilisateur = utilisateurRepository.findByTokenId(tokenId);
+        if (utilisateur.isPresent()) {
+            utilisateurRepository.deleteByTokenId(tokenId);
+        } else {
+            throw new UtilisateurException("L'utilisateur n'existe pas");
+        }
     }
 
 

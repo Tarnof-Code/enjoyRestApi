@@ -26,7 +26,7 @@ public class Utilisateur implements UserDetails {
     private String tokenId;
     @Enumerated(EnumType.STRING)
     private Role role;
-    @ManyToMany
+    @ManyToMany(mappedBy = "equipe")
     private List<Sejour> sejours;
     @NotEmpty(message = "Le champ nom ne peut pas être vide.")
     @Pattern(regexp = "^[a-zA-ZÀ-ÿ]+(([',. -][a-zA-ZÀ-ÿ ])?[a-zA-ZÀ-ÿ]*)*$", message = "Caractères non autorisés")

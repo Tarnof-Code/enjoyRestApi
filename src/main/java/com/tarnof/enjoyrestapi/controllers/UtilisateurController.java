@@ -2,12 +2,10 @@ package com.tarnof.enjoyrestapi.controllers;
 
 import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
-import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
+import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.exceptions.UtilisateurException;
 import com.tarnof.enjoyrestapi.handlers.ErrorResponse;
-import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
-import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.UtilisateurService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,13 +28,18 @@ public class UtilisateurController {
 
     @Autowired
     private UtilisateurService utilisateurService;
-    @Autowired
-    private UtilisateurRepository utilisateurRepository;
 
     @GetMapping("/liste")
     @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
     public List<ProfilUtilisateurDTO> consulterLaListeDesUtilisateurs(){
         List<ProfilUtilisateurDTO> listeUtilisateursDTO = utilisateurService.getAllUtilisateursDTO();
+        return listeUtilisateursDTO;
+    }
+
+    @GetMapping("/liste/{role}")
+    @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
+    public List<ProfilUtilisateurDTO> consulterLaListeDesUtilisateursParRole(@PathVariable Role role){
+        List<ProfilUtilisateurDTO> listeUtilisateursDTO = utilisateurService.getUtilisateursByRole(role);
         return listeUtilisateursDTO;
     }
 
@@ -52,6 +55,17 @@ public class UtilisateurController {
         }
     }
 
+    @DeleteMapping("/{tokenId}")
+    @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
+    public ResponseEntity<?> supprimerUtilisateur(@PathVariable String tokenId) {
+        try {
+            utilisateurService.supprimerUtilisateur(tokenId);
+            return ResponseEntity.ok().build();
+        } catch (UtilisateurException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    
     @PutMapping("/modifierInfos")
     public ResponseEntity<?> modifierUtilisateur(@Valid @RequestBody UpdateUserRequest request, Authentication authentication) {
         try {
