@@ -20,6 +20,7 @@ import java.util.Date;
 @NoArgsConstructor
 public class UpdateUserRequest {
     private String tokenId;
+    @NotEmpty(message = "Le champ prénom ne peut pas être vide.")
     private String prenom;
     @NotEmpty(message = "Le champ nom ne peut pas être vide.")
     @Pattern(regexp = "^[a-zA-ZÀ-ÿ]+(([',. -][a-zA-ZÀ-ÿ ])?[a-zA-ZÀ-ÿ]*)*$", message = "Caractères non autorisés")

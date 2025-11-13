@@ -13,6 +13,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Objects;
 import java.util.UUID;
 
 @Service @Transactional
@@ -43,12 +45,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .telephone(request.getTelephone())
                 .role(request.getRole())
                 .tokenId(generateTokenId())
-                .build();
-        utilisateur = utilisateurRepository.save(utilisateur);
+                .build();      
+        Objects.requireNonNull(utilisateur, "L'utilisateur n'a pas pu être sauvegardé");
+        utilisateur =  utilisateurRepository.save(utilisateur);
         var jwt = jwtService.generateToken(utilisateur);
         var refreshToken = refreshTokenService.createRefreshToken(utilisateur.getId(),request.getDateExpiration());
         var role = utilisateur.getRole();
-
         return AuthenticationResponse.builder()
                 .accessToken(jwt)
                 .refreshToken(refreshToken.getToken())
@@ -63,12 +65,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 new UsernamePasswordAuthenticationToken(request.getEmail(),request.getMotDePasse()));
 
         var utilisateur = utilisateurRepository.findByEmail(request.getEmail()).orElseThrow(() -> new IllegalArgumentException("Invalid email   or password."));
-        /*var roles = utilisateur.getRole().getAuthorities()
-                .stream()
-                .map(SimpleGrantedAuthority::getAuthority)
-                .toList();
-
-         */
         var role = utilisateur.getRole();
         var jwt = jwtService.generateToken(utilisateur);
         var refreshTokenValue = refreshTokenService.findByUtilisateur(utilisateur)

@@ -21,7 +21,7 @@ import org.springframework.web.util.WebUtils;
 
 import java.time.Instant;
 import java.util.Base64;
-import java.util.Date;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,6 +38,10 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     private long refreshExpiration;
     @Value("${application.security.jwt.refresh-token.cookie-name}")
     private String refreshTokenName;
+    @Value("${application.security.jwt.refresh-token.secure}")
+    private boolean secureCookie;
+    @Value("${application.security.jwt.refresh-token.same-site}")
+    private String sameSite;
 
     @Override
     public RefreshToken createRefreshToken(int userId, Instant dateExpiration) {
@@ -47,7 +51,8 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                 .utilisateur(utilisateur)
                 .token(Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes()))
                 .expiryDate(dateExpiration)
-                .build();
+                .build();       
+        Objects.requireNonNull(refreshToken, "Refresh token not created");
         return refreshTokenRepository.save(refreshToken);
     }
 
@@ -81,7 +86,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         return RefreshTokenResponse.builder()
                 .accessToken(token)
                 .refreshToken(request.getRefreshToken())
-                .tokenType(TokenType.BEARER.name())
+                .tokenType(TokenType.BEARER)
                 .role(role)
                 .build();
     }
@@ -93,19 +98,24 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     public ResponseCookie generateRefreshTokenCookie(String token) {
-        return ResponseCookie.from(refreshTokenName, token)
+        return ResponseCookie.from(
+            Objects.requireNonNull(refreshTokenName), 
+            Objects.requireNonNull(token))
                 .path("/")
                 .domain("127.0.0.1")
                 .maxAge(refreshExpiration/1000) // refreshExpiration en secondes
                 .httpOnly(true)
-                //.secure(true)
-                //.sameSite("Strict")
+                .secure(secureCookie)
+                .sameSite(sameSite)
                 .build();
     }
 
     @Override
     public String getRefreshTokenFromCookies(HttpServletRequest request) {
-        Cookie cookie = WebUtils.getCookie(request, refreshTokenName);
+        Cookie cookie = WebUtils.getCookie(
+            Objects.requireNonNull(request), 
+            Objects.requireNonNull(refreshTokenName)
+        );
         if (cookie != null) {
             return cookie.getValue();
         } else {
@@ -120,7 +130,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     public ResponseCookie getCleanRefreshTokenCookie() {
-        return ResponseCookie.from(refreshTokenName, "")
+        return ResponseCookie.from(Objects.requireNonNull(refreshTokenName), "")
                 .path("/")
                 .build();
     }
