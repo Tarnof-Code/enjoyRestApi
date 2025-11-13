@@ -16,6 +16,4 @@ public class ProfilUtilisateurDTO {
     private String telephone;
     private Date dateNaissance;
     private Instant dateExpirationCompte;
-
-
 }

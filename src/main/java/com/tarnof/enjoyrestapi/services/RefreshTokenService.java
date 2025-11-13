@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseCookie;
 
 import java.time.Instant;
-import java.util.Date;
 import java.util.Optional;
 
 public interface RefreshTokenService {
