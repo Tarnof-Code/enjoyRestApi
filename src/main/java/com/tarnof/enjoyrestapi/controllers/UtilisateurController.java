@@ -29,16 +29,16 @@ public class UtilisateurController {
     @Autowired
     private UtilisateurService utilisateurService;
 
-    @GetMapping("/liste")
+    @GetMapping
     @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
-    public List<ProfilUtilisateurDTO> consulterLaListeDesUtilisateurs(){
+    public List<ProfilUtilisateurDTO> consulterLaListeDesUtilisateurs() {
         List<ProfilUtilisateurDTO> listeUtilisateursDTO = utilisateurService.getAllUtilisateursDTO();
         return listeUtilisateursDTO;
     }
 
-    @GetMapping("/liste/{role}")
+    @GetMapping("/{role}")
     @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
-    public List<ProfilUtilisateurDTO> consulterLaListeDesUtilisateursParRole(@PathVariable Role role){
+    public List<ProfilUtilisateurDTO> consulterLaListeDesUtilisateursParRole(@PathVariable Role role) {
         List<ProfilUtilisateurDTO> listeUtilisateursDTO = utilisateurService.getUtilisateursByRole(role);
         return listeUtilisateursDTO;
     }
@@ -65,11 +65,11 @@ public class UtilisateurController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-    
-    @PutMapping("/modifierInfos")
-    public ResponseEntity<?> modifierUtilisateur(@Valid @RequestBody UpdateUserRequest request, Authentication authentication) {
+
+    @PutMapping
+    public ResponseEntity<?> modifierUtilisateur(@Valid @RequestBody UpdateUserRequest request,
+            Authentication authentication) {
         try {
-            // Récupérer l'utilisateur depuis la base de données en utilisant son identifiant
             Optional<Utilisateur> utilisateurOptional = utilisateurService.profilUtilisateur(request.getTokenId());
             System.out.println(utilisateurOptional);
             if (utilisateurOptional.isPresent()) {
@@ -81,7 +81,7 @@ public class UtilisateurController {
 
                 Utilisateur userUpdated;
 
-                if(droits.contains("GESTION_UTILISATEURS")) {
+                if (droits.contains("GESTION_UTILISATEURS")) {
                     userUpdated = utilisateurService.modifUserByAdmin(utilisateur, request);
                 } else {
                     userUpdated = utilisateurService.modifUserByUser(utilisateur, request);
@@ -94,7 +94,7 @@ public class UtilisateurController {
                 return ResponseEntity.notFound().build();
             }
         } catch (UtilisateurException e) {
-             ErrorResponse errorResponse = ErrorResponse.builder()
+            ErrorResponse errorResponse = ErrorResponse.builder()
                     .status(HttpStatus.BAD_REQUEST.value())
                     .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
                     .timestamp(Instant.now())
@@ -105,11 +105,5 @@ public class UtilisateurController {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
-
-
-
-
-
-
 
 }

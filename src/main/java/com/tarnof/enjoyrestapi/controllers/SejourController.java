@@ -1,4 +1,5 @@
 package com.tarnof.enjoyrestapi.controllers;
+
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,19 +17,19 @@ public class SejourController {
     @Autowired
     private SejourService sejourService;
 
-    @GetMapping("/liste")
+    @GetMapping
     @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
     public List<Sejour> getAllSejours() {
         return sejourService.getAllSejours();
     }
 
-    @PostMapping("/creer")
+    @PostMapping
     @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
     public Sejour creerSejour(@RequestBody CreateSejourRequest request) {
         return sejourService.creerSejour(request);
     }
 
-    @PutMapping("/modifier/{id}")
+    @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
     public Sejour modifierSejour(@PathVariable int id, @RequestBody CreateSejourRequest request) {
         return sejourService.modifierSejour(id, request);
