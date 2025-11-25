@@ -18,25 +18,25 @@ public class SejourController {
     private SejourService sejourService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
+    @PreAuthorize("hasRole('ADMIN')")
     public List<Sejour> getAllSejours() {
         return sejourService.getAllSejours();
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Sejour creerSejour(@RequestBody CreateSejourRequest request) {
         return sejourService.creerSejour(request);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Sejour modifierSejour(@PathVariable int id, @RequestBody CreateSejourRequest request) {
         return sejourService.modifierSejour(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> supprimerSejour(@PathVariable int id) {
         try {
             sejourService.supprimerSejour(id);
@@ -44,5 +44,11 @@ public class SejourController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @GetMapping("/directeur/{directeurTokenId}")
+    @PreAuthorize("hasRole('DIRECTION')")
+    public List<Sejour> getSejoursByDirecteur(@PathVariable String directeurTokenId) {
+        return sejourService.getSejoursByDirecteur(directeurTokenId);
     }
 }

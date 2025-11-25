@@ -21,7 +21,7 @@ public class SejourServiceImpl implements SejourService {
 
     @Autowired
     private SejourRepository sejourRepository;
-    
+
     @Autowired
     private UtilisateurRepository utilisateurRepository;
 
@@ -34,25 +34,25 @@ public class SejourServiceImpl implements SejourService {
     public Sejour creerSejour(CreateSejourRequest request) {
         Utilisateur directeur = utilisateurRepository.findByTokenId(request.getDirecteurTokenId())
             .orElseThrow(() -> new RuntimeException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));
-        
+
         Sejour sejour = Sejour.builder()
-            .nom(request.getNom())
-            .description(request.getDescription())
-            .dateDebut(request.getDateDebut())
-            .dateFin(request.getDateFin())
-            .lieuDuSejour(request.getLieuDuSejour())
-            .directeur(directeur)
-            .build();
+                .nom(request.getNom())
+                .description(request.getDescription())
+                .dateDebut(request.getDateDebut())
+                .dateFin(request.getDateFin())
+                .lieuDuSejour(request.getLieuDuSejour())
+                .directeur(directeur)
+                .build();
 
         Objects.requireNonNull(sejour, "Séjour non créé");
-        
+
         return sejourRepository.save(sejour);
     }
 
     @Override
     public Sejour modifierSejour(int id, CreateSejourRequest request) {
         Sejour sejourExistant = sejourRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Séjour non trouvé avec l'ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Séjour non trouvé avec l'ID: " + id));
         Utilisateur directeur = utilisateurRepository.findByTokenId(request.getDirecteurTokenId())
             .orElseThrow(() -> new RuntimeException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));    
         sejourExistant.setNom(request.getNom());
@@ -67,11 +67,18 @@ public class SejourServiceImpl implements SejourService {
     @Override
     @Transactional
     public void supprimerSejour(int id) {
-       Optional<Sejour> sejour = sejourRepository.findById(id);
-       if (sejour.isPresent()) {
-        sejourRepository.deleteById(id);
-       } else {
-        throw new RuntimeException("Séjour non trouvé avec l'ID: " + id);
-       }
+        Optional<Sejour> sejour = sejourRepository.findById(id);
+        if (sejour.isPresent()) {
+            sejourRepository.deleteById(id);
+        } else {
+            throw new RuntimeException("Séjour non trouvé avec l'ID: " + id);
+        }
+    }
+
+    @Override
+    public List<Sejour> getSejoursByDirecteur(String directeurTokenId) {
+        Utilisateur directeur = utilisateurRepository.findByTokenId(directeurTokenId)
+                .orElseThrow(() -> new RuntimeException("Directeur non trouvé avec le token ID: " + directeurTokenId));
+        return sejourRepository.findByDirecteur(directeur);
     }
 }

@@ -9,5 +9,6 @@ public interface SejourService {
     List<Sejour> getAllSejours();
     Sejour creerSejour(CreateSejourRequest request);
     Sejour modifierSejour(int id, CreateSejourRequest request);
+    List<Sejour> getSejoursByDirecteur(String directeurTokenId);
     void supprimerSejour(int id);
 }
