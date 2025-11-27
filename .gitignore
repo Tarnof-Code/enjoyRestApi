@@ -37,3 +37,9 @@ build/
 
 ### Stack Dump Files ###
 *.stackdump
+
+# Cursor rules
+.cursorrules
+
+# AI Memory Bank
+AI_MEMORY.md
