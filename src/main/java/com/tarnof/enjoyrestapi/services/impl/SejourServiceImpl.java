@@ -3,10 +3,12 @@ package com.tarnof.enjoyrestapi.services.impl;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.tarnof.enjoyrestapi.dto.SejourDTO;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;
@@ -26,12 +28,21 @@ public class SejourServiceImpl implements SejourService {
     private UtilisateurRepository utilisateurRepository;
 
     @Override
-    public List<Sejour> getAllSejours() {
-        return sejourRepository.findAll();
+    public List<SejourDTO> getAllSejours() {
+        return sejourRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public Sejour creerSejour(CreateSejourRequest request) {
+    public SejourDTO getSejourById(int id) {
+        Sejour sejour = sejourRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Séjour non trouvé avec l'ID: " + id));
+        return mapToDTO(sejour);
+    }
+
+    @Override
+    public SejourDTO creerSejour(CreateSejourRequest request) {
         Utilisateur directeur = utilisateurRepository.findByTokenId(request.getDirecteurTokenId())
             .orElseThrow(() -> new RuntimeException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));
 
@@ -46,11 +57,12 @@ public class SejourServiceImpl implements SejourService {
 
         Objects.requireNonNull(sejour, "Séjour non créé");
 
-        return sejourRepository.save(sejour);
+        Sejour savedSejour = sejourRepository.save(sejour);
+        return mapToDTO(savedSejour);
     }
 
     @Override
-    public Sejour modifierSejour(int id, CreateSejourRequest request) {
+    public SejourDTO modifierSejour(int id, CreateSejourRequest request) {
         Sejour sejourExistant = sejourRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Séjour non trouvé avec l'ID: " + id));
         Utilisateur directeur = utilisateurRepository.findByTokenId(request.getDirecteurTokenId())
@@ -61,7 +73,8 @@ public class SejourServiceImpl implements SejourService {
         sejourExistant.setDateFin(request.getDateFin());
         sejourExistant.setLieuDuSejour(request.getLieuDuSejour());
         sejourExistant.setDirecteur(directeur);
-        return sejourRepository.save(sejourExistant);
+        Sejour savedSejour = sejourRepository.save(sejourExistant);
+        return mapToDTO(savedSejour);
     }
 
     @Override
@@ -76,9 +89,30 @@ public class SejourServiceImpl implements SejourService {
     }
 
     @Override
-    public List<Sejour> getSejoursByDirecteur(String directeurTokenId) {
+    public List<SejourDTO> getSejoursByDirecteur(String directeurTokenId) {
         Utilisateur directeur = utilisateurRepository.findByTokenId(directeurTokenId)
                 .orElseThrow(() -> new RuntimeException("Directeur non trouvé avec le token ID: " + directeurTokenId));
-        return sejourRepository.findByDirecteur(directeur);
+        return sejourRepository.findByDirecteur(directeur).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private SejourDTO mapToDTO(Sejour sejour) {
+        SejourDTO dto = new SejourDTO();
+        dto.setId(sejour.getId());
+        dto.setNom(sejour.getNom());
+        dto.setDescription(sejour.getDescription());
+        dto.setDateDebut(sejour.getDateDebut());
+        dto.setDateFin(sejour.getDateFin());
+        dto.setLieuDuSejour(sejour.getLieuDuSejour());
+
+        if (sejour.getDirecteur() != null) {
+            SejourDTO.DirecteurInfos directeurInfos = new SejourDTO.DirecteurInfos();
+            directeurInfos.setTokenId(sejour.getDirecteur().getTokenId());
+            directeurInfos.setNom(sejour.getDirecteur().getNom());
+            directeurInfos.setPrenom(sejour.getDirecteur().getPrenom());
+            dto.setDirecteur(directeurInfos);
+        }
+        return dto;
     }
 }
