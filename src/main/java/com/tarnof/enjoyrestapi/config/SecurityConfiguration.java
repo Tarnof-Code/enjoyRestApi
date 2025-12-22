@@ -30,7 +30,7 @@ public class SecurityConfiguration {
                         .authenticationEntryPoint(unauthorizedEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(request  -> request
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/auth/**","/error").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
