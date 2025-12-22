@@ -25,11 +25,6 @@ public class Sejour {
     private String lieuDuSejour;
     @ManyToOne
     private Utilisateur directeur;
-    @ManyToMany
-    @JoinTable(
-    name = "sejour_equipe",
-    joinColumns = @JoinColumn(name = "sejour_id"),
-    inverseJoinColumns = @JoinColumn(name = "utilisateur_id")
-    )
-    private List<Utilisateur> equipe;
+    @OneToMany(mappedBy = "sejour", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SejourEquipe> equipeRoles;
 }

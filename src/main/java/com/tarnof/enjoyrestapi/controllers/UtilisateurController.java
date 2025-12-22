@@ -3,7 +3,6 @@ package com.tarnof.enjoyrestapi.controllers;
 import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
-import com.tarnof.enjoyrestapi.exceptions.UtilisateurException;
 import com.tarnof.enjoyrestapi.handlers.ErrorResponse;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
 import com.tarnof.enjoyrestapi.services.UtilisateurService;
@@ -43,11 +42,33 @@ public class UtilisateurController {
         return listeUtilisateursDTO;
     }
 
+    @GetMapping("/search")
+    @PreAuthorize("hasRole('DIRECTION') or hasRole('ADMIN')")
+    public ResponseEntity<?> chercherUtilisateurParEmail(@RequestParam("email") String email) {
+        Optional<Utilisateur> utilisateur = utilisateurService.getUtilisateurByEmail(email);      
+        if (utilisateur.isPresent()) {
+            if(utilisateur.get().getRole().equals(Role.DIRECTION)  || utilisateur.get().getRole().equals(Role.ADMIN)) {
+                ErrorResponse errorResponse = ErrorResponse.builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                        .timestamp(Instant.now())
+                        .message("Vous ne pouvez pas ajouter cette personne")
+                        .path("/api/v1/utilisateurs/search")
+                        .build();
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
+            ProfilUtilisateurDTO profilDTO = utilisateurService.mapUtilisateurToProfilDTO(utilisateur.get());
+            return ResponseEntity.ok(profilDTO);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/profil")
     public ResponseEntity<ProfilUtilisateurDTO> profilUtilisateur(@RequestParam("tokenId") String tokenId) {
         Optional<Utilisateur> utilisateur = utilisateurService.profilUtilisateur(tokenId);
         if (utilisateur.isPresent()) {
-            // Mapper l'entité Utilisateur vers le DTO ProfilUtilisateurDTO
             ProfilUtilisateurDTO profilDTO = utilisateurService.mapUtilisateurToProfilDTO(utilisateur.get());
             return ResponseEntity.ok(profilDTO);
         } else {
@@ -57,53 +78,27 @@ public class UtilisateurController {
 
     @DeleteMapping("/{tokenId}")
     @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
-    public ResponseEntity<?> supprimerUtilisateur(@PathVariable String tokenId) {
-        try {
-            utilisateurService.supprimerUtilisateur(tokenId);
-            return ResponseEntity.ok().build();
-        } catch (UtilisateurException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void supprimerUtilisateur(@PathVariable String tokenId) {
+        utilisateurService.supprimerUtilisateur(tokenId);
     }
 
     @PutMapping
-    public ResponseEntity<?> modifierUtilisateur(@Valid @RequestBody UpdateUserRequest request,
+    public ResponseEntity<ProfilUtilisateurDTO> modifierUtilisateur(@Valid @RequestBody UpdateUserRequest request,
             Authentication authentication) {
-        try {
-            Optional<Utilisateur> utilisateurOptional = utilisateurService.profilUtilisateur(request.getTokenId());
-            System.out.println(utilisateurOptional);
-            if (utilisateurOptional.isPresent()) {
-                Utilisateur utilisateur = utilisateurOptional.get();
+        Utilisateur utilisateur = utilisateurService.profilUtilisateur(request.getTokenId())
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec le token ID: " + request.getTokenId()));
 
-                List<String> droits = authentication.getAuthorities().stream()
-                        .map(GrantedAuthority::getAuthority)
-                        .collect(Collectors.toList());
+        List<String> droits = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
 
-                Utilisateur userUpdated;
+        Utilisateur userUpdated = droits.contains("GESTION_UTILISATEURS")
+                ? utilisateurService.modifUserByAdmin(utilisateur, request)
+                : utilisateurService.modifUserByUser(utilisateur, request);
 
-                if (droits.contains("GESTION_UTILISATEURS")) {
-                    userUpdated = utilisateurService.modifUserByAdmin(utilisateur, request);
-                } else {
-                    userUpdated = utilisateurService.modifUserByUser(utilisateur, request);
-                }
-
-                ProfilUtilisateurDTO profilDTO = utilisateurService.mapUtilisateurToProfilDTO(userUpdated);
-
-                return ResponseEntity.ok(profilDTO);
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (UtilisateurException e) {
-            ErrorResponse errorResponse = ErrorResponse.builder()
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                    .timestamp(Instant.now())
-                    .message(e.getMessage())
-                    .path("/modifierInfos")
-                    .build();
-
-            return ResponseEntity.badRequest().body(errorResponse);
-        }
+        ProfilUtilisateurDTO profilDTO = utilisateurService.mapUtilisateurToProfilDTO(userUpdated);
+        return ResponseEntity.ok(profilDTO);
     }
 
 }

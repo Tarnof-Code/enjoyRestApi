@@ -39,5 +39,4 @@ public class UpdateUserRequest {
     @Enumerated(EnumType.STRING)
     private Role role;
     private Instant dateExpirationCompte;
-
 }

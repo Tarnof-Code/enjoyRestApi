@@ -1,5 +1,6 @@
 package com.tarnof.enjoyrestapi.services.impl;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
 import com.tarnof.enjoyrestapi.payload.request.AuthenticationRequest;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.payload.response.AuthenticationResponse;
@@ -33,7 +34,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public AuthenticationResponse register(RegisterRequest request) {
         if(utilisateurRepository.existsByEmail(request.getEmail())){
-            throw new RuntimeException("Un compte avec cette adresse e-mail existe déjà.");
+            throw new EmailDejaUtiliseException("Un compte avec cette adresse e-mail existe déjà.");
+        }
+        if(request.getDateExpiration() == null) {
+            throw new IllegalArgumentException("La date d'expiration est obligatoire pour l'inscription.");
         }
         var utilisateur = Utilisateur.builder()
                 .prenom(request.getPrenom())

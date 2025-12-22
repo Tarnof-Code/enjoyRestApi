@@ -17,5 +17,6 @@ public interface UtilisateurService {
     public Utilisateur modifUserByAdmin(Utilisateur utilisateur, UpdateUserRequest request);
     public void supprimerUtilisateur(String tokenId);
     public Optional<Utilisateur> profilUtilisateur(String tokenId);
+    public Optional<Utilisateur> getUtilisateurByEmail(String email);
     ProfilUtilisateurDTO mapUtilisateurToProfilDTO(Utilisateur utilisateur);
 }

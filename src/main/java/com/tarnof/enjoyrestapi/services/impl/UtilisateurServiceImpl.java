@@ -34,6 +34,9 @@ public class UtilisateurServiceImpl implements UtilisateurService {
 
     @Override
     public Utilisateur creerUtilisateur(Utilisateur utilisateur) {
+        if(utilisateurRepository.existsByEmail(utilisateur.getEmail()) || utilisateurRepository.existsByTelephone(utilisateur.getTelephone())){
+            throw new EmailDejaUtiliseException("L'email ou le numéro de téléphone est déjà utilisé par un autre compte.");
+        }
         try{
             utilisateur.setMotDePasse(bCryptPasswordEncoder.encode(utilisateur.getMotDePasse()));
             return utilisateurRepository.save(utilisateur);
@@ -73,6 +76,11 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     @Override
     public Optional<Utilisateur> profilUtilisateur(String tokenId) {
         return utilisateurRepository.findByTokenId(tokenId);
+    }
+
+    @Override
+    public Optional<Utilisateur> getUtilisateurByEmail(String email) {
+        return utilisateurRepository.findByEmail(email);
     }
 
     @Override
@@ -139,6 +147,8 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     public void supprimerUtilisateur(String tokenId) {
         Optional<Utilisateur> utilisateur = utilisateurRepository.findByTokenId(tokenId);
         if (utilisateur.isPresent()) {
+            // La suppression en cascade gérera automatiquement les SejourEquipe liés
+            // grâce à cascade = CascadeType.ALL dans l'entité Utilisateur
             utilisateurRepository.deleteByTokenId(tokenId);
         } else {
             throw new UtilisateurException("L'utilisateur n'existe pas");

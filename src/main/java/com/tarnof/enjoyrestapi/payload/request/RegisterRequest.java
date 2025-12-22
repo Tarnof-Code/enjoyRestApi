@@ -2,6 +2,8 @@ package com.tarnof.enjoyrestapi.payload.request;
 
 
 import com.tarnof.enjoyrestapi.enums.Role;
+import com.tarnof.enjoyrestapi.enums.RoleSejour;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -37,8 +39,8 @@ public class RegisterRequest {
     @NotBlank(message = "Ce champs est obligatoire")
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&*!]).{4,}$", message = "* Le mot de passe doit contenir au moins une minuscule, une majuscule, et un caractère spécial, et comporter au moins 4 caractères")
     private String motDePasse;
-    @NotNull(message = "Ce champs est obligatoire")
     private Instant dateExpiration;
     @NotNull
     private Role role;
+    private RoleSejour roleSejour;
 }

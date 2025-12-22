@@ -15,4 +15,5 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Intege
     List<Utilisateur> findByRole(Role role);
     void deleteByTokenId(String tokenId);
     boolean existsByEmail(String email);
+    boolean existsByTelephone(String telephone);
 }

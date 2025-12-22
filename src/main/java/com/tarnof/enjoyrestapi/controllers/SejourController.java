@@ -3,13 +3,17 @@ package com.tarnof.enjoyrestapi.controllers;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.tarnof.enjoyrestapi.dto.SejourDTO;
+import com.tarnof.enjoyrestapi.payload.request.MembreEquipeRequest;
 import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;
+import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.services.SejourService;
+    
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("api/v1/sejours")
@@ -29,6 +33,37 @@ public class SejourController {
         return sejourService.getSejourById(id);
     }
 
+    @PostMapping("/{id}/equipe/existant")
+    @PreAuthorize("hasRole('DIRECTION')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void ajouterMembreExistant(@PathVariable("id") int sejourId, @Valid @RequestBody MembreEquipeRequest request) {
+        sejourService.ajouterMembreEquipe(sejourId, null, request);
+    }
+
+    @PostMapping("/{id}/equipe/nouveau")
+    @PreAuthorize("hasRole('DIRECTION')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void ajouterNouveauMembre(@PathVariable("id") int sejourId, @Valid @RequestBody RegisterRequest request) {
+        sejourService.ajouterMembreEquipe(sejourId, request, null);
+    }
+
+    @PutMapping("/{id}/equipe/{membreTokenId}")
+    @PreAuthorize("hasRole('DIRECTION')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void modifierRoleMembreEquipe(
+            @PathVariable("id") int sejourId, 
+            @PathVariable("membreTokenId") String membreTokenId,
+            @Valid @RequestBody MembreEquipeRequest request) {
+        sejourService.modifierRoleMembreEquipe(sejourId, membreTokenId, request.getRoleSejour());
+    }
+
+    @DeleteMapping("/{id}/equipe/{membreTokenId}")
+    @PreAuthorize("hasRole('DIRECTION')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void supprimerMembreEquipe(@PathVariable("id") int sejourId, @PathVariable("membreTokenId") String membreTokenId) {
+        sejourService.supprimerMembreEquipe(sejourId, membreTokenId);
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public SejourDTO creerSejour(@RequestBody CreateSejourRequest request) {
@@ -43,13 +78,9 @@ public class SejourController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> supprimerSejour(@PathVariable int id) {
-        try {
-            sejourService.supprimerSejour(id);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void supprimerSejour(@PathVariable int id) {
+        sejourService.supprimerSejour(id);
     }
 
     @GetMapping("/directeur/{directeurTokenId}")

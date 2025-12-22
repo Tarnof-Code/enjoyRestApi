@@ -26,8 +26,8 @@ public class Utilisateur implements UserDetails {
     private String tokenId;
     @Enumerated(EnumType.STRING)
     private Role role;
-    @ManyToMany(mappedBy = "equipe")
-    private List<Sejour> sejours;
+    @OneToMany(mappedBy = "utilisateur", cascade = CascadeType.ALL)
+    private List<SejourEquipe> sejoursEquipe;
     @NotEmpty(message = "Le champ nom ne peut pas être vide.")
     @Pattern(regexp = "^[a-zA-ZÀ-ÿ]+(([',. -][a-zA-ZÀ-ÿ ])?[a-zA-ZÀ-ÿ]*)*$", message = "Caractères non autorisés")
     private String nom;
@@ -36,9 +36,11 @@ public class Utilisateur implements UserDetails {
     private String prenom;
     @NotEmpty(message = "Le champ genre ne peut pas être vide.")
     private String genre;
+    @Column(unique = true)
     @NotEmpty(message = "Le champ N° de téléphone ne peut pas être vide.")
     @Pattern(regexp = "^0[0-9]{9}$", message = "Numéro de téléphone non valide")
     private String telephone;
+    @Column(unique = true)
     @NotEmpty(message = "Le champ email ne peut pas être vide.")
     @Pattern(regexp = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", message = "Email non valide")
     private String email;
