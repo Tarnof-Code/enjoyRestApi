@@ -41,5 +41,11 @@ build/
 # Cursor rules
 .cursorrules
 
-# AI Memory Bank
-AI_MEMORY.md
+# Fichiers Markdown (tous les fichiers .md)
+*.md
+
+# Fichiers SQL
+*.sql
+
+# Fichiers textes
+*.txt
