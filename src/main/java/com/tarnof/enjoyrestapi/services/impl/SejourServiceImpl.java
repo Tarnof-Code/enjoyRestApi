@@ -65,8 +65,11 @@ public class SejourServiceImpl implements SejourService {
 
     @Override
     public SejourDTO creerSejour(CreateSejourRequest request) {
-        Utilisateur directeur = utilisateurRepository.findByTokenId(request.getDirecteurTokenId())
-            .orElseThrow(() -> new RuntimeException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));
+        Utilisateur directeur = null;
+        if (request.getDirecteurTokenId() != null && !request.getDirecteurTokenId().isBlank()) {
+            directeur = utilisateurRepository.findByTokenId(request.getDirecteurTokenId())
+                .orElseThrow(() -> new RuntimeException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));
+        }
         Sejour sejour = Sejour.builder()
                 .nom(request.getNom())
                 .description(request.getDescription())
@@ -77,15 +80,18 @@ public class SejourServiceImpl implements SejourService {
                 .build();
         Objects.requireNonNull(sejour, "Séjour non créé");
         Sejour savedSejour = sejourRepository.save(sejour);
-        return mapToDTO(savedSejour,false);
+        return mapToDTO(savedSejour, false);
     }
 
     @Override
     public SejourDTO modifierSejour(int id, CreateSejourRequest request) {
         Sejour sejourExistant = sejourRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Séjour non trouvé avec l'ID: " + id));
-        Utilisateur directeur = utilisateurRepository.findByTokenId(request.getDirecteurTokenId())
-            .orElseThrow(() -> new RuntimeException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));    
+                .orElseThrow(() -> new RuntimeException("Séjour non trouvé avec l'ID: " + id));      
+        Utilisateur directeur = null;
+        if (request.getDirecteurTokenId() != null && !request.getDirecteurTokenId().isBlank()) {
+            directeur = utilisateurRepository.findByTokenId(request.getDirecteurTokenId())
+                .orElseThrow(() -> new RuntimeException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));
+        }
         sejourExistant.setNom(request.getNom());
         sejourExistant.setDescription(request.getDescription());
         sejourExistant.setDateDebut(request.getDateDebut());
@@ -93,7 +99,7 @@ public class SejourServiceImpl implements SejourService {
         sejourExistant.setLieuDuSejour(request.getLieuDuSejour());
         sejourExistant.setDirecteur(directeur);
         Sejour savedSejour = sejourRepository.save(sejourExistant);
-        return mapToDTO(savedSejour,false);
+        return mapToDTO(savedSejour, false);
     }
 
     @Override

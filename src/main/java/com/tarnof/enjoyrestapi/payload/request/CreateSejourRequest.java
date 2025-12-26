@@ -33,6 +33,5 @@ public class CreateSejourRequest {
     @Size(min = 2, max = 100, message = "Le lieu doit contenir entre 2 et 100 caractères")
     private String lieuDuSejour;
 
-    @NotBlank(message = "Le directeur est obligatoire")
     private String directeurTokenId;
 }

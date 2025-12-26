@@ -1,12 +1,14 @@
 package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.RefreshToken;
+import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
 import com.tarnof.enjoyrestapi.exceptions.UtilisateurException;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
 import com.tarnof.enjoyrestapi.repositories.RefreshTokenRepository;
+import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.UtilisateurService;
 
@@ -29,6 +31,8 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     private UtilisateurRepository utilisateurRepository;
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
+    @Autowired
+    private SejourRepository sejourRepository;
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
 
@@ -111,7 +115,6 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     }
 
     private Utilisateur modifUser(Utilisateur utilisateur, UpdateUserRequest request, boolean isAdmin) {
-
         // Vérifier si l'email est déjà utilisé par un autre utilisateur
         if (!utilisateur.getEmail().equals(request.getEmail()) && utilisateurRepository.existsByEmail(request.getEmail())) {
             throw new EmailDejaUtiliseException("L'email est déjà utilisé par un autre compte.");
@@ -125,6 +128,14 @@ public class UtilisateurServiceImpl implements UtilisateurService {
                 .dateNaissance(request.getDateNaissance());
 
         if (isAdmin) {
+              // Si le rôle change de DIRECTION vers autre chose, retirer le directeur des séjours
+            if (request.getRole() != null && utilisateur.getRole() == Role.DIRECTION && request.getRole() != Role.DIRECTION) {
+                List<Sejour> sejoursDiriges = sejourRepository.findByDirecteur(utilisateur);
+                if (!sejoursDiriges.isEmpty()) {
+                    sejoursDiriges.forEach(sejour -> sejour.setDirecteur(null));
+                    sejourRepository.saveAll(sejoursDiriges);
+                }
+            }
             builder.role(request.getRole());
             if (utilisateur.getRefreshToken() != null){
                 RefreshToken refreshToken = utilisateur.getRefreshToken();
