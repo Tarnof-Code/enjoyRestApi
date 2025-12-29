@@ -15,10 +15,9 @@ import com.tarnof.enjoyrestapi.services.UtilisateurService;
 import jakarta.transaction.Transactional;
 
 import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import lombok.RequiredArgsConstructor;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -26,15 +25,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UtilisateurServiceImpl implements UtilisateurService {
-    @Autowired
-    private UtilisateurRepository utilisateurRepository;
-    @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
-    @Autowired
-    private SejourRepository sejourRepository;
-    @Autowired
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
+    private final UtilisateurRepository utilisateurRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final SejourRepository sejourRepository;
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Override
     public Utilisateur creerUtilisateur(Utilisateur utilisateur) {

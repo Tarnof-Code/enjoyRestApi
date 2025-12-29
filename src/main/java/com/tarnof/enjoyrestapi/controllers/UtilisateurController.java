@@ -7,7 +7,7 @@ import com.tarnof.enjoyrestapi.handlers.ErrorResponse;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
 import com.tarnof.enjoyrestapi.services.UtilisateurService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,10 +23,10 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("api/v1/utilisateurs")
+@RequiredArgsConstructor
 public class UtilisateurController {
 
-    @Autowired
-    private UtilisateurService utilisateurService;
+    private final UtilisateurService utilisateurService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")

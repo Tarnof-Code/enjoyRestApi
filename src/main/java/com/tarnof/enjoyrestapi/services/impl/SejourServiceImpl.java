@@ -9,7 +9,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
@@ -34,20 +33,17 @@ import com.tarnof.enjoyrestapi.services.AuthenticationService;
 import com.tarnof.enjoyrestapi.services.SejourService;
 
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SejourServiceImpl implements SejourService {
 
-    @Autowired
-    private SejourRepository sejourRepository;
-    @Autowired
-    private UtilisateurRepository utilisateurRepository;
-    @Autowired
-    private AuthenticationService authenticationService;
-    @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
-    @Autowired
-    private SejourEquipeRepository sejourEquipeRepository;
+    private final SejourRepository sejourRepository;
+    private final UtilisateurRepository utilisateurRepository;
+    private final AuthenticationService authenticationService;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final SejourEquipeRepository sejourEquipeRepository;
 
     @Override
     public List<SejourDTO> getAllSejours() {

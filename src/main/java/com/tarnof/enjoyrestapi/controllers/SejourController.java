@@ -2,7 +2,6 @@ package com.tarnof.enjoyrestapi.controllers;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -14,12 +13,14 @@ import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.services.SejourService;
     
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("api/v1/sejours")
+@RequiredArgsConstructor
 public class SejourController {
-    @Autowired
-    private SejourService sejourService;
+    
+    private final SejourService sejourService;
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
