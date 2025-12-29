@@ -20,6 +20,7 @@ import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.enums.RoleSejour;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
+import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.MembreEquipeRequest;
 import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
@@ -55,7 +56,7 @@ public class SejourServiceImpl implements SejourService {
     @Override
     public SejourDTO getSejourById(int id) {
         Sejour sejour = sejourRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Séjour non trouvé avec l'ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + id));
         return mapToDTO(sejour,true);
     }
 
@@ -64,7 +65,7 @@ public class SejourServiceImpl implements SejourService {
         Utilisateur directeur = null;
         if (request.getDirecteurTokenId() != null && !request.getDirecteurTokenId().isBlank()) {
             directeur = utilisateurRepository.findByTokenId(request.getDirecteurTokenId())
-                .orElseThrow(() -> new RuntimeException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));
         }
         Sejour sejour = Sejour.builder()
                 .nom(request.getNom())
@@ -82,11 +83,11 @@ public class SejourServiceImpl implements SejourService {
     @Override
     public SejourDTO modifierSejour(int id, CreateSejourRequest request) {
         Sejour sejourExistant = sejourRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Séjour non trouvé avec l'ID: " + id));      
+                .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + id));      
         Utilisateur directeur = null;
         if (request.getDirecteurTokenId() != null && !request.getDirecteurTokenId().isBlank()) {
             directeur = utilisateurRepository.findByTokenId(request.getDirecteurTokenId())
-                .orElseThrow(() -> new RuntimeException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));
         }
         sejourExistant.setNom(request.getNom());
         sejourExistant.setDescription(request.getDescription());
@@ -105,7 +106,7 @@ public class SejourServiceImpl implements SejourService {
             throw new IllegalArgumentException("Une requête d'ajout ou d'inscription est requise");
         }
         Sejour sejour = sejourRepository.findById(sejourId)
-                .orElseThrow(() -> new RuntimeException("Séjour non trouvé avec l'ID: " + sejourId));
+                .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
         Utilisateur membreAAjouter;
         RoleSejour roleSejour;
         if (membreEquipeRequest != null) {
@@ -136,7 +137,7 @@ public class SejourServiceImpl implements SejourService {
 
     private Utilisateur traiterAjoutMembreExistant(MembreEquipeRequest request, Instant dateFinSejour) {
         Utilisateur membre = utilisateurRepository.findByTokenId(request.getTokenId())
-                .orElseThrow(() -> new RuntimeException("Membre non trouvé avec l'ID: " + request.getTokenId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Membre non trouvé avec l'ID: " + request.getTokenId()));
         if(membre.getSejoursEquipe() != null && !membre.getSejoursEquipe().isEmpty()) {
             Instant dateFinMax = membre.getSejoursEquipe().stream()
                     .map(SejourEquipe::getSejour)
@@ -171,25 +172,25 @@ public class SejourServiceImpl implements SejourService {
         }
         AuthenticationResponse authResponse = authenticationService.register(request);
         return utilisateurRepository.findByTokenId(authResponse.getTokenId())
-                .orElseThrow(() -> new RuntimeException("Erreur lors de la récupération du nouveau compte: " + request.getEmail()));
+                .orElseThrow(() -> new ResourceNotFoundException("Erreur lors de la récupération du nouveau compte: " + request.getEmail()));
     }
 
     @Override
     @Transactional
     public void modifierRoleMembreEquipe(int sejourId, String membreTokenId, RoleSejour nouveauRole) {
         Sejour sejour = sejourRepository.findById(sejourId)
-                .orElseThrow(() -> new RuntimeException("Séjour non trouvé avec l'ID: " + sejourId));
+                .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
         Utilisateur membre = utilisateurRepository.findByTokenId(membreTokenId)
-                .orElseThrow(() -> new RuntimeException("Membre non trouvé avec l'ID: " + membreTokenId));
+                .orElseThrow(() -> new ResourceNotFoundException("Membre non trouvé avec l'ID: " + membreTokenId));
         
         if (sejour.getEquipeRoles() == null || sejour.getEquipeRoles().isEmpty()) {
-            throw new RuntimeException("Le membre ne fait pas partie de l'équipe de ce séjour");
+            throw new ResourceNotFoundException("Le membre ne fait pas partie de l'équipe de ce séjour");
         }
         
         SejourEquipe sejourEquipe = sejour.getEquipeRoles().stream()
                 .filter(se -> se.getUtilisateur().getId() == membre.getId())
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Le membre ne fait pas partie de l'équipe de ce séjour"));
+                .orElseThrow(() -> new ResourceNotFoundException("Le membre ne fait pas partie de l'équipe de ce séjour"));
         
         sejourEquipe.setRoleSejour(nouveauRole);
         sejourRepository.save(sejour);
@@ -199,15 +200,15 @@ public class SejourServiceImpl implements SejourService {
     @Transactional
     public void supprimerMembreEquipe(int sejourId, String membreTokenId) {
         Utilisateur membre = utilisateurRepository.findByTokenId(membreTokenId)
-                .orElseThrow(() -> new RuntimeException("Membre non trouvé avec l'ID: " + membreTokenId));   
+                .orElseThrow(() -> new ResourceNotFoundException("Membre non trouvé avec l'ID: " + membreTokenId));   
         SejourEquipeId sejourEquipeId = new SejourEquipeId(sejourId, membre.getId());
         if (!sejourEquipeRepository.existsById(sejourEquipeId)) {
-            throw new RuntimeException("Le membre ne fait pas partie de l'équipe de ce séjour");
+            throw new ResourceNotFoundException("Le membre ne fait pas partie de l'équipe de ce séjour");
         }
         sejourEquipeRepository.deleteById(sejourEquipeId);
         sejourEquipeRepository.flush();     
         Utilisateur membreRecharge = utilisateurRepository.findByTokenId(membreTokenId)
-                .orElseThrow(() -> new RuntimeException("Membre non trouvé avec l'ID: " + membreTokenId));       
+                .orElseThrow(() -> new ResourceNotFoundException("Membre non trouvé avec l'ID: " + membreTokenId));       
         if (membreRecharge.getSejoursEquipe() != null && !membreRecharge.getSejoursEquipe().isEmpty()) {
             Instant dateFinMax = membreRecharge.getSejoursEquipe().stream()
                     .map(SejourEquipe::getSejour)
@@ -232,14 +233,14 @@ public class SejourServiceImpl implements SejourService {
         if (sejour.isPresent()) {
             sejourRepository.deleteById(id);
         } else {
-            throw new RuntimeException("Séjour non trouvé avec l'ID: " + id);
+            throw new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + id);
         }
     }
 
     @Override
     public List<SejourDTO> getSejoursByDirecteur(String directeurTokenId) {
         Utilisateur directeur = utilisateurRepository.findByTokenId(directeurTokenId)
-                .orElseThrow(() -> new RuntimeException("Directeur non trouvé avec le token ID: " + directeurTokenId));
+                .orElseThrow(() -> new ResourceNotFoundException("Directeur non trouvé avec le token ID: " + directeurTokenId));
         return sejourRepository.findByDirecteur(directeur).stream()
                 .map(sejour -> mapToDTO(sejour,false))
                 .collect(Collectors.toList());
