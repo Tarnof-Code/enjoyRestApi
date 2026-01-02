@@ -4,6 +4,7 @@ import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.handlers.ErrorResponse;
+import com.tarnof.enjoyrestapi.payload.request.ChangePasswordRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
 import com.tarnof.enjoyrestapi.services.UtilisateurService;
 import jakarta.validation.Valid;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -99,6 +101,53 @@ public class UtilisateurController {
 
         ProfilUtilisateurDTO profilDTO = utilisateurService.mapUtilisateurToProfilDTO(userUpdated);
         return ResponseEntity.ok(profilDTO);
+    }
+
+    @PatchMapping("/mot-de-passe")
+    public ResponseEntity<?> changerMotDePasse(
+            @Valid @RequestBody ChangePasswordRequest request,
+            Authentication authentication) {
+        List<String> droits = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+        boolean isAdmin = droits.contains("GESTION_UTILISATEURS");
+        // Si l'utilisateur n'est pas admin, vérifier qu'il modifie son propre mot de passe
+        if (!isAdmin) {
+            Utilisateur currentUser = (Utilisateur) authentication.getPrincipal();
+            if (!currentUser.getTokenId().equals(request.getTokenId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ErrorResponse.builder()
+                                .status(HttpStatus.FORBIDDEN.value())
+                                .error(HttpStatus.FORBIDDEN.getReasonPhrase())
+                                .timestamp(Instant.now())
+                                .message("Vous ne pouvez modifier que votre propre mot de passe")
+                                .path("/api/v1/utilisateurs/mot-de-passe")
+                                .build());
+            }
+            // L'utilisateur doit fournir son ancien mot de passe
+            if (request.getAncienMotDePasse() == null || request.getAncienMotDePasse().isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(ErrorResponse.builder()
+                                .status(HttpStatus.BAD_REQUEST.value())
+                                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                                .timestamp(Instant.now())
+                                .message("L'ancien mot de passe est obligatoire")
+                                .path("/api/v1/utilisateurs/mot-de-passe")
+                                .build());
+            }
+            utilisateurService.changerMotDePasseParUtilisateur(
+                    request.getTokenId(),
+                    request.getAncienMotDePasse(),
+                    request.getNouveauMotDePasse()
+            );
+        } else {
+            // L'admin peut changer sans l'ancien mot de passe
+            utilisateurService.changerMotDePasseParAdmin(
+                    request.getTokenId(),
+                    request.getNouveauMotDePasse()
+            );
+        }
+        return ResponseEntity.ok().body(Map.of("message", "Mot de passe modifié avec succès"));
     }
 
 }

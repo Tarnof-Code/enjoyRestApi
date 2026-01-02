@@ -162,5 +162,23 @@ public class UtilisateurServiceImpl implements UtilisateurService {
         }
     }
 
+    @Override
+    public Utilisateur changerMotDePasseParAdmin(String tokenId, String nouveauMotDePasse) {
+        Utilisateur utilisateur = utilisateurRepository.findByTokenId(tokenId)
+                .orElseThrow(() -> new UtilisateurException("Utilisateur non trouvé"));
+        utilisateur.setMotDePasse(bCryptPasswordEncoder.encode(nouveauMotDePasse));
+        return utilisateurRepository.save(utilisateur);
+    }
+
+    @Override
+    public Utilisateur changerMotDePasseParUtilisateur(String tokenId, String ancienMotDePasse, String nouveauMotDePasse) {
+        Utilisateur utilisateur = utilisateurRepository.findByTokenId(tokenId)
+                .orElseThrow(() -> new UtilisateurException("Utilisateur non trouvé"));
+        if (!bCryptPasswordEncoder.matches(ancienMotDePasse, utilisateur.getMotDePasse())) {
+            throw new UtilisateurException("L'ancien mot de passe est incorrect");
+        }
+        utilisateur.setMotDePasse(bCryptPasswordEncoder.encode(nouveauMotDePasse));
+        return utilisateurRepository.save(utilisateur);
+    }
 
 }

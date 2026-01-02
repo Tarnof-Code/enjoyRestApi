@@ -19,4 +19,6 @@ public interface UtilisateurService {
     public Optional<Utilisateur> profilUtilisateur(String tokenId);
     public Optional<Utilisateur> getUtilisateurByEmail(String email);
     ProfilUtilisateurDTO mapUtilisateurToProfilDTO(Utilisateur utilisateur);
+    Utilisateur changerMotDePasseParAdmin(String tokenId, String nouveauMotDePasse);
+    Utilisateur changerMotDePasseParUtilisateur(String tokenId, String ancienMotDePasse, String nouveauMotDePasse);
 }
