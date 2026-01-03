@@ -9,6 +9,7 @@ import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.enums.RoleSejour;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
+import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;
 import com.tarnof.enjoyrestapi.payload.request.MembreEquipeRequest;
 import com.tarnof.enjoyrestapi.repositories.RefreshTokenRepository;
@@ -26,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -198,7 +200,7 @@ class SejourServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> sejourService.getSejourById(id))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Séjour non trouvé avec l'ID: " + id);
         verify(sejourRepository).findById(id);
     }
@@ -315,10 +317,43 @@ class SejourServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> sejourService.modifierSejour(999, createRequest))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Séjour non trouvé avec l'ID: 999");
         verify(sejourRepository).findById(999);
         verify(sejourRepository, never()).save(any(Sejour.class));
+    }
+
+    @Test
+    @DisplayName("modifierSejour - Devrait modifier un séjour en retirant le directeur")
+    @SuppressWarnings("null")
+    void modifierSejour_WhenRemovingDirecteur_ShouldUpdateSejour() {
+        // Given
+        CreateSejourRequest updateRequest = new CreateSejourRequest(
+                "Séjour Modifié",
+                "Description modifiée",
+                dateDebut,
+                dateFin,
+                "Lieu Modifié",
+                null  // Retirer le directeur
+        );
+
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(sejourRepository.save(any(Sejour.class))).thenAnswer(invocation -> {
+            Sejour s = invocation.getArgument(0);
+            s.setDirecteur(null);
+            return s;
+        });
+
+        // When
+        SejourDto result = sejourService.modifierSejour(1, updateRequest);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.nom()).isEqualTo("Séjour Modifié");
+        assertThat(result.directeur()).isNull();
+        verify(sejourRepository).findById(1);
+        verify(utilisateurRepository, never()).findByTokenId(anyString());
+        verify(sejourRepository).save(any(Sejour.class));
     }
 
     @Test
@@ -332,7 +367,7 @@ class SejourServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> sejourService.modifierSejour(1, createRequest))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Directeur non trouvé avec l'ID: directeur-token-123");
         verify(sejourRepository).findById(1);
         verify(utilisateurRepository).findByTokenId("directeur-token-123");
@@ -401,7 +436,7 @@ class SejourServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> sejourService.ajouterMembreEquipe(999, null, membreRequest))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Séjour non trouvé avec l'ID: 999");
         verify(sejourRepository).findById(999);
     }
@@ -512,7 +547,7 @@ class SejourServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> sejourService.modifierRoleMembreEquipe(1, "membre-token-456", RoleSejour.AS))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Le membre ne fait pas partie de l'équipe de ce séjour");
         verify(sejourRepository).findById(1);
         verify(utilisateurRepository).findByTokenId("membre-token-456");
@@ -590,7 +625,7 @@ class SejourServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> sejourService.supprimerMembreEquipe(1, "membre-token-456"))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Le membre ne fait pas partie de l'équipe de ce séjour");
         verify(utilisateurRepository).findByTokenId("membre-token-456");
         verify(sejourEquipeRepository).existsById(eq(sejourEquipeId));
@@ -655,7 +690,7 @@ class SejourServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> sejourService.getSejoursByDirecteur("directeur-inexistant"))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Directeur non trouvé avec le token ID: directeur-inexistant");
         verify(utilisateurRepository).findByTokenId("directeur-inexistant");
         verify(sejourRepository, never()).findByDirecteur(any(Utilisateur.class));
