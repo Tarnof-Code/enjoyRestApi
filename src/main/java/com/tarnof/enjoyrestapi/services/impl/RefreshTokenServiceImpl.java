@@ -76,19 +76,19 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     public RefreshTokenResponse generateNewToken(RefreshTokenRequest request) {
-        Utilisateur utilisateur = findByToken(request.getRefreshToken())
+        Utilisateur utilisateur = findByToken(request.refreshToken())
                 .map(this::verifyExpiration)
                 .map(RefreshToken::getUtilisateur)
-                .orElseThrow(() -> new TokenException(request.getRefreshToken(),"Refresh token does not exist"));
+                .orElseThrow(() -> new TokenException(request.refreshToken(),"Refresh token does not exist"));
 
         String token = jwtService.generateToken(utilisateur);
         var role = utilisateur.getRole();
-        return RefreshTokenResponse.builder()
-                .accessToken(token)
-                .refreshToken(request.getRefreshToken())
-                .tokenType(TokenType.BEARER)
-                .role(role)
-                .build();
+        return new RefreshTokenResponse(
+            token,
+            request.refreshToken(),
+            TokenType.BEARER,
+            role
+        );
     }
 
     @Override

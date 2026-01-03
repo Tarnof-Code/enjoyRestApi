@@ -14,7 +14,7 @@ import com.tarnof.enjoyrestapi.services.UtilisateurService;
 
 import jakarta.transaction.Transactional;
 
-import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
+import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +48,7 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     }
 
     @Override
-    public List<ProfilUtilisateurDTO> getAllUtilisateursDTO() {
+    public List<ProfilDto> getAllUtilisateursDTO() {
         try{
             List<Utilisateur> listeUtilisateurs = utilisateurRepository.findAll();
             return listeUtilisateurs.stream()
@@ -61,7 +61,7 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     }
 
     @Override
-    public List<ProfilUtilisateurDTO> getUtilisateursByRole(Role role) {
+    public List<ProfilDto> getUtilisateursByRole(Role role) {
         try{
             List<Utilisateur> listeUtilisateurs = utilisateurRepository.findByRole(role);
             return listeUtilisateurs.stream()
@@ -84,18 +84,19 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     }
 
     @Override
-    public ProfilUtilisateurDTO mapUtilisateurToProfilDTO(Utilisateur utilisateur) {
-        ProfilUtilisateurDTO profilDTO = new ProfilUtilisateurDTO();
-        profilDTO.setRole(utilisateur.getRole());
-        profilDTO.setNom(utilisateur.getNom());
-        profilDTO.setPrenom(utilisateur.getPrenom());
-        profilDTO.setGenre(utilisateur.getGenre());
-        profilDTO.setEmail(utilisateur.getEmail());
-        profilDTO.setTelephone(utilisateur.getTelephone());
-        profilDTO.setDateNaissance(utilisateur.getDateNaissance());
-        profilDTO.setDateExpirationCompte(utilisateur.getDateExpirationCompte());
-        profilDTO.setTokenId(utilisateur.getTokenId());
-        return profilDTO;
+    public ProfilDto mapUtilisateurToProfilDTO(Utilisateur utilisateur) {
+        return new ProfilDto(
+            utilisateur.getTokenId(),
+            utilisateur.getRole(),
+            null,
+            utilisateur.getNom(),
+            utilisateur.getPrenom(),
+            utilisateur.getGenre(),
+            utilisateur.getEmail(),
+            utilisateur.getTelephone(),
+            utilisateur.getDateNaissance(),
+            utilisateur.getDateExpirationCompte()
+        );
     }
 
     @Override
@@ -112,30 +113,30 @@ public class UtilisateurServiceImpl implements UtilisateurService {
 
     private Utilisateur modifUser(Utilisateur utilisateur, UpdateUserRequest request, boolean isAdmin) {
         // Vérifier si l'email est déjà utilisé par un autre utilisateur
-        if (!utilisateur.getEmail().equals(request.getEmail()) && utilisateurRepository.existsByEmail(request.getEmail())) {
+        if (!utilisateur.getEmail().equals(request.email()) && utilisateurRepository.existsByEmail(request.email())) {
             throw new EmailDejaUtiliseException("L'email est déjà utilisé par un autre compte.");
         }
         Utilisateur.UtilisateurBuilder builder = utilisateur.toBuilder()
-                .prenom(request.getPrenom())
-                .nom(request.getNom())
-                .genre(request.getGenre())
-                .email(request.getEmail())
-                .telephone(request.getTelephone())
-                .dateNaissance(request.getDateNaissance());
+                .prenom(request.prenom())
+                .nom(request.nom())
+                .genre(request.genre())
+                .email(request.email())
+                .telephone(request.telephone())
+                .dateNaissance(request.dateNaissance());
 
         if (isAdmin) {
               // Si le rôle change de DIRECTION vers autre chose, retirer le directeur des séjours
-            if (request.getRole() != null && utilisateur.getRole() == Role.DIRECTION && request.getRole() != Role.DIRECTION) {
+            if (request.role() != null && utilisateur.getRole() == Role.DIRECTION && request.role() != Role.DIRECTION) {
                 List<Sejour> sejoursDiriges = sejourRepository.findByDirecteur(utilisateur);
                 if (!sejoursDiriges.isEmpty()) {
                     sejoursDiriges.forEach(sejour -> sejour.setDirecteur(null));
                     sejourRepository.saveAll(sejoursDiriges);
                 }
             }
-            builder.role(request.getRole());
+            builder.role(request.role());
             if (utilisateur.getRefreshToken() != null){
                 RefreshToken refreshToken = utilisateur.getRefreshToken();
-                Instant nouvelleDateExpiration = request.getDateExpirationCompte();
+                Instant nouvelleDateExpiration = request.dateExpirationCompte();
                 refreshToken.setExpiryDate(nouvelleDateExpiration);
                 refreshTokenRepository.save(refreshToken);
             }

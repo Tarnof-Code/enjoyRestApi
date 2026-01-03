@@ -11,8 +11,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
-import com.tarnof.enjoyrestapi.dto.SejourDTO;
+import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
+import com.tarnof.enjoyrestapi.payload.response.SejourDto;
 import com.tarnof.enjoyrestapi.entities.RefreshToken;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEquipe;
@@ -47,32 +47,32 @@ public class SejourServiceImpl implements SejourService {
     private final SejourEquipeRepository sejourEquipeRepository;
 
     @Override
-    public List<SejourDTO> getAllSejours() {
+    public List<SejourDto> getAllSejours() {
         return sejourRepository.findAll().stream()
                 .map(sejour -> mapToDTO(sejour, false))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public SejourDTO getSejourById(int id) {
+    public SejourDto getSejourById(int id) {
         Sejour sejour = sejourRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + id));
         return mapToDTO(sejour,true);
     }
 
     @Override
-    public SejourDTO creerSejour(CreateSejourRequest request) {
+    public SejourDto creerSejour(CreateSejourRequest request) {
         Utilisateur directeur = null;
-        if (request.getDirecteurTokenId() != null && !request.getDirecteurTokenId().isBlank()) {
-            directeur = utilisateurRepository.findByTokenId(request.getDirecteurTokenId())
-                .orElseThrow(() -> new ResourceNotFoundException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));
+        if (request.directeurTokenId() != null && !request.directeurTokenId().isBlank()) {
+            directeur = utilisateurRepository.findByTokenId(request.directeurTokenId())
+                .orElseThrow(() -> new ResourceNotFoundException("Directeur non trouvé avec l'ID: " + request.directeurTokenId()));
         }
         Sejour sejour = Sejour.builder()
-                .nom(request.getNom())
-                .description(request.getDescription())
-                .dateDebut(request.getDateDebut())
-                .dateFin(request.getDateFin())
-                .lieuDuSejour(request.getLieuDuSejour())
+                .nom(request.nom())
+                .description(request.description())
+                .dateDebut(request.dateDebut())
+                .dateFin(request.dateFin())
+                .lieuDuSejour(request.lieuDuSejour())
                 .directeur(directeur)
                 .build();
         Objects.requireNonNull(sejour, "Séjour non créé");
@@ -81,19 +81,19 @@ public class SejourServiceImpl implements SejourService {
     }
 
     @Override
-    public SejourDTO modifierSejour(int id, CreateSejourRequest request) {
+    public SejourDto modifierSejour(int id, CreateSejourRequest request) {
         Sejour sejourExistant = sejourRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + id));      
         Utilisateur directeur = null;
-        if (request.getDirecteurTokenId() != null && !request.getDirecteurTokenId().isBlank()) {
-            directeur = utilisateurRepository.findByTokenId(request.getDirecteurTokenId())
-                .orElseThrow(() -> new ResourceNotFoundException("Directeur non trouvé avec l'ID: " + request.getDirecteurTokenId()));
+        if (request.directeurTokenId() != null && !request.directeurTokenId().isBlank()) {
+            directeur = utilisateurRepository.findByTokenId(request.directeurTokenId())
+                .orElseThrow(() -> new ResourceNotFoundException("Directeur non trouvé avec l'ID: " + request.directeurTokenId()));
         }
-        sejourExistant.setNom(request.getNom());
-        sejourExistant.setDescription(request.getDescription());
-        sejourExistant.setDateDebut(request.getDateDebut());
-        sejourExistant.setDateFin(request.getDateFin());
-        sejourExistant.setLieuDuSejour(request.getLieuDuSejour());
+        sejourExistant.setNom(request.nom());
+        sejourExistant.setDescription(request.description());
+        sejourExistant.setDateDebut(request.dateDebut());
+        sejourExistant.setDateFin(request.dateFin());
+        sejourExistant.setLieuDuSejour(request.lieuDuSejour());
         sejourExistant.setDirecteur(directeur);
         Sejour savedSejour = sejourRepository.save(sejourExistant);
         return mapToDTO(savedSejour, false);
@@ -111,10 +111,10 @@ public class SejourServiceImpl implements SejourService {
         RoleSejour roleSejour;
         if (membreEquipeRequest != null) {
             membreAAjouter = traiterAjoutMembreExistant(membreEquipeRequest, sejour.getDateFin().toInstant());
-            roleSejour = membreEquipeRequest.getRoleSejour();
+            roleSejour = membreEquipeRequest.roleSejour();
         } else {
             membreAAjouter = traiterInscriptionNouveauMembre(registerRequest, sejour.getDateFin().toInstant());
-            roleSejour = registerRequest.getRoleSejour();
+            roleSejour = registerRequest.roleSejour();
         }
         if (sejour.getEquipeRoles() != null) {
             boolean dejaDansEquipe = sejour.getEquipeRoles().stream()
@@ -136,8 +136,8 @@ public class SejourServiceImpl implements SejourService {
     }
 
     private Utilisateur traiterAjoutMembreExistant(MembreEquipeRequest request, Instant dateFinSejour) {
-        Utilisateur membre = utilisateurRepository.findByTokenId(request.getTokenId())
-                .orElseThrow(() -> new ResourceNotFoundException("Membre non trouvé avec l'ID: " + request.getTokenId()));
+        Utilisateur membre = utilisateurRepository.findByTokenId(request.tokenId())
+                .orElseThrow(() -> new ResourceNotFoundException("Membre non trouvé avec l'ID: " + request.tokenId()));
         if(membre.getSejoursEquipe() != null && !membre.getSejoursEquipe().isEmpty()) {
             Instant dateFinMax = membre.getSejoursEquipe().stream()
                     .map(SejourEquipe::getSejour)
@@ -166,13 +166,22 @@ public class SejourServiceImpl implements SejourService {
 
     private Utilisateur traiterInscriptionNouveauMembre(RegisterRequest request, Instant dateFinSejour) {
         Instant dateExpiration = dateFinSejour.plus(30, ChronoUnit.DAYS);
-        request.setDateExpiration(dateExpiration);
-        if (request.getRole() == null) {
-            request.setRole(Role.BASIC_USER);
-        }
-        AuthenticationResponse authResponse = authenticationService.register(request);
-        return utilisateurRepository.findByTokenId(authResponse.getTokenId())
-                .orElseThrow(() -> new ResourceNotFoundException("Erreur lors de la récupération du nouveau compte: " + request.getEmail()));
+        Role role = request.role() != null ? request.role() : Role.BASIC_USER;
+        RegisterRequest requestWithExpiration = new RegisterRequest(
+            request.prenom(),
+            request.nom(),
+            request.genre(),
+            request.dateNaissance(),
+            request.telephone(),
+            request.email(),
+            request.motDePasse(),
+            dateExpiration,
+            role,
+            request.roleSejour()
+        );
+        AuthenticationResponse authResponse = authenticationService.register(requestWithExpiration);
+        return utilisateurRepository.findByTokenId(authResponse.tokenId())
+                .orElseThrow(() -> new ResourceNotFoundException("Erreur lors de la récupération du nouveau compte: " + request.email()));
     }
 
     @Override
@@ -238,7 +247,7 @@ public class SejourServiceImpl implements SejourService {
     }
 
     @Override
-    public List<SejourDTO> getSejoursByDirecteur(String directeurTokenId) {
+    public List<SejourDto> getSejoursByDirecteur(String directeurTokenId) {
         Utilisateur directeur = utilisateurRepository.findByTokenId(directeurTokenId)
                 .orElseThrow(() -> new ResourceNotFoundException("Directeur non trouvé avec le token ID: " + directeurTokenId));
         return sejourRepository.findByDirecteur(directeur).stream()
@@ -246,43 +255,47 @@ public class SejourServiceImpl implements SejourService {
                 .collect(Collectors.toList());
     }
 
-    private SejourDTO mapToDTO(Sejour sejour,Boolean includeEquipe) {
-        SejourDTO dto = new SejourDTO();
-        dto.setId(sejour.getId());
-        dto.setNom(sejour.getNom());
-        dto.setDescription(sejour.getDescription());
-        dto.setDateDebut(sejour.getDateDebut());
-        dto.setDateFin(sejour.getDateFin());
-        dto.setLieuDuSejour(sejour.getLieuDuSejour());
+    private SejourDto mapToDTO(Sejour sejour,Boolean includeEquipe) {
+        SejourDto.DirecteurInfos directeurInfos = null;
         if (sejour.getDirecteur() != null) {
-            SejourDTO.DirecteurInfos directeurInfos = new SejourDTO.DirecteurInfos();
-            directeurInfos.setTokenId(sejour.getDirecteur().getTokenId());
-            directeurInfos.setNom(sejour.getDirecteur().getNom());
-            directeurInfos.setPrenom(sejour.getDirecteur().getPrenom());
-            dto.setDirecteur(directeurInfos);
+            directeurInfos = new SejourDto.DirecteurInfos(
+                sejour.getDirecteur().getTokenId(),
+                sejour.getDirecteur().getNom(),
+                sejour.getDirecteur().getPrenom()
+            );
         }
+        
+        List<ProfilDto> equipeInfos = null;
         if (includeEquipe && sejour.getEquipeRoles() != null && !sejour.getEquipeRoles().isEmpty()) {
-            List<ProfilUtilisateurDTO> equipeInfos = sejour.getEquipeRoles().stream()
+            equipeInfos = sejour.getEquipeRoles().stream()
                 .map(sejourEquipe -> {
                     Utilisateur membre = sejourEquipe.getUtilisateur();
-                    
-                    ProfilUtilisateurDTO info = new ProfilUtilisateurDTO();
-                    info.setTokenId(membre.getTokenId());
-                    info.setRole(membre.getRole()); 
-                    info.setRoleSejour(sejourEquipe.getRoleSejour());                   
-                    info.setNom(membre.getNom());
-                    info.setPrenom(membre.getPrenom());
-                    info.setGenre(membre.getGenre());
-                    info.setEmail(membre.getEmail());
-                    info.setTelephone(membre.getTelephone());
-                    info.setDateNaissance(membre.getDateNaissance());
-                    info.setDateExpirationCompte(membre.getDateExpirationCompte());
-                    return info;
+                    return new ProfilDto(
+                        membre.getTokenId(),
+                        membre.getRole(),
+                        sejourEquipe.getRoleSejour(),
+                        membre.getNom(),
+                        membre.getPrenom(),
+                        membre.getGenre(),
+                        membre.getEmail(),
+                        membre.getTelephone(),
+                        membre.getDateNaissance(),
+                        membre.getDateExpirationCompte()
+                    );
                 })
                 .collect(Collectors.toList());
-            dto.setEquipe(equipeInfos);
         }
-        return dto;
+        
+        return new SejourDto(
+            sejour.getId(),
+            sejour.getNom(),
+            sejour.getDescription(),
+            sejour.getDateDebut(),
+            sejour.getDateFin(),
+            sejour.getLieuDuSejour(),
+            directeurInfos,
+            equipeInfos
+        );
     }
 }
 

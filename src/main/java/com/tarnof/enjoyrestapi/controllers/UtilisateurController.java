@@ -1,6 +1,6 @@
 package com.tarnof.enjoyrestapi.controllers;
 
-import com.tarnof.enjoyrestapi.dto.ProfilUtilisateurDTO;
+import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.handlers.ErrorResponse;
@@ -32,15 +32,15 @@ public class UtilisateurController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
-    public List<ProfilUtilisateurDTO> consulterLaListeDesUtilisateurs() {
-        List<ProfilUtilisateurDTO> listeUtilisateursDTO = utilisateurService.getAllUtilisateursDTO();
+    public List<ProfilDto> consulterLaListeDesUtilisateurs() {
+        List<ProfilDto> listeUtilisateursDTO = utilisateurService.getAllUtilisateursDTO();
         return listeUtilisateursDTO;
     }
 
     @GetMapping("/{role}")
     @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")
-    public List<ProfilUtilisateurDTO> consulterLaListeDesUtilisateursParRole(@PathVariable Role role) {
-        List<ProfilUtilisateurDTO> listeUtilisateursDTO = utilisateurService.getUtilisateursByRole(role);
+    public List<ProfilDto> consulterLaListeDesUtilisateursParRole(@PathVariable Role role) {
+        List<ProfilDto> listeUtilisateursDTO = utilisateurService.getUtilisateursByRole(role);
         return listeUtilisateursDTO;
     }
 
@@ -60,7 +60,7 @@ public class UtilisateurController {
                 return ResponseEntity.badRequest().body(errorResponse);
             }
 
-            ProfilUtilisateurDTO profilDTO = utilisateurService.mapUtilisateurToProfilDTO(utilisateur.get());
+            ProfilDto profilDTO = utilisateurService.mapUtilisateurToProfilDTO(utilisateur.get());
             return ResponseEntity.ok(profilDTO);
         } else {
             return ResponseEntity.notFound().build();
@@ -68,10 +68,10 @@ public class UtilisateurController {
     }
 
     @GetMapping("/profil")
-    public ResponseEntity<ProfilUtilisateurDTO> profilUtilisateur(@RequestParam("tokenId") String tokenId) {
+    public ResponseEntity<ProfilDto> profilUtilisateur(@RequestParam("tokenId") String tokenId) {
         Optional<Utilisateur> utilisateur = utilisateurService.profilUtilisateur(tokenId);
         if (utilisateur.isPresent()) {
-            ProfilUtilisateurDTO profilDTO = utilisateurService.mapUtilisateurToProfilDTO(utilisateur.get());
+            ProfilDto profilDTO = utilisateurService.mapUtilisateurToProfilDTO(utilisateur.get());
             return ResponseEntity.ok(profilDTO);
         } else {
             return ResponseEntity.notFound().build();
@@ -86,10 +86,10 @@ public class UtilisateurController {
     }
 
     @PutMapping
-    public ResponseEntity<ProfilUtilisateurDTO> modifierUtilisateur(@Valid @RequestBody UpdateUserRequest request,
+    public ResponseEntity<ProfilDto> modifierUtilisateur(@Valid @RequestBody UpdateUserRequest request,
             Authentication authentication) {
-        Utilisateur utilisateur = utilisateurService.profilUtilisateur(request.getTokenId())
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec le token ID: " + request.getTokenId()));
+        Utilisateur utilisateur = utilisateurService.profilUtilisateur(request.tokenId())
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec le token ID: " + request.tokenId()));
 
         List<String> droits = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -99,7 +99,7 @@ public class UtilisateurController {
                 ? utilisateurService.modifUserByAdmin(utilisateur, request)
                 : utilisateurService.modifUserByUser(utilisateur, request);
 
-        ProfilUtilisateurDTO profilDTO = utilisateurService.mapUtilisateurToProfilDTO(userUpdated);
+        ProfilDto profilDTO = utilisateurService.mapUtilisateurToProfilDTO(userUpdated);
         return ResponseEntity.ok(profilDTO);
     }
 
@@ -114,7 +114,7 @@ public class UtilisateurController {
         // Si l'utilisateur n'est pas admin, vérifier qu'il modifie son propre mot de passe
         if (!isAdmin) {
             Utilisateur currentUser = (Utilisateur) authentication.getPrincipal();
-            if (!currentUser.getTokenId().equals(request.getTokenId())) {
+            if (!currentUser.getTokenId().equals(request.tokenId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(ErrorResponse.builder()
                                 .status(HttpStatus.FORBIDDEN.value())
@@ -125,7 +125,7 @@ public class UtilisateurController {
                                 .build());
             }
             // L'utilisateur doit fournir son ancien mot de passe
-            if (request.getAncienMotDePasse() == null || request.getAncienMotDePasse().isBlank()) {
+            if (request.ancienMotDePasse() == null || request.ancienMotDePasse().isBlank()) {
                 return ResponseEntity.badRequest()
                         .body(ErrorResponse.builder()
                                 .status(HttpStatus.BAD_REQUEST.value())
@@ -136,15 +136,15 @@ public class UtilisateurController {
                                 .build());
             }
             utilisateurService.changerMotDePasseParUtilisateur(
-                    request.getTokenId(),
-                    request.getAncienMotDePasse(),
-                    request.getNouveauMotDePasse()
+                    request.tokenId(),
+                    request.ancienMotDePasse(),
+                    request.nouveauMotDePasse()
             );
         } else {
             // L'admin peut changer sans l'ancien mot de passe
             utilisateurService.changerMotDePasseParAdmin(
-                    request.getTokenId(),
-                    request.getNouveauMotDePasse()
+                    request.tokenId(),
+                    request.nouveauMotDePasse()
             );
         }
         return ResponseEntity.ok().body(Map.of("message", "Mot de passe modifié avec succès"));

@@ -1,12 +1,8 @@
 package com.tarnof.enjoyrestapi.payload.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class RefreshTokenRequest {
-    private String refreshToken;
-}
+public record RefreshTokenRequest(
+    @NotBlank(message = "Le refresh token est obligatoire")
+    String refreshToken
+) {}

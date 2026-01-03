@@ -1,26 +1,21 @@
 package com.tarnof.enjoyrestapi.payload.response;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tarnof.enjoyrestapi.enums.Role;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class AuthenticationResponse {
-    private Role role;
-    private String tokenId;
+public record AuthenticationResponse(
+    Role role,
+    String tokenId,
     @JsonProperty("access_token")
-    private String accessToken;
+    String accessToken,
     @JsonProperty("refresh_token")
-    private String refreshToken;
-    private String errorMessage;
-    public AuthenticationResponse(String errorMessage) {
-        this.errorMessage = errorMessage;
+    String refreshToken,
+    String errorMessage
+) {
+    // Factory method pour créer une réponse d'erreur
+    public static AuthenticationResponse error(String errorMessage) {
+        return new AuthenticationResponse(null, null, null, null, errorMessage);
     }
 }

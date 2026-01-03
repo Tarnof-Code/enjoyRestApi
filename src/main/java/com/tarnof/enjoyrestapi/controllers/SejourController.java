@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import com.tarnof.enjoyrestapi.dto.SejourDTO;
+import com.tarnof.enjoyrestapi.payload.response.SejourDto;
 import com.tarnof.enjoyrestapi.payload.request.MembreEquipeRequest;
 import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
@@ -24,13 +24,13 @@ public class SejourController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public List<SejourDTO> getAllSejours() {
+    public List<SejourDto> getAllSejours() {
         return sejourService.getAllSejours();
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTION')")
-    public SejourDTO getSejourById(@PathVariable int id) {
+    public SejourDto getSejourById(@PathVariable int id) {
         return sejourService.getSejourById(id);
     }
 
@@ -55,7 +55,7 @@ public class SejourController {
             @PathVariable("id") int sejourId, 
             @PathVariable("membreTokenId") String membreTokenId,
             @Valid @RequestBody MembreEquipeRequest request) {
-        sejourService.modifierRoleMembreEquipe(sejourId, membreTokenId, request.getRoleSejour());
+        sejourService.modifierRoleMembreEquipe(sejourId, membreTokenId, request.roleSejour());
     }
 
     @DeleteMapping("/{id}/equipe/{membreTokenId}")
@@ -67,13 +67,13 @@ public class SejourController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public SejourDTO creerSejour(@RequestBody CreateSejourRequest request) {
+    public SejourDto creerSejour(@RequestBody CreateSejourRequest request) {
         return sejourService.creerSejour(request);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public SejourDTO modifierSejour(@PathVariable int id, @RequestBody CreateSejourRequest request) {
+    public SejourDto modifierSejour(@PathVariable int id, @RequestBody CreateSejourRequest request) {
         return sejourService.modifierSejour(id, request);
     }
 
@@ -86,7 +86,7 @@ public class SejourController {
 
     @GetMapping("/directeur/{directeurTokenId}")
     @PreAuthorize("hasRole('DIRECTION')")
-    public List<SejourDTO> getSejoursByDirecteur(@PathVariable String directeurTokenId) {
+    public List<SejourDto> getSejoursByDirecteur(@PathVariable String directeurTokenId) {
         return sejourService.getSejoursByDirecteur(directeurTokenId);
     }
 }

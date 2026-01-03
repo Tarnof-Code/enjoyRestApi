@@ -1,15 +1,10 @@
 package com.tarnof.enjoyrestapi.payload.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
 
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class AuthenticationRequest {
-    private String email;
-    private String motDePasse;
-}
+public record AuthenticationRequest(
+    @NotBlank(message = "L'email est obligatoire")
+    String email,
+    @NotBlank(message = "Le mot de passe est obligatoire")
+    String motDePasse
+) {}

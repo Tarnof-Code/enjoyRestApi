@@ -33,53 +33,55 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
     @Override
     public AuthenticationResponse register(RegisterRequest request) {
-        if(utilisateurRepository.existsByEmail(request.getEmail())){
+        if(utilisateurRepository.existsByEmail(request.email())){
             throw new EmailDejaUtiliseException("Un compte avec cette adresse e-mail existe déjà.");
         }
-        if(request.getDateExpiration() == null) {
+        if(request.dateExpiration() == null) {
             throw new IllegalArgumentException("La date d'expiration est obligatoire pour l'inscription.");
         }
         var utilisateur = Utilisateur.builder()
-                .prenom(request.getPrenom())
-                .nom(request.getNom())
-                .email(request.getEmail())
-                .motDePasse(passwordEncoder.encode(request.getMotDePasse()))
-                .genre(request.getGenre())
-                .dateNaissance(request.getDateNaissance())
-                .telephone(request.getTelephone())
-                .role(request.getRole())
+                .prenom(request.prenom())
+                .nom(request.nom())
+                .email(request.email())
+                .motDePasse(passwordEncoder.encode(request.motDePasse()))
+                .genre(request.genre())
+                .dateNaissance(request.dateNaissance())
+                .telephone(request.telephone())
+                .role(request.role())
                 .tokenId(generateTokenId())
                 .build();      
         Objects.requireNonNull(utilisateur, "L'utilisateur n'a pas pu être sauvegardé");
         utilisateur =  utilisateurRepository.save(utilisateur);
         var jwt = jwtService.generateToken(utilisateur);
-        var refreshToken = refreshTokenService.createRefreshToken(utilisateur.getId(),request.getDateExpiration());
+        var refreshToken = refreshTokenService.createRefreshToken(utilisateur.getId(),request.dateExpiration());
         var role = utilisateur.getRole();
-        return AuthenticationResponse.builder()
-                .accessToken(jwt)
-                .refreshToken(refreshToken.getToken())
-                .role(role)
-                .tokenId(utilisateur.getTokenId())
-                .build();
+        return new AuthenticationResponse(
+            role,
+            utilisateur.getTokenId(),
+            jwt,
+            refreshToken.getToken(),
+            null // pas d'erreur
+        );
     }
 
     @Override
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(),request.getMotDePasse()));
+                new UsernamePasswordAuthenticationToken(request.email(),request.motDePasse()));
 
-        var utilisateur = utilisateurRepository.findByEmail(request.getEmail()).orElseThrow(() -> new IllegalArgumentException("Invalid email   or password."));
+        var utilisateur = utilisateurRepository.findByEmail(request.email()).orElseThrow(() -> new IllegalArgumentException("Invalid email   or password."));
         var role = utilisateur.getRole();
         var jwt = jwtService.generateToken(utilisateur);
         var refreshTokenValue = refreshTokenService.findByUtilisateur(utilisateur)
                 .orElseThrow(() -> new IllegalArgumentException("Refresh token introuvable"));
 
-        return AuthenticationResponse.builder()
-                .tokenId(utilisateur.getTokenId())
-                .accessToken(jwt)
-                .role(role)
-                .refreshToken(refreshTokenValue.getToken())
-                .build();
+        return new AuthenticationResponse(
+            role,
+            utilisateur.getTokenId(),
+            jwt,
+            refreshTokenValue.getToken(),
+            null // pas d'erreur
+        );
 
     }
 }
