@@ -37,40 +37,24 @@ public class UtilisateurServiceImpl implements UtilisateurService {
         if(utilisateurRepository.existsByEmail(utilisateur.getEmail()) || utilisateurRepository.existsByTelephone(utilisateur.getTelephone())){
             throw new EmailDejaUtiliseException("L'email ou le numéro de téléphone est déjà utilisé par un autre compte.");
         }
-        try{
-            utilisateur.setMotDePasse(bCryptPasswordEncoder.encode(utilisateur.getMotDePasse()));
-            return utilisateurRepository.save(utilisateur);
-        } catch (Exception e){
-            e.printStackTrace();
-            return null;
-        }
-
+        utilisateur.setMotDePasse(bCryptPasswordEncoder.encode(utilisateur.getMotDePasse()));
+        return utilisateurRepository.save(utilisateur);
     }
 
     @Override
     public List<ProfilDto> getAllUtilisateursDTO() {
-        try{
-            List<Utilisateur> listeUtilisateurs = utilisateurRepository.findAll();
-            return listeUtilisateurs.stream()
-                    .map(this::mapUtilisateurToProfilDTO)
-                    .collect(Collectors.toList());
-        } catch (Exception e){
-            e.printStackTrace();
-            return null;
-        }
+        List<Utilisateur> listeUtilisateurs = utilisateurRepository.findAll();
+        return listeUtilisateurs.stream()
+                .map(this::mapUtilisateurToProfilDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<ProfilDto> getUtilisateursByRole(Role role) {
-        try{
-            List<Utilisateur> listeUtilisateurs = utilisateurRepository.findByRole(role);
-            return listeUtilisateurs.stream()
-                    .map(this::mapUtilisateurToProfilDTO)
-                    .collect(Collectors.toList());
-        } catch (Exception e){
-            e.printStackTrace();
-            return null;
-        }
+        List<Utilisateur> listeUtilisateurs = utilisateurRepository.findByRole(role);
+        return listeUtilisateurs.stream()
+                .map(this::mapUtilisateurToProfilDTO)
+                .collect(Collectors.toList());
     }
 
     @Override

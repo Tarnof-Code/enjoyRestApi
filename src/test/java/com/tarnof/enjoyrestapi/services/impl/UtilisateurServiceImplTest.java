@@ -137,20 +137,19 @@ public class UtilisateurServiceImplTest {
     }
 
     @Test
-    @DisplayName("creerUtilisateur - Devrait retourner null si une exception survient lors de la sauvegarde")
+    @DisplayName("creerUtilisateur - Devrait lancer une exception si une erreur survient lors de la sauvegarde")
     @SuppressWarnings("null")
-    void creerUtilisateur_WhenExceptionOccurs_ShouldReturnNull() {
+    void creerUtilisateur_WhenExceptionOccurs_ShouldThrowException() {
         // Given
         when(utilisateurRepository.existsByEmail(utilisateur.getEmail())).thenReturn(false);
         when(utilisateurRepository.existsByTelephone(utilisateur.getTelephone())).thenReturn(false);
         when(bCryptPasswordEncoder.encode(utilisateur.getMotDePasse())).thenReturn("encoded-password");
         when(utilisateurRepository.save(any(Utilisateur.class))).thenThrow(new RuntimeException("Erreur de sauvegarde"));
 
-        // When
-        Utilisateur result = utilisateurService.creerUtilisateur(utilisateur);
-
-        // Then
-        assertThat(result).isNull();
+        // When & Then
+        assertThatThrownBy(() -> utilisateurService.creerUtilisateur(utilisateur))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Erreur de sauvegarde");
         verify(utilisateurRepository).existsByEmail(utilisateur.getEmail());
         verify(utilisateurRepository).existsByTelephone(utilisateur.getTelephone());
         verify(bCryptPasswordEncoder).encode("MotDePasse123!");
@@ -203,16 +202,15 @@ public class UtilisateurServiceImplTest {
     }
 
     @Test
-    @DisplayName("getAllUtilisateursDTO - Devrait retourner null si une exception survient")
-    void getAllUtilisateursDTO_WhenExceptionOccurs_ShouldReturnNull() {
+    @DisplayName("getAllUtilisateursDTO - Devrait lancer une exception si une erreur survient")
+    void getAllUtilisateursDTO_WhenExceptionOccurs_ShouldThrowException() {
         // Given
         when(utilisateurRepository.findAll()).thenThrow(new RuntimeException("Erreur de récupération"));
 
-        // When
-        List<ProfilDto> result = utilisateurService.getAllUtilisateursDTO();
-
-        // Then
-        assertThat(result).isNull();
+        // When & Then
+        assertThatThrownBy(() -> utilisateurService.getAllUtilisateursDTO())
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Erreur de récupération");
         verify(utilisateurRepository).findAll();
     }
 
@@ -262,16 +260,15 @@ public class UtilisateurServiceImplTest {
     }
 
     @Test
-    @DisplayName("getUtilisateursByRole - Devrait retourner null si une exception survient")
-    void getUtilisateursByRole_WhenExceptionOccurs_ShouldReturnNull() {
+    @DisplayName("getUtilisateursByRole - Devrait lancer une exception si une erreur survient")
+    void getUtilisateursByRole_WhenExceptionOccurs_ShouldThrowException() {
         // Given
         when(utilisateurRepository.findByRole(Role.ADMIN)).thenThrow(new RuntimeException("Erreur de récupération"));
 
-        // When
-        List<ProfilDto> result = utilisateurService.getUtilisateursByRole(Role.ADMIN);
-
-        // Then
-        assertThat(result).isNull();
+        // When & Then
+        assertThatThrownBy(() -> utilisateurService.getUtilisateursByRole(Role.ADMIN))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Erreur de récupération");
         verify(utilisateurRepository).findByRole(Role.ADMIN);
     }
 

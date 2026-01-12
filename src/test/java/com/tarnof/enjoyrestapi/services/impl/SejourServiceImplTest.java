@@ -272,7 +272,7 @@ class SejourServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> sejourService.creerSejour(createRequest))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Directeur non trouvé avec l'ID: directeur-token-123");
         verify(utilisateurRepository).findByTokenId("directeur-token-123");
         verify(sejourRepository, never()).save(any(Sejour.class));
@@ -524,7 +524,7 @@ class SejourServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> sejourService.modifierRoleMembreEquipe(999, "membre-token-456", RoleSejour.AS))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Séjour non trouvé avec l'ID: 999");
         verify(sejourRepository).findById(999);
     }
@@ -598,7 +598,7 @@ class SejourServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> sejourService.supprimerMembreEquipe(999, "membre-token-456"))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Membre non trouvé avec l'ID: membre-token-456");
         verify(utilisateurRepository).findByTokenId("membre-token-456");
         verify(sejourEquipeRepository, never()).existsById(any());
@@ -655,7 +655,7 @@ class SejourServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> sejourService.supprimerSejour(999))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Séjour non trouvé avec l'ID: 999");
         verify(sejourRepository).findById(999);
         verify(sejourRepository, never()).deleteById(anyInt());

@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.controllers;
 import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
+import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.handlers.ErrorResponse;
 import com.tarnof.enjoyrestapi.payload.request.ChangePasswordRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
@@ -89,7 +90,7 @@ public class UtilisateurController {
     public ResponseEntity<ProfilDto> modifierUtilisateur(@Valid @RequestBody UpdateUserRequest request,
             Authentication authentication) {
         Utilisateur utilisateur = utilisateurService.profilUtilisateur(request.tokenId())
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec le token ID: " + request.tokenId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec le token ID: " + request.tokenId()));
 
         List<String> droits = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
