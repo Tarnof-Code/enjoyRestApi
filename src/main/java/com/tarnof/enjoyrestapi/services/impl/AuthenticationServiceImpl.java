@@ -1,6 +1,7 @@
 package com.tarnof.enjoyrestapi.services.impl;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
+import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.AuthenticationRequest;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.payload.response.AuthenticationResponse;
@@ -68,12 +69,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(),request.motDePasse()));
-
-        var utilisateur = utilisateurRepository.findByEmail(request.email()).orElseThrow(() -> new IllegalArgumentException("Invalid email   or password."));
+        var utilisateur = utilisateurRepository.findByEmail(request.email())
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable."));
         var role = utilisateur.getRole();
         var jwt = jwtService.generateToken(utilisateur);
         var refreshTokenValue = refreshTokenService.findByUtilisateur(utilisateur)
-                .orElseThrow(() -> new IllegalArgumentException("Refresh token introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Refresh token introuvable"));
 
         return new AuthenticationResponse(
             role,
