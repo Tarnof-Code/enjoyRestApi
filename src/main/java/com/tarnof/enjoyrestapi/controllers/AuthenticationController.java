@@ -10,10 +10,8 @@ import com.tarnof.enjoyrestapi.services.RefreshTokenService;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,30 +25,25 @@ public class AuthenticationController {
 
     @PostMapping("/inscription")
     public ResponseEntity<AuthenticationResponse> inscription(@Valid @RequestBody RegisterRequest request) {
-        try {
-            AuthenticationResponse authenticationResponse = authenticationService.register(request);
-            ResponseCookie refreshTokenCookie = refreshTokenService.generateRefreshTokenCookie(authenticationResponse.refreshToken());
-            // Sécurité : on retire le refreshToken du body pour éviter l'exposition en JavaScript
-            AuthenticationResponse responseWithoutRefreshToken = new AuthenticationResponse(
-                authenticationResponse.role(),
-                authenticationResponse.tokenId(),
-                authenticationResponse.accessToken(),
-                null, // refreshToken retiré
-                null  // pas d'erreur
-            );
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
-                    .body(responseWithoutRefreshToken);
-        } catch (ValidationException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(AuthenticationResponse.error(e.getMessage()));
-        }
+        AuthenticationResponse authenticationResponse = authenticationService.register(request);
+        ResponseCookie refreshTokenCookie = refreshTokenService.generateRefreshTokenCookie(authenticationResponse.refreshToken());
+        // Sécurité : on retire le refreshToken du body pour éviter l'exposition en JavaScript
+        AuthenticationResponse responseWithoutRefreshToken = new AuthenticationResponse(
+            authenticationResponse.role(),
+            authenticationResponse.tokenId(),
+            authenticationResponse.accessToken(),
+            null, // refreshToken retiré
+            null  // pas d'erreur
+        );
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .body(responseWithoutRefreshToken);
     }
 
     @PostMapping("/connexion")
     public ResponseEntity<AuthenticationResponse> connexion (@RequestBody AuthenticationRequest request) {
         AuthenticationResponse authenticationResponse = authenticationService.authenticate(request);
         ResponseCookie refreshTokenCookie = refreshTokenService.generateRefreshTokenCookie(authenticationResponse.refreshToken());
-       System.out.println("refreshTokenCookie: " + refreshTokenCookie);
         // Sécurité : on retire le refreshToken du body pour éviter l'exposition en JavaScript
         AuthenticationResponse responseWithoutRefreshToken = new AuthenticationResponse(
             authenticationResponse.role(),
