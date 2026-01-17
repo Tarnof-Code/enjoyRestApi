@@ -1,5 +1,6 @@
 package com.tarnof.enjoyrestapi.services.impl;
 
+import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import com.tarnof.enjoyrestapi.payload.response.SejourDto;
 import com.tarnof.enjoyrestapi.entities.RefreshToken;
 import com.tarnof.enjoyrestapi.entities.Sejour;
@@ -694,6 +695,288 @@ class SejourServiceImplTest {
                 .hasMessageContaining("Directeur non trouvé avec le token ID: directeur-inexistant");
         verify(utilisateurRepository).findByTokenId("directeur-inexistant");
         verify(sejourRepository, never()).findByDirecteur(any(Utilisateur.class));
+    }
+
+    // ========== Tests de conversion DTO (mapToDTO) ==========
+
+    @Test
+    @DisplayName("mapToDTO - Devrait mapper correctement un séjour avec directeur et équipe")
+    void mapToDTO_WithDirecteurAndEquipe_ShouldMapCorrectly() {
+        // Given - séjour avec directeur et équipe
+        Utilisateur membre1 = Utilisateur.builder()
+                .id(2)
+                .tokenId("membre-token-1")
+                .nom("Martin")
+                .prenom("Pierre")
+                .role(Role.BASIC_USER)
+                .genre("Homme")
+                .email("pierre.martin@test.fr")
+                .telephone("0123456789")
+                .dateNaissance(new Date(System.currentTimeMillis() - 86400000L * 365 * 25))
+                .build();
+
+        Utilisateur membre2 = Utilisateur.builder()
+                .id(3)
+                .tokenId("membre-token-2")
+                .nom("Durand")
+                .prenom("Marie")
+                .role(Role.BASIC_USER)
+                .genre("Femme")
+                .email("marie.durand@test.fr")
+                .telephone("0987654321")
+                .dateNaissance(new Date(System.currentTimeMillis() - 86400000L * 365 * 22))
+                .build();
+
+        SejourEquipe sejourEquipe1 = SejourEquipe.builder()
+                .sejour(sejour)
+                .utilisateur(membre1)
+                .roleSejour(RoleSejour.ANIM)
+                .build();
+
+        SejourEquipe sejourEquipe2 = SejourEquipe.builder()
+                .sejour(sejour)
+                .utilisateur(membre2)
+                .roleSejour(RoleSejour.AS)
+                .build();
+
+        sejour.setEquipeRoles(Arrays.asList(sejourEquipe1, sejourEquipe2));
+
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+
+        // When - getSejourById utilise mapToDTO(sejour, true) pour inclure l'équipe
+        SejourDto result = sejourService.getSejourById(1);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.id()).isEqualTo(1);
+        assertThat(result.nom()).isEqualTo("Séjour Test");
+        assertThat(result.description()).isEqualTo("Description du séjour test");
+        assertThat(result.dateDebut()).isEqualTo(dateDebut);
+        assertThat(result.dateFin()).isEqualTo(dateFin);
+        assertThat(result.lieuDuSejour()).isEqualTo("Lieu Test");
+        
+        // Vérification du directeur
+        assertThat(result.directeur()).isNotNull();
+        assertThat(result.directeur().tokenId()).isEqualTo("directeur-token-123");
+        assertThat(result.directeur().nom()).isEqualTo("Dupont");
+        assertThat(result.directeur().prenom()).isEqualTo("Jean");
+        
+        // Vérification de l'équipe
+        assertThat(result.equipe()).isNotNull();
+        assertThat(result.equipe()).hasSize(2);
+        assertThat(result.equipe().get(0).tokenId()).isEqualTo("membre-token-1");
+        assertThat(result.equipe().get(0).nom()).isEqualTo("Martin");
+        assertThat(result.equipe().get(0).prenom()).isEqualTo("Pierre");
+        assertThat(result.equipe().get(0).roleSejour()).isEqualTo(RoleSejour.ANIM);
+        assertThat(result.equipe().get(1).tokenId()).isEqualTo("membre-token-2");
+        assertThat(result.equipe().get(1).nom()).isEqualTo("Durand");
+        assertThat(result.equipe().get(1).prenom()).isEqualTo("Marie");
+        assertThat(result.equipe().get(1).roleSejour()).isEqualTo(RoleSejour.AS);
+    }
+
+    @Test
+    @DisplayName("mapToDTO - Devrait mapper correctement un séjour avec directeur mais sans équipe")
+    void mapToDTO_WithDirecteurWithoutEquipe_ShouldMapCorrectly() {
+        // Given - séjour avec directeur mais sans équipe
+        sejour.setEquipeRoles(new ArrayList<>());
+        when(sejourRepository.findAll()).thenReturn(Collections.singletonList(sejour));
+
+        // When - getAllSejours utilise mapToDTO(sejour, false) sans équipe
+        List<SejourDto> result = sejourService.getAllSejours();
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        SejourDto sejourDto = result.get(0);
+        assertThat(sejourDto.id()).isEqualTo(1);
+        assertThat(sejourDto.nom()).isEqualTo("Séjour Test");
+        assertThat(sejourDto.description()).isEqualTo("Description du séjour test");
+        assertThat(sejourDto.dateDebut()).isEqualTo(dateDebut);
+        assertThat(sejourDto.dateFin()).isEqualTo(dateFin);
+        assertThat(sejourDto.lieuDuSejour()).isEqualTo("Lieu Test");
+        
+        // Vérification du directeur
+        assertThat(sejourDto.directeur()).isNotNull();
+        assertThat(sejourDto.directeur().tokenId()).isEqualTo("directeur-token-123");
+        assertThat(sejourDto.directeur().nom()).isEqualTo("Dupont");
+        assertThat(sejourDto.directeur().prenom()).isEqualTo("Jean");
+        
+        // Vérification que l'équipe n'est pas incluse
+        assertThat(sejourDto.equipe()).isNull();
+    }
+
+    @Test
+    @DisplayName("mapToDTO - Devrait mapper correctement un séjour sans directeur mais avec équipe")
+    void mapToDTO_WithoutDirecteurWithEquipe_ShouldMapCorrectly() {
+        // Given - séjour sans directeur mais avec équipe
+        Sejour sejourSansDirecteur = Sejour.builder()
+                .id(2)
+                .nom("Séjour Sans Directeur")
+                .description("Description du séjour sans directeur")
+                .dateDebut(dateDebut)
+                .dateFin(dateFin)
+                .lieuDuSejour("Lieu Test")
+                .directeur(null)
+                .equipeRoles(new ArrayList<>())
+                .build();
+
+        Utilisateur membre = Utilisateur.builder()
+                .id(2)
+                .tokenId("membre-token-1")
+                .nom("Martin")
+                .prenom("Pierre")
+                .role(Role.BASIC_USER)
+                .genre("Homme")
+                .email("pierre.martin@test.fr")
+                .telephone("0123456789")
+                .dateNaissance(new Date(System.currentTimeMillis() - 86400000L * 365 * 25))
+                .build();
+
+        SejourEquipe sejourEquipe = SejourEquipe.builder()
+                .sejour(sejourSansDirecteur)
+                .utilisateur(membre)
+                .roleSejour(RoleSejour.ANIM)
+                .build();
+
+        sejourSansDirecteur.setEquipeRoles(Collections.singletonList(sejourEquipe));
+
+        when(sejourRepository.findById(2)).thenReturn(Optional.of(sejourSansDirecteur));
+
+        // When - getSejourById utilise mapToDTO(sejour, true) pour inclure l'équipe
+        SejourDto result = sejourService.getSejourById(2);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.id()).isEqualTo(2);
+        assertThat(result.nom()).isEqualTo("Séjour Sans Directeur");
+        assertThat(result.description()).isEqualTo("Description du séjour sans directeur");
+        
+        // Vérification que le directeur est null
+        assertThat(result.directeur()).isNull();
+        
+        // Vérification de l'équipe
+        assertThat(result.equipe()).isNotNull();
+        assertThat(result.equipe()).hasSize(1);
+        assertThat(result.equipe().get(0).tokenId()).isEqualTo("membre-token-1");
+        assertThat(result.equipe().get(0).nom()).isEqualTo("Martin");
+        assertThat(result.equipe().get(0).prenom()).isEqualTo("Pierre");
+        assertThat(result.equipe().get(0).roleSejour()).isEqualTo(RoleSejour.ANIM);
+    }
+
+    @Test
+    @DisplayName("mapToDTO - Devrait mapper correctement un séjour sans directeur et sans équipe")
+    void mapToDTO_WithoutDirecteurAndEquipe_ShouldMapCorrectly() {
+        // Given - séjour sans directeur et sans équipe
+        Sejour sejourSansDirecteur = Sejour.builder()
+                .id(3)
+                .nom("Séjour Minimal")
+                .description("Description du séjour minimal")
+                .dateDebut(dateDebut)
+                .dateFin(dateFin)
+                .lieuDuSejour("Lieu Test")
+                .directeur(null)
+                .equipeRoles(new ArrayList<>())
+                .build();
+
+        when(sejourRepository.findAll()).thenReturn(Collections.singletonList(sejourSansDirecteur));
+
+        // When - getAllSejours utilise mapToDTO(sejour, false) sans équipe
+        List<SejourDto> result = sejourService.getAllSejours();
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        SejourDto sejourDto = result.get(0);
+        assertThat(sejourDto.id()).isEqualTo(3);
+        assertThat(sejourDto.nom()).isEqualTo("Séjour Minimal");
+        assertThat(sejourDto.description()).isEqualTo("Description du séjour minimal");
+        assertThat(sejourDto.dateDebut()).isEqualTo(dateDebut);
+        assertThat(sejourDto.dateFin()).isEqualTo(dateFin);
+        assertThat(sejourDto.lieuDuSejour()).isEqualTo("Lieu Test");
+        
+        // Vérification que le directeur est null
+        assertThat(sejourDto.directeur()).isNull();
+        
+        // Vérification que l'équipe n'est pas incluse
+        assertThat(sejourDto.equipe()).isNull();
+    }
+
+    @Test
+    @DisplayName("mapToDTO - Devrait mapper tous les champs d'un membre d'équipe correctement")
+    void mapToDTO_ShouldMapAllEquipeMemberFields() {
+        // Given - séjour avec un membre d'équipe complet
+        Utilisateur membre = Utilisateur.builder()
+                .id(2)
+                .tokenId("membre-token-complet")
+                .nom("Martin")
+                .prenom("Pierre")
+                .role(Role.BASIC_USER)
+                .genre("Homme")
+                .email("pierre.martin@test.fr")
+                .telephone("0123456789")
+                .dateNaissance(new Date(System.currentTimeMillis() - 86400000L * 365 * 25))
+                .dateExpirationCompte(Instant.now().plusSeconds(86400 * 30))
+                .build();
+
+        SejourEquipe sejourEquipe = SejourEquipe.builder()
+                .sejour(sejour)
+                .utilisateur(membre)
+                .roleSejour(RoleSejour.ANIM)
+                .build();
+
+        sejour.setEquipeRoles(Collections.singletonList(sejourEquipe));
+
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+
+        // When
+        SejourDto result = sejourService.getSejourById(1);
+
+        // Then
+        assertThat(result.equipe()).isNotNull();
+        assertThat(result.equipe()).hasSize(1);
+        
+        ProfilDto membreDto = result.equipe().get(0);
+        assertThat(membreDto.tokenId()).isEqualTo("membre-token-complet");
+        assertThat(membreDto.role()).isEqualTo(Role.BASIC_USER);
+        assertThat(membreDto.roleSejour()).isEqualTo(RoleSejour.ANIM);
+        assertThat(membreDto.nom()).isEqualTo("Martin");
+        assertThat(membreDto.prenom()).isEqualTo("Pierre");
+        assertThat(membreDto.genre()).isEqualTo("Homme");
+        assertThat(membreDto.email()).isEqualTo("pierre.martin@test.fr");
+        assertThat(membreDto.telephone()).isEqualTo("0123456789");
+        assertThat(membreDto.dateNaissance()).isNotNull();
+        // dateExpirationCompte peut être null si l'utilisateur n'a pas de refreshToken
+        // Dans ce test, on vérifie juste que le mapping fonctionne, même si c'est null
+    }
+
+    @Test
+    @DisplayName("mapToDTO - Devrait retourner null pour l'équipe si includeEquipe est false même avec des membres")
+    void mapToDTO_WhenIncludeEquipeIsFalse_ShouldReturnNullEquipe() {
+        // Given - séjour avec équipe mais includeEquipe = false
+        Utilisateur membre = Utilisateur.builder()
+                .id(2)
+                .tokenId("membre-token-1")
+                .nom("Martin")
+                .prenom("Pierre")
+                .role(Role.BASIC_USER)
+                .build();
+
+        SejourEquipe sejourEquipe = SejourEquipe.builder()
+                .sejour(sejour)
+                .utilisateur(membre)
+                .roleSejour(RoleSejour.ANIM)
+                .build();
+
+        sejour.setEquipeRoles(Collections.singletonList(sejourEquipe));
+        when(sejourRepository.findAll()).thenReturn(Collections.singletonList(sejour));
+
+        // When - getAllSejours utilise mapToDTO(sejour, false) sans équipe
+        List<SejourDto> result = sejourService.getAllSejours();
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).equipe()).isNull(); // L'équipe ne doit pas être incluse
     }
 }
 
