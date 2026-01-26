@@ -27,4 +27,6 @@ public class Sejour {
     private Utilisateur directeur;
     @OneToMany(mappedBy = "sejour", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SejourEquipe> equipeRoles;
+    @OneToMany(mappedBy = "sejour", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SejourEnfant> enfants;
 }
