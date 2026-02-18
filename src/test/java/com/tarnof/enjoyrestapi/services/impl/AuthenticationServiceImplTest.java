@@ -23,6 +23,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
@@ -96,7 +97,7 @@ public class AuthenticationServiceImplTest {
             .role(Role.BASIC_USER)
             .email("john.doe@example.com")
             .motDePasse("password")
-            .genre("Homme")
+            .genre(Genre.Masculin)
             .dateNaissance(dateNaissance)
             .telephone("0123456789")
             .refreshToken(refreshToken)

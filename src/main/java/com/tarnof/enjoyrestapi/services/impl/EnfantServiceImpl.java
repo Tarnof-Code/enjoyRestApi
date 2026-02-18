@@ -340,9 +340,9 @@ public class EnfantServiceImpl implements EnfantService {
                     // Parser le genre
                     Genre genre;
                     try {
-                        genre = parseGenre(genreStr.trim());
+                        genre = Genre.parseGenre(genreStr.trim());
                     } catch (IllegalArgumentException e) {
-                        messagesErreur.add("Ligne " + (i + 1) + ": Genre invalide (" + genreStr + "). Valeurs acceptées: Masculin, Féminin, Garçon, Fille");
+                        messagesErreur.add("Ligne " + (i + 1) + ": " + e.getMessage());
                         continue;
                     }
                     
@@ -400,35 +400,6 @@ public class EnfantServiceImpl implements EnfantService {
             messagesErreur.size(),
             messagesErreur
         );
-    }
-    
-    /**
-     * Parse une chaîne de caractères en Genre, en acceptant les valeurs alternatives
-     * @param genreStr La chaîne à parser (peut être "Masculin", "Féminin", "Garçon", "Fille")
-     * @return Le Genre correspondant
-     * @throws IllegalArgumentException si la valeur n'est pas reconnue
-     */
-    private Genre parseGenre(String genreStr) {
-        if (genreStr == null || genreStr.trim().isEmpty()) {
-            throw new IllegalArgumentException("Le genre ne peut pas être vide");
-        }
-        
-        String genreNormalise = genreStr.trim();
-        
-        // Convertir les valeurs alternatives
-        if (genreNormalise.equalsIgnoreCase("garçon") || genreNormalise.equalsIgnoreCase("garcon")) {
-            return Genre.Masculin;
-        }
-        if (genreNormalise.equalsIgnoreCase("fille")) {
-            return Genre.Féminin;
-        }
-        
-        // Essayer de parser directement avec les valeurs standard
-        try {
-            return Genre.valueOf(genreNormalise);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Genre invalide: " + genreStr);
-        }
     }
 
     private EnfantDto mapToEnfantDto(Enfant enfant) {

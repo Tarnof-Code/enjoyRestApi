@@ -1,6 +1,7 @@
 package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.RefreshToken;
+import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
@@ -103,7 +104,7 @@ public class UtilisateurServiceImpl implements UtilisateurService {
         Utilisateur.UtilisateurBuilder builder = utilisateur.toBuilder()
                 .prenom(request.prenom())
                 .nom(request.nom())
-                .genre(request.genre())
+                .genre(Genre.parseGenre(request.genre()))
                 .email(request.email())
                 .telephone(request.telephone())
                 .dateNaissance(request.dateNaissance());

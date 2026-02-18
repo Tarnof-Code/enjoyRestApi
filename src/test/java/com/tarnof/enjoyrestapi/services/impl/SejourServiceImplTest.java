@@ -7,6 +7,7 @@ import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEquipe;
 import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.enums.RoleSejour;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
@@ -709,7 +710,7 @@ class SejourServiceImplTest {
                 .nom("Martin")
                 .prenom("Pierre")
                 .role(Role.BASIC_USER)
-                .genre("Homme")
+                .genre(Genre.Masculin)
                 .email("pierre.martin@test.fr")
                 .telephone("0123456789")
                 .dateNaissance(new Date(System.currentTimeMillis() - 86400000L * 365 * 25))
@@ -721,7 +722,7 @@ class SejourServiceImplTest {
                 .nom("Durand")
                 .prenom("Marie")
                 .role(Role.BASIC_USER)
-                .genre("Femme")
+                .genre(Genre.Féminin)
                 .email("marie.durand@test.fr")
                 .telephone("0987654321")
                 .dateNaissance(new Date(System.currentTimeMillis() - 86400000L * 365 * 22))
@@ -826,7 +827,7 @@ class SejourServiceImplTest {
                 .nom("Martin")
                 .prenom("Pierre")
                 .role(Role.BASIC_USER)
-                .genre("Homme")
+                .genre(Genre.Masculin)
                 .email("pierre.martin@test.fr")
                 .telephone("0123456789")
                 .dateNaissance(new Date(System.currentTimeMillis() - 86400000L * 365 * 25))
@@ -911,7 +912,7 @@ class SejourServiceImplTest {
                 .nom("Martin")
                 .prenom("Pierre")
                 .role(Role.BASIC_USER)
-                .genre("Homme")
+                .genre(Genre.Masculin)
                 .email("pierre.martin@test.fr")
                 .telephone("0123456789")
                 .dateNaissance(new Date(System.currentTimeMillis() - 86400000L * 365 * 25))
@@ -941,7 +942,7 @@ class SejourServiceImplTest {
         assertThat(membreDto.roleSejour()).isEqualTo(RoleSejour.ANIM);
         assertThat(membreDto.nom()).isEqualTo("Martin");
         assertThat(membreDto.prenom()).isEqualTo("Pierre");
-        assertThat(membreDto.genre()).isEqualTo("Homme");
+        assertThat(membreDto.genre()).isEqualTo(Genre.Masculin);
         assertThat(membreDto.email()).isEqualTo("pierre.martin@test.fr");
         assertThat(membreDto.telephone()).isEqualTo("0123456789");
         assertThat(membreDto.dateNaissance()).isNotNull();

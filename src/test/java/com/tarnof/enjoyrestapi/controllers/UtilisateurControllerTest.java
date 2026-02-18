@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
 import com.tarnof.enjoyrestapi.payload.request.ChangePasswordRequest;
@@ -81,7 +82,7 @@ class UtilisateurControllerTest {
                 .role(Role.BASIC_USER)
                 .nom("Dupont")
                 .prenom("Jean")
-                .genre("M")
+                .genre(Genre.Masculin)
                 .email("jean.dupont@test.fr")
                 .telephone("0123456789")
                 .dateNaissance(dateNaissance)
@@ -93,7 +94,7 @@ class UtilisateurControllerTest {
                 null,
                 "Dupont",
                 "Jean",
-                "M",
+                Genre.Masculin,
                 "jean.dupont@test.fr",
                 "0123456789",
                 dateNaissance,
@@ -344,7 +345,7 @@ class UtilisateurControllerTest {
                 .role(Role.BASIC_USER)
                 .nom("Martin")
                 .prenom("Pierre")
-                .genre("M")
+                .genre(Genre.Masculin)
                 .email("pierre.martin@test.fr")
                 .telephone("0987654321")
                 .dateNaissance(updateUserRequest.dateNaissance())
@@ -356,7 +357,7 @@ class UtilisateurControllerTest {
                 null,
                 "Martin",
                 "Pierre",
-                "M",
+                Genre.Masculin,
                 "pierre.martin@test.fr",
                 "0987654321",
                 updateUserRequest.dateNaissance(),
@@ -396,7 +397,7 @@ class UtilisateurControllerTest {
                 .role(Role.BASIC_USER)
                 .nom("Martin")
                 .prenom("Pierre")
-                .genre("M")
+                .genre(Genre.Masculin)
                 .email("pierre.martin@test.fr")
                 .telephone("0987654321")
                 .dateNaissance(updateUserRequest.dateNaissance())
@@ -408,7 +409,7 @@ class UtilisateurControllerTest {
                 null,
                 "Martin",
                 "Pierre",
-                "M",
+                Genre.Masculin,
                 "pierre.martin@test.fr",
                 "0987654321",
                 updateUserRequest.dateNaissance(),

@@ -1,6 +1,7 @@
 package com.tarnof.enjoyrestapi.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.Role;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
@@ -34,8 +35,9 @@ public class Utilisateur implements UserDetails {
     @NotEmpty(message = "Le champ prénom ne peut pas être vide.")
     @Pattern(regexp = "^[a-zA-ZÀ-ÿ]+(([',. -][a-zA-ZÀ-ÿ ])?[a-zA-ZÀ-ÿ]*)*$", message = "Caractères non autorisés")
     private String prenom;
-    @NotEmpty(message = "Le champ genre ne peut pas être vide.")
-    private String genre;
+    @NotNull(message = "Le champ genre ne peut pas être vide.")
+    @Enumerated(EnumType.STRING)
+    private Genre genre;
     @Column(unique = true)
     @NotEmpty(message = "Le champ N° de téléphone ne peut pas être vide.")
     @Pattern(regexp = "^0[0-9]{9}$", message = "Numéro de téléphone non valide")

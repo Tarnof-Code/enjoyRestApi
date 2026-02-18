@@ -2,6 +2,7 @@ package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.RefreshToken;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.enums.TokenType;
 import com.tarnof.enjoyrestapi.exceptions.TokenException;
@@ -69,7 +70,7 @@ public class RefreshTokenServiceImplTest {
                 .role(Role.BASIC_USER)
                 .email("jean.dupont@test.fr")
                 .telephone("0123456789")
-                .genre("Homme")
+                .genre(Genre.Masculin)
                 .dateNaissance(dateNaissance)
                 .motDePasse("MotDePasse123!")
                 .build();

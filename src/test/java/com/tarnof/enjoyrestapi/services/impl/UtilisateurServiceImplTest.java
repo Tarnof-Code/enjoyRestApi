@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.services.impl;
 import com.tarnof.enjoyrestapi.entities.RefreshToken;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
 import com.tarnof.enjoyrestapi.exceptions.UtilisateurException;
@@ -70,7 +71,7 @@ public class UtilisateurServiceImplTest {
                 .role(Role.BASIC_USER)
                 .email("jean.dupont@test.fr")
                 .telephone("0123456789")
-                .genre("Homme")
+                .genre(Genre.Masculin)
                 .dateNaissance(dateNaissance)
                 .motDePasse("MotDePasse123!")
                 .refreshToken(refreshToken)
@@ -168,7 +169,7 @@ public class UtilisateurServiceImplTest {
                 .role(Role.ADMIN)
                 .email("pierre.martin@test.fr")
                 .telephone("0987654321")
-                .genre("Homme")
+                .genre(Genre.Masculin)
                 .dateNaissance(dateNaissance)
                 .build();
 
@@ -226,7 +227,7 @@ public class UtilisateurServiceImplTest {
                 .role(Role.ADMIN)
                 .email("admin@test.fr")
                 .telephone("0987654321")
-                .genre("Homme")
+                .genre(Genre.Masculin)
                 .dateNaissance(dateNaissance)
                 .build();
 
@@ -348,7 +349,7 @@ public class UtilisateurServiceImplTest {
         assertThat(result.roleSejour()).isNull();
         assertThat(result.nom()).isEqualTo("Dupont");
         assertThat(result.prenom()).isEqualTo("Jean");
-        assertThat(result.genre()).isEqualTo("Homme");
+        assertThat(result.genre()).isEqualTo(Genre.Masculin);
         assertThat(result.email()).isEqualTo("jean.dupont@test.fr");
         assertThat(result.telephone()).isEqualTo("0123456789");
         assertThat(result.dateNaissance()).isEqualTo(dateNaissance);
@@ -367,7 +368,7 @@ public class UtilisateurServiceImplTest {
                 .role(Role.ADMIN)
                 .email("pierre.martin@test.fr")
                 .telephone("0987654321")
-                .genre("Homme")
+                .genre(Genre.Masculin)
                 .dateNaissance(dateNaissance)
                 .refreshToken(null)
                 .build();
@@ -382,7 +383,7 @@ public class UtilisateurServiceImplTest {
         assertThat(result.roleSejour()).isNull();
         assertThat(result.nom()).isEqualTo("Martin");
         assertThat(result.prenom()).isEqualTo("Pierre");
-        assertThat(result.genre()).isEqualTo("Homme");
+        assertThat(result.genre()).isEqualTo(Genre.Masculin);
         assertThat(result.email()).isEqualTo("pierre.martin@test.fr");
         assertThat(result.telephone()).isEqualTo("0987654321");
         assertThat(result.dateNaissance()).isEqualTo(dateNaissance);
@@ -416,7 +417,7 @@ public class UtilisateurServiceImplTest {
         assertThat(result).isNotNull();
         assertThat(result.getPrenom()).isEqualTo("Pierre");
         assertThat(result.getNom()).isEqualTo("Martin");
-        assertThat(result.getGenre()).isEqualTo("Femme");
+        assertThat(result.getGenre()).isEqualTo(Genre.Féminin);
         verify(utilisateurRepository, never()).existsByEmail(anyString());
         verify(utilisateurRepository).save(any(Utilisateur.class));
     }
@@ -496,7 +497,7 @@ public class UtilisateurServiceImplTest {
                 .role(Role.DIRECTION)
                 .email("directeur@test.fr")
                 .telephone("0123456789")
-                .genre("Homme")
+                .genre(Genre.Masculin)
                 .dateNaissance(dateNaissance)
                 .build();
 
@@ -559,7 +560,7 @@ public class UtilisateurServiceImplTest {
                 .role(Role.DIRECTION)
                 .email("directeur.sans.sejours@test.fr")
                 .telephone("0123456789")
-                .genre("Homme")
+                .genre(Genre.Masculin)
                 .dateNaissance(dateNaissance)
                 .refreshToken(refreshToken)
                 .build();
@@ -636,7 +637,7 @@ public class UtilisateurServiceImplTest {
                 .role(Role.BASIC_USER)
                 .email("jean.dupont@test.fr")
                 .telephone("0123456789")
-                .genre("Homme")
+                .genre(Genre.Masculin)
                 .dateNaissance(dateNaissance)
                 .refreshToken(null)
                 .build();
@@ -709,7 +710,7 @@ public class UtilisateurServiceImplTest {
                 .role(Role.ADMIN)
                 .email("admin@test.fr")
                 .telephone("0123456789")
-                .genre("Homme")
+                .genre(Genre.Masculin)
                 .dateNaissance(dateNaissance)
                 .refreshToken(refreshToken)
                 .build();

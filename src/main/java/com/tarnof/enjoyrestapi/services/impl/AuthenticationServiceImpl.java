@@ -1,5 +1,6 @@
 package com.tarnof.enjoyrestapi.services.impl;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.AuthenticationRequest;
@@ -45,7 +46,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .nom(request.nom())
                 .email(request.email())
                 .motDePasse(passwordEncoder.encode(request.motDePasse()))
-                .genre(request.genre())
+                .genre(Genre.parseGenre(request.genre()))
                 .dateNaissance(request.dateNaissance())
                 .telephone(request.telephone())
                 .role(request.role())

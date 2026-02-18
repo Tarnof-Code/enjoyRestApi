@@ -1,5 +1,6 @@
 package com.tarnof.enjoyrestapi.payload.response;
 
+import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.enums.RoleSejour;
 
@@ -12,7 +13,7 @@ public record ProfilDto(
     RoleSejour roleSejour,
     String nom,
     String prenom,
-    String genre,
+    Genre genre,
     String email,
     String telephone,
     Date dateNaissance,
