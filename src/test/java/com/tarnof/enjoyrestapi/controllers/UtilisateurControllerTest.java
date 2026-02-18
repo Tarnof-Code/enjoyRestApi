@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
-import com.tarnof.enjoyrestapi.exceptions.GlobalExceptionHandler;
+import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
 import com.tarnof.enjoyrestapi.payload.request.ChangePasswordRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
 import com.tarnof.enjoyrestapi.payload.response.ProfilDto;

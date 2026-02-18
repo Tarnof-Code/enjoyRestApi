@@ -1,5 +1,9 @@
-package com.tarnof.enjoyrestapi.exceptions;
+package com.tarnof.enjoyrestapi.handlers;
 
+import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
+import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
+import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
+import com.tarnof.enjoyrestapi.exceptions.UtilisateurException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;

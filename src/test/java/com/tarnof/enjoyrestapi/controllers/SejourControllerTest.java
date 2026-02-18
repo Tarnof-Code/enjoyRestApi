@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.enums.RoleSejour;
-import com.tarnof.enjoyrestapi.exceptions.GlobalExceptionHandler;
+import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;

@@ -11,7 +11,7 @@ import com.tarnof.enjoyrestapi.payload.request.AuthenticationRequest;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.payload.response.AuthenticationResponse;
 import com.tarnof.enjoyrestapi.payload.response.RefreshTokenResponse;
-import com.tarnof.enjoyrestapi.exceptions.GlobalExceptionHandler;
+import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
 import com.tarnof.enjoyrestapi.handlers.TokenControllerHandler;
 import com.tarnof.enjoyrestapi.services.AuthenticationService;
 import com.tarnof.enjoyrestapi.services.RefreshTokenService;

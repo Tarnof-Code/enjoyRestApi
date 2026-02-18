@@ -1,5 +1,6 @@
 package com.tarnof.enjoyrestapi.exceptions;
 
+import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
