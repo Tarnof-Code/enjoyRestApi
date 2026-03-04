@@ -8,12 +8,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 
 /**
  * Classe utilitaire pour le traitement des fichiers Excel
  */
 public class ExcelHelper {
+
+    private static final DataFormatter DATA_FORMATTER = new DataFormatter();
 
     private ExcelHelper() {
         // Classe utilitaire, constructeur privé pour empêcher l'instanciation
@@ -133,22 +137,16 @@ public class ExcelHelper {
             case STRING:
                 return cell.getStringCellValue();
             case NUMERIC:
-                if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell)) {
+                if (DateUtil.isCellDateFormatted(cell)) {
                     SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
                     return dateFormat.format(cell.getDateCellValue());
                 } else {
-                    // Convertir le nombre en entier si c'est un entier, sinon en décimal
-                    double numericValue = cell.getNumericCellValue();
-                    if (numericValue == (long) numericValue) {
-                        return String.valueOf((long) numericValue);
-                    } else {
-                        return String.valueOf(numericValue);
-                    }
+                    return DATA_FORMATTER.formatCellValue(cell);
                 }
             case BOOLEAN:
                 return String.valueOf(cell.getBooleanCellValue());
             case FORMULA:
-                return cell.getCellFormula();
+                return DATA_FORMATTER.formatCellValue(cell);
             default:
                 return null;
         }
@@ -186,6 +184,28 @@ public class ExcelHelper {
                 }
             }
         }
+    }
+
+    /**
+     * Normalise un numéro de téléphone : supprime les séparateurs (espaces, points, tirets),
+     * gère le format international (+33, 0033) et rajoute le 0 si manquant (9 chiffres reçus).
+     * @param phone Le numéro brut
+     * @return Le numéro normalisé (ex: "0612345678"), ou null si vide
+     */
+    public static String normalizePhone(String phone) {
+        if (phone == null || phone.trim().isEmpty()) {
+            return null;
+        }
+        String cleaned = phone.trim().replaceAll("[\\s.\\-]", "");
+        if (cleaned.startsWith("+33")) {
+            cleaned = "0" + cleaned.substring(3);
+        } else if (cleaned.startsWith("0033")) {
+            cleaned = "0" + cleaned.substring(4);
+        }
+        if (cleaned.matches("[1-9][0-9]{8}")) {
+            cleaned = "0" + cleaned;
+        }
+        return cleaned;
     }
 
     /**

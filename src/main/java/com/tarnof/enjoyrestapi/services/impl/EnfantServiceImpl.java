@@ -21,6 +21,7 @@ import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.NiveauScolaire;
 import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
+import com.tarnof.enjoyrestapi.entities.DossierEnfant;
 import com.tarnof.enjoyrestapi.entities.Enfant;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEnfant;
@@ -28,6 +29,7 @@ import com.tarnof.enjoyrestapi.entities.SejourEnfantId;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
+import com.tarnof.enjoyrestapi.repositories.DossierEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.EnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEnfantRepository;
@@ -44,10 +46,16 @@ public class EnfantServiceImpl implements EnfantService {
     private final EnfantRepository enfantRepository;
     private final SejourRepository sejourRepository;
     private final SejourEnfantRepository sejourEnfantRepository;
+    private final DossierEnfantRepository dossierEnfantRepository;
 
     @Override
     @Transactional
     public void creerEtAjouterEnfantAuSejour(int sejourId, CreateEnfantRequest request) {
+        creerEtAjouterEnfantAuSejour(sejourId, request, new DossierEnfant());
+    }
+
+    @Transactional
+    public void creerEtAjouterEnfantAuSejour(int sejourId, CreateEnfantRequest request, DossierEnfant donneesDossier) {
         Sejour sejour = sejourRepository.findById(sejourId)
                 .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
         
@@ -89,6 +97,10 @@ public class EnfantServiceImpl implements EnfantService {
             @SuppressWarnings("null")
             Enfant enfantCree = enfantRepository.save(enfant);
             enfantSauvegarde = enfantCree;
+
+            // Créer automatiquement le dossier de l'enfant (vide ou pré-rempli depuis l'import)
+            donneesDossier.setEnfant(enfantSauvegarde);
+            dossierEnfantRepository.save(donneesDossier);
         }
         
         SejourEnfant sejourEnfant = SejourEnfant.builder()
@@ -273,6 +285,20 @@ public class EnfantServiceImpl implements EnfantService {
             columnMappings.put("genre", new String[]{"genre", "sexe"});
             columnMappings.put("dateNaissance", new String[]{"datenaissance", "naissance"});
             columnMappings.put("niveauScolaire", new String[]{"niveau", "classe"});
+            // Colonnes optionnelles du dossier
+            columnMappings.put("emailParent1", new String[]{"emailparent1", "emailparent", "mailparent1", "mailparent","mail","email"});
+            columnMappings.put("telephoneParent1", new String[]{"telephoneparent1", "telparent1", "telephoneparent", "telparent","tel","tél","tel1","tél1","telephone","téléphone"});
+            columnMappings.put("emailParent2", new String[]{"emailparent2", "mailparent2"});
+            columnMappings.put("telephoneParent2", new String[]{"telephoneparent2", "telparent2","tel2","tél2","téléphone2"});
+            columnMappings.put("informationsMedicales", new String[]{"informationsmédicales", "informationsmédicale", "infomédicale", "infosmédicales","médical", "medical", "informationssanitaires","informationsanitaire","infossanitaires","infosanitaire","sanitaire","sanitaires"});
+            columnMappings.put("pai", new String[]{"pai"});
+            columnMappings.put("informationsAlimentaires", new String[]{"informationsalimentaires", "alimentaire", "régimealimentaire", "regimealimentaire"});
+            columnMappings.put("traitementMatin", new String[]{"traitementmatin", "medicamentmatin", "medicamentlematin","traitementdumatin","traitementlematin"});
+            columnMappings.put("traitementMidi", new String[]{"traitementmidi", "medicamentmidi","traitementdumidi","traitementlemidi"});
+            columnMappings.put("traitementSoir", new String[]{"traitementsoir", "medicamentsoir","traitementdusoir","traitementlesoir"});
+            columnMappings.put("traitementSiBesoin", new String[]{"traitementsibeson", "traitementsibésoin", "sibesoin", "sibésoin","traitementbesoin","traitementsbesoins"});
+            columnMappings.put("autresInformations", new String[]{"autresinformations", "autresinfo", "autreinfo", "autresinformation", "autre","autres","divers"});
+            columnMappings.put("aPrendreEnSortie", new String[]{"aprendreensortie", "sortie", "prendreensortie"});
             
             Map<String, Integer> columnMap = ExcelHelper.detectColumns(headerRow, columnMappings);
             
@@ -372,17 +398,73 @@ public class EnfantServiceImpl implements EnfantService {
                         dateNaissance,
                         niveauScolaire
                     );
+
+                    // Construire le dossier depuis les colonnes optionnelles détectées
+                    DossierEnfant dossier = new DossierEnfant();
+                    dossier.setEmailParent1(getOptionalColumn(row, columnMap, "emailParent1"));
+                    dossier.setTelephoneParent1(ExcelHelper.normalizePhone(getOptionalColumn(row, columnMap, "telephoneParent1")));
+                    dossier.setEmailParent2(getOptionalColumn(row, columnMap, "emailParent2"));
+                    dossier.setTelephoneParent2(ExcelHelper.normalizePhone(getOptionalColumn(row, columnMap, "telephoneParent2")));
+                    dossier.setInformationsMedicales(getOptionalColumn(row, columnMap, "informationsMedicales"));
+                    dossier.setInformationsAlimentaires(getOptionalColumn(row, columnMap, "informationsAlimentaires"));
+                    dossier.setTraitementMatin(getOptionalColumn(row, columnMap, "traitementMatin"));
+                    dossier.setTraitementMidi(getOptionalColumn(row, columnMap, "traitementMidi"));
+                    dossier.setTraitementSoir(getOptionalColumn(row, columnMap, "traitementSoir"));
+                    dossier.setTraitementSiBesoin(getOptionalColumn(row, columnMap, "traitementSiBesoin"));
+                    dossier.setAutresInformations(getOptionalColumn(row, columnMap, "autresInformations"));
+                    dossier.setPai(getOptionalColumn(row, columnMap, "pai"));
+                    dossier.setAPrendreEnSortie(getOptionalColumn(row, columnMap, "aPrendreEnSortie"));
                     
-                    // Essayer de créer l'enfant
-                    try {
-                        creerEtAjouterEnfantAuSejour(sejourId, request);
-                        enfantsCrees++;
-                    } catch (ResourceAlreadyExistsException e) {
-                        enfantsDejaExistants++;
-                        messagesErreur.add("Ligne " + (i + 1) + ": " + e.getMessage());
-                    } catch (Exception e) {
-                        messagesErreur.add("Ligne " + (i + 1) + ": Erreur lors de la création - " + e.getMessage());
+                    // Créer l'enfant directement (dans la même transaction)
+                    Sejour sejour = sejourRepository.findById(sejourId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
+
+                    if (sejour.getEnfants() == null) {
+                        sejour.setEnfants(new ArrayList<>());
                     }
+
+                    Enfant enfantExistant = enfantRepository.findByNomAndPrenomAndGenreAndDateNaissance(
+                            request.nom(), request.prenom(), request.genre(), request.dateNaissance()
+                    ).orElse(null);
+
+                    Enfant enfantSauvegarde;
+
+                    if (enfantExistant != null) {
+                        boolean dejaDansSejour = sejour.getEnfants().stream()
+                                .anyMatch(se -> se.getEnfant().getId() == enfantExistant.getId());
+                        if (dejaDansSejour) {
+                            String nee = request.genre() == Genre.Féminin ? "née" : "né";
+                            enfantsDejaExistants++;
+                            messagesErreur.add("Ligne " + (i + 1) + ": " + request.prenom() + " " + request.nom()
+                                    + " " + nee + " le " + ExcelHelper.formatDate(request.dateNaissance())
+                                    + " existe déjà dans ce séjour");
+                            continue;
+                        }
+                        enfantSauvegarde = enfantExistant;
+                        dossier.setEnfant(enfantSauvegarde);
+                        dossierEnfantRepository.save(dossier);
+                    } else {
+                        Enfant nouvelEnfant = Enfant.builder()
+                                .nom(request.nom())
+                                .prenom(request.prenom())
+                                .genre(request.genre())
+                                .dateNaissance(request.dateNaissance())
+                                .niveauScolaire(request.niveauScolaire())
+                                .build();
+                        @SuppressWarnings("null")
+                        Enfant saved = enfantRepository.save(nouvelEnfant);
+                        enfantSauvegarde = saved;
+                        dossier.setEnfant(enfantSauvegarde);
+                        dossierEnfantRepository.save(dossier);
+                    }
+
+                    SejourEnfant sejourEnfant = SejourEnfant.builder()
+                            .sejour(sejour)
+                            .enfant(enfantSauvegarde)
+                            .build();
+                    sejour.getEnfants().add(sejourEnfant);
+                    sejourRepository.save(sejour);
+                    enfantsCrees++;
                     
                 } catch (Exception e) {
                     messagesErreur.add("Ligne " + (i + 1) + ": Erreur inattendue - " + e.getMessage());
@@ -400,6 +482,13 @@ public class EnfantServiceImpl implements EnfantService {
             messagesErreur.size(),
             messagesErreur
         );
+    }
+
+    private String getOptionalColumn(Row row, Map<String, Integer> columnMap, String columnKey) {
+        Integer idx = columnMap.get(columnKey);
+        if (idx == null) return null;
+        String val = ExcelHelper.getCellValueAsString(row, idx);
+        return (val != null && !val.trim().isEmpty()) ? val.trim() : null;
     }
 
     private EnfantDto mapToEnfantDto(Enfant enfant) {

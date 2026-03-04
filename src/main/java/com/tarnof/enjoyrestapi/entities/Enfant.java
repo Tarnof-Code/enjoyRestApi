@@ -31,11 +31,17 @@ public class Enfant {
     @Enumerated(EnumType.STRING)
     private Genre genre;
     @Temporal(TemporalType.DATE)
-    @NotNull(message = "Le champ date de naissance ne peut pas être vide.")  
+    @NotNull(message = "Le champ date de naissance ne peut pas être vide.")
     private Date dateNaissance;
     @NotNull(message = "Le champ niveau scolaire ne peut pas être vide.")
     @Enumerated(EnumType.STRING)
     private NiveauScolaire niveauScolaire;
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToOne(mappedBy = "enfant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private DossierEnfant dossier;
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "enfant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SejourEnfant> sejours;
 }
