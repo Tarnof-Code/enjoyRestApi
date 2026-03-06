@@ -4,10 +4,14 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
+
+import com.tarnof.enjoyrestapi.payload.response.DossierEnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
 import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
@@ -34,6 +38,16 @@ public class EnfantController {
     @ResponseStatus(HttpStatus.CREATED)
     public void creerEtAjouterEnfantAuSejour(@PathVariable("sejourId") int sejourId, @Valid @RequestBody CreateEnfantRequest request) {
         enfantService.creerEtAjouterEnfantAuSejour(sejourId, request);
+    }
+
+    @GetMapping("/{enfantId}/dossier")
+    @PreAuthorize("hasRole('DIRECTION')")
+    public DossierEnfantDto getDossierEnfant(
+            @PathVariable("sejourId") int sejourId,
+            @PathVariable("enfantId") int enfantId,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return enfantService.getDossierEnfant(sejourId, enfantId, utilisateur.getTokenId());
     }
 
     @PutMapping("/{enfantId}")

@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.NiveauScolaire;
+import com.tarnof.enjoyrestapi.payload.response.DossierEnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
 import com.tarnof.enjoyrestapi.entities.DossierEnfant;
@@ -26,6 +27,8 @@ import com.tarnof.enjoyrestapi.entities.Enfant;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEnfant;
 import com.tarnof.enjoyrestapi.entities.SejourEnfantId;
+import org.springframework.security.access.AccessDeniedException;
+
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
@@ -262,6 +265,26 @@ public class EnfantServiceImpl implements EnfantService {
     }
 
     @Override
+    public DossierEnfantDto getDossierEnfant(int sejourId, int enfantId, String utilisateurTokenId) {
+        SejourEnfantId sejourEnfantId = new SejourEnfantId(sejourId, enfantId);
+        SejourEnfant sejourEnfant = sejourEnfantRepository.findById(sejourEnfantId)
+                .orElseThrow(() -> new ResourceNotFoundException("L'enfant n'est pas inscrit à ce séjour"));
+
+        Sejour sejour = sejourEnfant.getSejour();
+        boolean estDirecteur = sejour.getDirecteur() != null && sejour.getDirecteur().getTokenId().equals(utilisateurTokenId);
+        boolean estDansEquipe = sejour.getEquipeRoles() != null && sejour.getEquipeRoles().stream()
+                .anyMatch(se -> se.getUtilisateur() != null && se.getUtilisateur().getTokenId().equals(utilisateurTokenId));
+        if (!estDirecteur && !estDansEquipe) {
+            throw new AccessDeniedException("Vous ne participez pas à ce séjour");
+        }
+
+        DossierEnfant dossier = dossierEnfantRepository.findByEnfantId(enfantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Dossier non trouvé pour cet enfant"));
+
+        return mapToDossierEnfantDto(dossier);
+    }
+
+    @Override
     @Transactional
     public ExcelImportResponse importerEnfantsDepuisExcel(int sejourId, MultipartFile file) {
         List<String> messagesErreur = new ArrayList<>();
@@ -292,7 +315,7 @@ public class EnfantServiceImpl implements EnfantService {
             columnMappings.put("telephoneParent2", new String[]{"telephoneparent2", "telparent2","tel2","tél2","téléphone2"});
             columnMappings.put("informationsMedicales", new String[]{"informationsmédicales", "informationsmédicale", "infomédicale", "infosmédicales","médical", "medical", "informationssanitaires","informationsanitaire","infossanitaires","infosanitaire","sanitaire","sanitaires"});
             columnMappings.put("pai", new String[]{"pai"});
-            columnMappings.put("informationsAlimentaires", new String[]{"informationsalimentaires", "alimentaire", "régimealimentaire", "regimealimentaire"});
+            columnMappings.put("informationsAlimentaires", new String[]{"informationsalimentaires", "informationsalimentaire", "alimentaire", "alimentaires","régimealimentaire", "regimealimentaire","infosalimentaires","infoalimentaire"});
             columnMappings.put("traitementMatin", new String[]{"traitementmatin", "medicamentmatin", "medicamentlematin","traitementdumatin","traitementlematin"});
             columnMappings.put("traitementMidi", new String[]{"traitementmidi", "medicamentmidi","traitementdumidi","traitementlemidi"});
             columnMappings.put("traitementSoir", new String[]{"traitementsoir", "medicamentsoir","traitementdusoir","traitementlesoir"});
@@ -499,6 +522,26 @@ public class EnfantServiceImpl implements EnfantService {
             enfant.getGenre(),
             enfant.getDateNaissance(),
             enfant.getNiveauScolaire()
+        );
+    }
+
+    private DossierEnfantDto mapToDossierEnfantDto(DossierEnfant dossier) {
+        return new DossierEnfantDto(
+            dossier.getId(),
+            dossier.getEnfant().getId(),
+            dossier.getEmailParent1(),
+            dossier.getTelephoneParent1(),
+            dossier.getEmailParent2(),
+            dossier.getTelephoneParent2(),
+            dossier.getInformationsMedicales(),
+            dossier.getPai(),
+            dossier.getInformationsAlimentaires(),
+            dossier.getTraitementMatin(),
+            dossier.getTraitementMidi(),
+            dossier.getTraitementSoir(),
+            dossier.getTraitementSiBesoin(),
+            dossier.getAutresInformations(),
+            dossier.getAPrendreEnSortie()
         );
     }
 }
