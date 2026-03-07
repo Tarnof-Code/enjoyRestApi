@@ -8,6 +8,7 @@ import com.tarnof.enjoyrestapi.payload.response.DossierEnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
 import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
+import com.tarnof.enjoyrestapi.payload.request.UpdateDossierEnfantRequest;
 
 public interface EnfantService {
     void creerEtAjouterEnfantAuSejour(int sejourId, CreateEnfantRequest request);
@@ -16,5 +17,6 @@ public interface EnfantService {
     void supprimerTousLesEnfantsDuSejour(int sejourId);
     List<EnfantDto> getEnfantsDuSejour(int sejourId);
     DossierEnfantDto getDossierEnfant(int sejourId, int enfantId, String utilisateurTokenId);
+    DossierEnfantDto modifierDossierEnfant(int sejourId, int enfantId, UpdateDossierEnfantRequest request, String utilisateurTokenId);
     ExcelImportResponse importerEnfantsDepuisExcel(int sejourId, MultipartFile file);
 }

@@ -32,6 +32,7 @@ import org.springframework.security.access.AccessDeniedException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
+import com.tarnof.enjoyrestapi.payload.request.UpdateDossierEnfantRequest;
 import com.tarnof.enjoyrestapi.repositories.DossierEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.EnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
@@ -282,6 +283,46 @@ public class EnfantServiceImpl implements EnfantService {
                 .orElseThrow(() -> new ResourceNotFoundException("Dossier non trouvé pour cet enfant"));
 
         return mapToDossierEnfantDto(dossier);
+    }
+
+    @Override
+    @Transactional
+    public DossierEnfantDto modifierDossierEnfant(int sejourId, int enfantId, UpdateDossierEnfantRequest request, String utilisateurTokenId) {
+        SejourEnfantId sejourEnfantId = new SejourEnfantId(sejourId, enfantId);
+        SejourEnfant sejourEnfant = sejourEnfantRepository.findById(sejourEnfantId)
+                .orElseThrow(() -> new ResourceNotFoundException("L'enfant n'est pas inscrit à ce séjour"));
+
+        Sejour sejour = sejourEnfant.getSejour();
+        boolean estDirecteur = sejour.getDirecteur() != null && sejour.getDirecteur().getTokenId().equals(utilisateurTokenId);
+        boolean estDansEquipe = sejour.getEquipeRoles() != null && sejour.getEquipeRoles().stream()
+                .anyMatch(se -> se.getUtilisateur() != null && se.getUtilisateur().getTokenId().equals(utilisateurTokenId));
+        if (!estDirecteur && !estDansEquipe) {
+            throw new AccessDeniedException("Vous ne participez pas à ce séjour");
+        }
+
+        DossierEnfant dossier = dossierEnfantRepository.findByEnfantId(enfantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Dossier non trouvé pour cet enfant"));
+
+        dossier.setEmailParent1(emptyToNull(request.emailParent1()));
+        dossier.setTelephoneParent1(emptyToNull(request.telephoneParent1()));
+        dossier.setEmailParent2(emptyToNull(request.emailParent2()));
+        dossier.setTelephoneParent2(emptyToNull(request.telephoneParent2()));
+        dossier.setInformationsMedicales(emptyToNull(request.informationsMedicales()));
+        dossier.setPai(emptyToNull(request.pai()));
+        dossier.setInformationsAlimentaires(emptyToNull(request.informationsAlimentaires()));
+        dossier.setTraitementMatin(emptyToNull(request.traitementMatin()));
+        dossier.setTraitementMidi(emptyToNull(request.traitementMidi()));
+        dossier.setTraitementSoir(emptyToNull(request.traitementSoir()));
+        dossier.setTraitementSiBesoin(emptyToNull(request.traitementSiBesoin()));
+        dossier.setAutresInformations(emptyToNull(request.autresInformations()));
+        dossier.setAPrendreEnSortie(emptyToNull(request.aPrendreEnSortie()));
+
+        DossierEnfant dossierModifie = dossierEnfantRepository.save(dossier);
+        return mapToDossierEnfantDto(dossierModifie);
+    }
+
+    private static String emptyToNull(String value) {
+        return value != null && value.isBlank() ? null : value;
     }
 
     @Override

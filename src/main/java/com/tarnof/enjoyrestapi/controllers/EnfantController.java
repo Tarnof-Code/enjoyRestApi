@@ -15,6 +15,7 @@ import com.tarnof.enjoyrestapi.payload.response.DossierEnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
 import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
+import com.tarnof.enjoyrestapi.payload.request.UpdateDossierEnfantRequest;
 import com.tarnof.enjoyrestapi.services.EnfantService;
     
 import jakarta.validation.Valid;
@@ -48,6 +49,17 @@ public class EnfantController {
             Authentication authentication) {
         Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
         return enfantService.getDossierEnfant(sejourId, enfantId, utilisateur.getTokenId());
+    }
+
+    @PutMapping("/{enfantId}/dossier")
+    @PreAuthorize("hasRole('DIRECTION')")
+    public DossierEnfantDto modifierDossierEnfant(
+            @PathVariable("sejourId") int sejourId,
+            @PathVariable("enfantId") int enfantId,
+            @Valid @RequestBody UpdateDossierEnfantRequest request,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return enfantService.modifierDossierEnfant(sejourId, enfantId, request, utilisateur.getTokenId());
     }
 
     @PutMapping("/{enfantId}")
