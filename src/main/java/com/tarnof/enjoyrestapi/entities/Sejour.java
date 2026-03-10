@@ -29,4 +29,6 @@ public class Sejour {
     private List<SejourEquipe> equipeRoles;
     @OneToMany(mappedBy = "sejour", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SejourEnfant> enfants;
+    @OneToMany(mappedBy = "sejour", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Groupe> groupes;
 }

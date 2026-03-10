@@ -56,6 +56,11 @@ public class Utilisateur implements UserDetails {
     @JsonIgnore
     @OneToOne(mappedBy = "utilisateur", cascade = CascadeType.ALL)
     private RefreshToken refreshToken;
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToMany(mappedBy = "referents")
+    @Builder.Default
+    private List<Groupe> groupesReferent = new ArrayList<>();
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

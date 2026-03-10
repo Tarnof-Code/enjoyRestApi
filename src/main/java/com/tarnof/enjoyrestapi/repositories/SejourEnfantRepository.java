@@ -7,8 +7,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface SejourEnfantRepository extends JpaRepository<SejourEnfant, SejourEnfantId> {
+
+    @Query("SELECT se FROM SejourEnfant se JOIN FETCH se.enfant WHERE se.sejour.id = :sejourId")
+    List<SejourEnfant> findBySejourIdWithEnfant(@Param("sejourId") int sejourId);
     /**
      * Compte le nombre de séjours auxquels un enfant est inscrit
      * @param enfantId L'ID de l'enfant

@@ -44,4 +44,8 @@ public class Enfant {
     @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "enfant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SejourEnfant> sejours;
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToMany(mappedBy = "enfants")
+    private List<Groupe> groupes;
 }
