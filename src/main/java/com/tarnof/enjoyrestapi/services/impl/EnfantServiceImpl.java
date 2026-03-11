@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.poi.ss.usermodel.Row;
@@ -463,22 +464,6 @@ public class EnfantServiceImpl implements EnfantService {
                         niveauScolaire
                     );
 
-                    // Construire le dossier depuis les colonnes optionnelles détectées
-                    DossierEnfant dossier = new DossierEnfant();
-                    dossier.setEmailParent1(getOptionalColumn(row, columnMap, "emailParent1"));
-                    dossier.setTelephoneParent1(ExcelHelper.normalizePhone(getOptionalColumn(row, columnMap, "telephoneParent1")));
-                    dossier.setEmailParent2(getOptionalColumn(row, columnMap, "emailParent2"));
-                    dossier.setTelephoneParent2(ExcelHelper.normalizePhone(getOptionalColumn(row, columnMap, "telephoneParent2")));
-                    dossier.setInformationsMedicales(getOptionalColumn(row, columnMap, "informationsMedicales"));
-                    dossier.setInformationsAlimentaires(getOptionalColumn(row, columnMap, "informationsAlimentaires"));
-                    dossier.setTraitementMatin(getOptionalColumn(row, columnMap, "traitementMatin"));
-                    dossier.setTraitementMidi(getOptionalColumn(row, columnMap, "traitementMidi"));
-                    dossier.setTraitementSoir(getOptionalColumn(row, columnMap, "traitementSoir"));
-                    dossier.setTraitementSiBesoin(getOptionalColumn(row, columnMap, "traitementSiBesoin"));
-                    dossier.setAutresInformations(getOptionalColumn(row, columnMap, "autresInformations"));
-                    dossier.setPai(getOptionalColumn(row, columnMap, "pai"));
-                    dossier.setAPrendreEnSortie(getOptionalColumn(row, columnMap, "aPrendreEnSortie"));
-                    
                     // Créer l'enfant directement (dans la même transaction)
                     Sejour sejour = sejourRepository.findById(sejourId)
                             .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
@@ -505,8 +490,18 @@ public class EnfantServiceImpl implements EnfantService {
                             continue;
                         }
                         enfantSauvegarde = enfantExistant;
-                        dossier.setEnfant(enfantSauvegarde);
-                        dossierEnfantRepository.save(dossier);
+                        // Mettre à jour le dossier existant ou en créer un nouveau si absent
+                        Optional<DossierEnfant> dossierExistantOpt = dossierEnfantRepository.findByEnfantId(enfantExistant.getId());
+                        if (dossierExistantOpt.isPresent()) {
+                            DossierEnfant dossierExistant = dossierExistantOpt.get();
+                            populateDossierFromExcelRow(dossierExistant, row, columnMap);
+                            dossierEnfantRepository.save(dossierExistant);
+                        } else {
+                            DossierEnfant dossier = new DossierEnfant();
+                            dossier.setEnfant(enfantSauvegarde);
+                            populateDossierFromExcelRow(dossier, row, columnMap);
+                            dossierEnfantRepository.save(dossier);
+                        }
                     } else {
                         Enfant nouvelEnfant = Enfant.builder()
                                 .nom(request.nom())
@@ -518,7 +513,9 @@ public class EnfantServiceImpl implements EnfantService {
                         @SuppressWarnings("null")
                         Enfant saved = enfantRepository.save(nouvelEnfant);
                         enfantSauvegarde = saved;
+                        DossierEnfant dossier = new DossierEnfant();
                         dossier.setEnfant(enfantSauvegarde);
+                        populateDossierFromExcelRow(dossier, row, columnMap);
                         dossierEnfantRepository.save(dossier);
                     }
 
@@ -553,6 +550,22 @@ public class EnfantServiceImpl implements EnfantService {
         if (idx == null) return null;
         String val = ExcelHelper.getCellValueAsString(row, idx);
         return (val != null && !val.trim().isEmpty()) ? val.trim() : null;
+    }
+
+    private void populateDossierFromExcelRow(DossierEnfant dossier, Row row, Map<String, Integer> columnMap) {
+        dossier.setEmailParent1(getOptionalColumn(row, columnMap, "emailParent1"));
+        dossier.setTelephoneParent1(ExcelHelper.normalizePhone(getOptionalColumn(row, columnMap, "telephoneParent1")));
+        dossier.setEmailParent2(getOptionalColumn(row, columnMap, "emailParent2"));
+        dossier.setTelephoneParent2(ExcelHelper.normalizePhone(getOptionalColumn(row, columnMap, "telephoneParent2")));
+        dossier.setInformationsMedicales(getOptionalColumn(row, columnMap, "informationsMedicales"));
+        dossier.setInformationsAlimentaires(getOptionalColumn(row, columnMap, "informationsAlimentaires"));
+        dossier.setTraitementMatin(getOptionalColumn(row, columnMap, "traitementMatin"));
+        dossier.setTraitementMidi(getOptionalColumn(row, columnMap, "traitementMidi"));
+        dossier.setTraitementSoir(getOptionalColumn(row, columnMap, "traitementSoir"));
+        dossier.setTraitementSiBesoin(getOptionalColumn(row, columnMap, "traitementSiBesoin"));
+        dossier.setAutresInformations(getOptionalColumn(row, columnMap, "autresInformations"));
+        dossier.setPai(getOptionalColumn(row, columnMap, "pai"));
+        dossier.setAPrendreEnSortie(getOptionalColumn(row, columnMap, "aPrendreEnSortie"));
     }
 
     private EnfantDto mapToEnfantDto(Enfant enfant) {
