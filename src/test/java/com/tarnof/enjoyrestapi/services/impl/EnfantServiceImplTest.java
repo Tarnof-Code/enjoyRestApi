@@ -11,6 +11,7 @@ import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
 import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
+import com.tarnof.enjoyrestapi.repositories.DossierEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.EnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
@@ -51,6 +52,9 @@ class EnfantServiceImplTest {
 
     @Mock
     private SejourEnfantRepository sejourEnfantRepository;
+
+    @Mock
+    private DossierEnfantRepository dossierEnfantRepository;
 
     @InjectMocks
     private EnfantServiceImpl enfantService;
@@ -118,6 +122,7 @@ class EnfantServiceImplTest {
                 createEnfantRequest.dateNaissance())).thenReturn(Optional.empty());
         when(enfantRepository.save(any(Enfant.class))).thenReturn(enfantCree);
         when(sejourRepository.save(any(Sejour.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(dossierEnfantRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         enfantService.creerEtAjouterEnfantAuSejour(1, createEnfantRequest);
@@ -490,6 +495,7 @@ class EnfantServiceImplTest {
             return e;
         });
         when(sejourRepository.save(any(Sejour.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(dossierEnfantRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         ExcelImportResponse result = enfantService.importerEnfantsDepuisExcel(1, file);
 

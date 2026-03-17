@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -37,6 +36,7 @@ import com.tarnof.enjoyrestapi.repositories.DossierEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.EnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEnfantRepository;
+import com.tarnof.enjoyrestapi.excel.ExcelImportSpec;
 import com.tarnof.enjoyrestapi.services.EnfantService;
 import com.tarnof.enjoyrestapi.utils.ExcelHelper;
 
@@ -342,56 +342,20 @@ public class EnfantServiceImpl implements EnfantService {
                 throw new IllegalArgumentException("Le fichier Excel ne contient pas d'en-têtes");
             }
             
-            // Définir les mappings de colonnes spécifiques aux enfants
-            Map<String, String[]> columnMappings = new HashMap<>();
-            columnMappings.put("nom", new String[]{"nom"});
-            columnMappings.put("prenom", new String[]{"prenom"});
-            columnMappings.put("genre", new String[]{"genre", "sexe"});
-            columnMappings.put("dateNaissance", new String[]{"datenaissance", "naissance"});
-            columnMappings.put("niveauScolaire", new String[]{"niveau", "classe"});
-            // Colonnes optionnelles du dossier
-            columnMappings.put("emailParent1", new String[]{"emailparent1", "emailparent", "mailparent1", "mailparent","mail","email"});
-            columnMappings.put("telephoneParent1", new String[]{"telephoneparent1", "telparent1", "telephoneparent", "telparent","tel","tél","tel1","tél1","telephone","téléphone"});
-            columnMappings.put("emailParent2", new String[]{"emailparent2", "mailparent2"});
-            columnMappings.put("telephoneParent2", new String[]{"telephoneparent2", "telparent2","tel2","tél2","téléphone2"});
-            columnMappings.put("informationsMedicales", new String[]{"informationsmédicales", "informationsmédicale", "infomédicale", "infosmédicales","médical", "medical", "informationssanitaires","informationsanitaire","infossanitaires","infosanitaire","sanitaire","sanitaires"});
-            columnMappings.put("pai", new String[]{"pai"});
-            columnMappings.put("informationsAlimentaires", new String[]{"informationsalimentaires", "informationsalimentaire", "alimentaire", "alimentaires","régimealimentaire", "regimealimentaire","infosalimentaires","infoalimentaire"});
-            columnMappings.put("traitementMatin", new String[]{"traitementmatin", "medicamentmatin", "medicamentlematin","traitementdumatin","traitementlematin"});
-            columnMappings.put("traitementMidi", new String[]{"traitementmidi", "medicamentmidi","traitementdumidi","traitementlemidi"});
-            columnMappings.put("traitementSoir", new String[]{"traitementsoir", "medicamentsoir","traitementdusoir","traitementlesoir"});
-            columnMappings.put("traitementSiBesoin", new String[]{"traitementsibeson", "traitementsibésoin", "sibesoin", "sibésoin","traitementbesoin","traitementsbesoins"});
-            columnMappings.put("autresInformations", new String[]{"autresinformations", "autresinfo", "autreinfo", "autresinformation", "autre","autres","divers"});
-            columnMappings.put("aPrendreEnSortie", new String[]{"aprendreensortie", "sortie", "prendreensortie"});
-            
-            Map<String, Integer> columnMap = ExcelHelper.detectColumns(headerRow, columnMappings);
-            
+            ExcelImportSpec spec = ExcelImportSpec.getInstance();
+            Map<String, Integer> columnMap = ExcelHelper.detectColumns(headerRow, spec.getColumnMappings());
+
             // Vérifier que toutes les colonnes requises sont présentes
             boolean colonnesManquantes = false;
-            
-            if (!columnMap.containsKey("nom")) {
-                messagesErreur.add("Colonne contenant 'nom' introuvable. Le fichier Excel doit contenir une colonne avec 'nom' dans son en-tête (ex: 'Nom', 'Nom de l'enfant', etc.)");
-                colonnesManquantes = true;
+            for (String requiredKey : spec.getRequiredColumnKeys()) {
+                if (!columnMap.containsKey(requiredKey)) {
+                    messagesErreur.add(spec.getErrorMessageForMissingColumn(requiredKey));
+                    colonnesManquantes = true;
+                }
             }
-            if (!columnMap.containsKey("prenom")) {
-                messagesErreur.add("Colonne contenant 'prénom' introuvable. Le fichier Excel doit contenir une colonne avec 'prénom' dans son en-tête (ex: 'Prénom', 'Prénom de l'enfant', etc.)");
-                colonnesManquantes = true;
-            }
-            if (!columnMap.containsKey("genre")) {
-                messagesErreur.add("Colonne contenant 'genre' ou 'sexe' introuvable. Le fichier Excel doit contenir une colonne avec 'genre' ou 'sexe' dans son en-tête (ex: 'Genre', 'Sexe', etc.)");
-                colonnesManquantes = true;
-            }
-            if (!columnMap.containsKey("dateNaissance")) {
-                messagesErreur.add("Colonne contenant 'date' et 'naissance' introuvable. Le fichier Excel doit contenir une colonne avec 'date' et 'naissance' dans son en-tête (ex: 'Date de naissance', 'Naissance', etc.)");
-                colonnesManquantes = true;
-            }
-            if (!columnMap.containsKey("niveauScolaire")) {
-                messagesErreur.add("Colonne contenant 'niveau' ou 'classe' introuvable. Le fichier Excel doit contenir une colonne avec 'niveau' ou 'classe' dans son en-tête (ex: 'Niveau scolaire', 'Classe', etc.)");
-                colonnesManquantes = true;
-            }
-            
+
             if (colonnesManquantes) {
-                messagesErreur.add(0, "Structure du fichier Excel attendue : Le fichier doit contenir les colonnes suivantes dans la première ligne (en-têtes) : une colonne avec 'nom', une colonne avec 'prénom', une colonne avec 'genre' ou 'sexe', une colonne avec 'date' et 'naissance', et une colonne avec 'niveau' ou 'classe'. Les noms des colonnes peuvent contenir d'autres mots (ex: 'Nom de l'enfant' est accepté).");
+                messagesErreur.add(0, spec.getSummaryErrorMessage());
                 return new ExcelImportResponse(0, 0, 0, messagesErreur.size(), messagesErreur);
             }
             

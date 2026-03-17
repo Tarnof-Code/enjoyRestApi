@@ -305,6 +305,22 @@ class EnfantControllerTest {
         verify(enfantService).supprimerTousLesEnfantsDuSejour(999);
     }
 
+    // ========== Tests pour getExcelImportSpec() ==========
+
+    @Test
+    @DisplayName("getExcelImportSpec - Devrait retourner la spécification d'import Excel")
+    void getExcelImportSpec_ShouldReturnImportSpec() throws Exception {
+        mockMvc.perform(get("/api/v1/sejours/1/enfants/import/spec"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.colonnesObligatoires").isArray())
+                .andExpect(jsonPath("$.colonnesObligatoires.length()").value(5))
+                .andExpect(jsonPath("$.colonnesObligatoires[0].champ").value("nom"))
+                .andExpect(jsonPath("$.colonnesObligatoires[0].obligatoire").value(true))
+                .andExpect(jsonPath("$.colonnesOptionnelles").isArray())
+                .andExpect(jsonPath("$.formatsAcceptes").isArray())
+                .andExpect(jsonPath("$.formatsAcceptes.length()").value(2));
+    }
+
     // ========== Tests pour importerEnfantsDepuisExcel() ==========
 
     @Test

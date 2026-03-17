@@ -5,6 +5,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -17,7 +18,7 @@ import org.apache.poi.ss.usermodel.Row;
  */
 public class ExcelHelper {
 
-    private static final DataFormatter DATA_FORMATTER = new DataFormatter();
+    private static final DataFormatter DATA_FORMATTER = new DataFormatter(Locale.US);
 
     private ExcelHelper() {
         // Classe utilitaire, constructeur privé pour empêcher l'instanciation

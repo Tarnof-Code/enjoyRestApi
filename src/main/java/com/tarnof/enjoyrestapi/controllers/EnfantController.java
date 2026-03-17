@@ -11,9 +11,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 
+import com.tarnof.enjoyrestapi.excel.ExcelImportSpec;
 import com.tarnof.enjoyrestapi.payload.response.DossierEnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
+import com.tarnof.enjoyrestapi.payload.response.ExcelImportSpecResponse;
 import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateDossierEnfantRequest;
 import com.tarnof.enjoyrestapi.services.EnfantService;
@@ -80,6 +82,12 @@ public class EnfantController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimerTousLesEnfantsDuSejour(@PathVariable("sejourId") int sejourId) {
         enfantService.supprimerTousLesEnfantsDuSejour(sejourId);
+    }
+
+    @GetMapping("/import/spec")
+    @PreAuthorize("hasRole('DIRECTION')")
+    public ExcelImportSpecResponse getExcelImportSpec() {
+        return ExcelImportSpec.getInstance().getSpecForApi();
     }
 
     @PostMapping("/import")
