@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.poi.ss.usermodel.Row;
@@ -491,17 +490,14 @@ public class EnfantServiceImpl implements EnfantService {
                         }
                         enfantSauvegarde = enfantExistant;
                         // Mettre à jour le dossier existant ou en créer un nouveau si absent
-                        Optional<DossierEnfant> dossierExistantOpt = dossierEnfantRepository.findByEnfantId(enfantExistant.getId());
-                        if (dossierExistantOpt.isPresent()) {
-                            DossierEnfant dossierExistant = dossierExistantOpt.get();
-                            populateDossierFromExcelRow(dossierExistant, row, columnMap);
-                            dossierEnfantRepository.save(dossierExistant);
-                        } else {
-                            DossierEnfant dossier = new DossierEnfant();
-                            dossier.setEnfant(enfantSauvegarde);
-                            populateDossierFromExcelRow(dossier, row, columnMap);
-                            dossierEnfantRepository.save(dossier);
-                        }
+                        DossierEnfant dossier = dossierEnfantRepository.findByEnfantId(enfantExistant.getId())
+                                .orElseGet(() -> {
+                                    DossierEnfant d = new DossierEnfant();
+                                    d.setEnfant(enfantSauvegarde);
+                                    return d;
+                                });
+                        populateDossierFromExcelRow(dossier, row, columnMap);
+                        dossierEnfantRepository.save(Objects.requireNonNull(dossier, "Dossier enfant requis"));
                     } else {
                         Enfant nouvelEnfant = Enfant.builder()
                                 .nom(request.nom())
