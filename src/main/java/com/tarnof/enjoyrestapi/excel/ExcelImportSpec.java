@@ -21,30 +21,32 @@ public final class ExcelImportSpec {
 
     /**
      * Définition d'une colonne (interne).
+     * groupesMotsCles : chaque groupe = alternatives (OU), tous les groupes doivent matcher (ET).
+     * Ex: [["email","mail"], ["parent"], ["1"]] = (email OU mail) ET parent ET 1
      */
-    private record ColumnDef(String champ, String libelle, String[] motsCles, boolean obligatoire) {}
+    private record ColumnDef(String champ, String libelle, String[][] groupesMotsCles, boolean obligatoire) {}
 
     private static final List<ColumnDef> COLUMNS = List.of(
-        // Colonnes obligatoires
-        new ColumnDef("nom", "Nom", new String[]{"nom"}, true),
-        new ColumnDef("prenom", "Prénom", new String[]{"prenom"}, true),
-        new ColumnDef("genre", "Genre", new String[]{"genre", "sexe"}, true),
-        new ColumnDef("dateNaissance", "Date de naissance", new String[]{"datenaissance", "naissance"}, true),
-        new ColumnDef("niveauScolaire", "Niveau scolaire", new String[]{"niveau", "classe"}, true),
-        // Colonnes optionnelles du dossier
-        new ColumnDef("emailParent1", "Email parent 1", new String[]{"emailparent1", "emailparent", "mailparent1", "mailparent", "mail", "email"}, false),
-        new ColumnDef("telephoneParent1", "Téléphone parent 1", new String[]{"telephoneparent1", "telparent1", "telephoneparent", "telparent", "tel", "tél", "tel1", "tél1", "telephone", "téléphone"}, false),
-        new ColumnDef("emailParent2", "Email parent 2", new String[]{"emailparent2", "mailparent2"}, false),
-        new ColumnDef("telephoneParent2", "Téléphone parent 2", new String[]{"telephoneparent2", "telparent2", "tel2", "tél2", "téléphone2"}, false),
-        new ColumnDef("informationsMedicales", "Informations médicales", new String[]{"informationsmédicales", "informationsmédicale", "infomédicale", "infosmédicales", "médical", "medical", "informationssanitaires", "informationsanitaire", "infossanitaires", "infosanitaire", "sanitaire", "sanitaires"}, false),
-        new ColumnDef("pai", "PAI", new String[]{"pai"}, false),
-        new ColumnDef("informationsAlimentaires", "Informations alimentaires", new String[]{"informationsalimentaires", "informationsalimentaire", "alimentaire", "alimentaires", "régimealimentaire", "regimealimentaire", "infosalimentaires", "infoalimentaire"}, false),
-        new ColumnDef("traitementMatin", "Traitement matin", new String[]{"traitementmatin", "medicamentmatin", "medicamentlematin", "traitementdumatin", "traitementlematin"}, false),
-        new ColumnDef("traitementMidi", "Traitement midi", new String[]{"traitementmidi", "medicamentmidi", "traitementdumidi", "traitementlemidi"}, false),
-        new ColumnDef("traitementSoir", "Traitement soir", new String[]{"traitementsoir", "medicamentsoir", "traitementdusoir", "traitementlesoir"}, false),
-        new ColumnDef("traitementSiBesoin", "Traitement si besoin", new String[]{"traitementsibesoin", "traitementsibésoin", "sibesoin", "sibésoin", "traitementbesoin", "traitementsbesoins"}, false),
-        new ColumnDef("autresInformations", "Autres informations", new String[]{"autresinformations", "autresinfo", "autreinfo", "autresinformation", "autre", "autres", "divers"}, false),
-        new ColumnDef("aPrendreEnSortie", "À prendre en sortie", new String[]{"aprendreensortie", "sortie", "prendreensortie"}, false)
+        // Colonnes obligatoires (1 groupe = 1 ou plusieurs alternatives)
+        new ColumnDef("nom", "Nom", new String[][]{{"nom"}}, true),
+        new ColumnDef("prenom", "Prénom", new String[][]{{"prenom"}}, true),
+        new ColumnDef("genre", "Genre", new String[][]{{"genre", "sexe"}}, true),
+        new ColumnDef("dateNaissance", "Date de naissance", new String[][]{{"naissance"}}, true),
+        new ColumnDef("niveauScolaire", "Niveau scolaire", new String[][]{{"niveau", "classe"}}, true),
+        // Colonnes optionnelles : email/mail ET parent ET 1 ou 2
+        new ColumnDef("emailParent1", "Email parent 1", new String[][]{{"email", "mail"}, {"parent"}, {"1"}}, false),
+        new ColumnDef("telephoneParent1", "Téléphone parent 1", new String[][]{{"telephone", "tel"}, {"parent"}, {"1"}}, false),
+        new ColumnDef("emailParent2", "Email parent 2", new String[][]{{"email", "mail"}, {"parent"}, {"2"}}, false),
+        new ColumnDef("telephoneParent2", "Téléphone parent 2", new String[][]{{"telephone", "tel"}, {"parent"}, {"2"}}, false),
+        new ColumnDef("informationsMedicales", "Informations médicales", new String[][]{{"medicales", "medicale", "medical", "sanitaire","sanitaires"}}, false),
+        new ColumnDef("pai", "PAI", new String[][]{{"pai"}}, false),
+        new ColumnDef("informationsAlimentaires", "Informations alimentaires", new String[][]{{"alimentaire", "alimentaires"}}, false),
+        new ColumnDef("traitementMatin", "Traitement matin", new String[][]{{"traitement", "medicament","traitements", "medicaments"}, {"matin"}}, false),
+        new ColumnDef("traitementMidi", "Traitement midi", new String[][]{{"traitement", "medicament","traitements", "medicaments"}, {"midi"}}, false),
+        new ColumnDef("traitementSoir", "Traitement soir", new String[][]{{"traitement", "medicament","traitements", "medicaments"}, {"soir"}}, false),
+        new ColumnDef("traitementSiBesoin", "Traitement si besoin", new String[][]{{"traitement", "medicament","traitements", "medicaments"}, {"besoin"}}, false),
+        new ColumnDef("autresInformations", "Autres informations", new String[][]{{"autres", "autre", "divers","diverses"}}, false),
+        new ColumnDef("aPrendreEnSortie", "À prendre en sortie", new String[][]{{"sortie", "sorties"}}, false)
     );
 
     private static final ExcelImportSpec INSTANCE = new ExcelImportSpec();
@@ -60,11 +62,13 @@ public final class ExcelImportSpec {
 
     /**
      * Retourne les mappings de colonnes pour ExcelHelper.detectColumns().
+     * Chaque colonne a des groupes : tous les groupes doivent matcher (ET),
+     * au moins un mot par groupe (OU).
      */
-    public Map<String, String[]> getColumnMappings() {
-        Map<String, String[]> mappings = new HashMap<>();
+    public Map<String, String[][]> getColumnMappings() {
+        Map<String, String[][]> mappings = new HashMap<>();
         for (ColumnDef col : COLUMNS) {
-            mappings.put(col.champ(), col.motsCles());
+            mappings.put(col.champ(), col.groupesMotsCles());
         }
         return mappings;
     }
@@ -87,8 +91,8 @@ public final class ExcelImportSpec {
                 .filter(c -> c.champ().equals(columnKey) && c.obligatoire())
                 .findFirst()
                 .map(col -> {
-                    String motsClesStr = String.join("' ou '", col.motsCles());
-                    return "Colonne contenant '" + motsClesStr + "' introuvable. Le fichier Excel doit contenir une colonne avec '" + motsClesStr + "' dans son en-tête (ex: '" + col.libelle() + "', etc.)";
+                    String desc = formatGroupesForMessage(col.groupesMotsCles());
+                    return "Colonne " + desc + " introuvable. Le fichier Excel doit contenir une colonne correspondante (ex: '" + col.libelle() + "').";
                 })
                 .orElse("Colonne '" + columnKey + "' introuvable.");
     }
@@ -99,11 +103,17 @@ public final class ExcelImportSpec {
     public String getSummaryErrorMessage() {
         String colonnes = COLUMNS.stream()
                 .filter(ColumnDef::obligatoire)
-                .map(c -> "une colonne avec '" + String.join("' ou '", c.motsCles()) + "'")
+                .map(c -> "une colonne " + formatGroupesForMessage(c.groupesMotsCles()))
                 .collect(Collectors.joining(", "));
         return "Structure du fichier Excel attendue : Le fichier doit contenir les colonnes suivantes dans la première ligne (en-têtes) : "
                 + colonnes
                 + ". Les noms des colonnes peuvent contenir d'autres mots (ex: 'Nom de l'enfant' est accepté).";
+    }
+
+    private static String formatGroupesForMessage(String[][] groupes) {
+        return Arrays.stream(groupes)
+                .map(g -> "(" + String.join(" ou ", g) + ")")
+                .collect(Collectors.joining(" ET "));
     }
 
     /**
@@ -128,10 +138,13 @@ public final class ExcelImportSpec {
     }
 
     private static ExcelImportColumnSpec toColumnSpec(ColumnDef def) {
+        List<String> motsCles = Arrays.stream(def.groupesMotsCles())
+                .map(g -> g.length == 1 ? g[0] : "(" + String.join(" ou ", g) + ")")
+                .toList();
         return new ExcelImportColumnSpec(
                 def.champ(),
                 def.libelle(),
-                Arrays.asList(def.motsCles()),
+                motsCles,
                 def.obligatoire()
         );
     }

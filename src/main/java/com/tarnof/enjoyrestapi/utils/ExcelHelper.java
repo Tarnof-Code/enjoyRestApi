@@ -25,13 +25,15 @@ public class ExcelHelper {
     }
 
     /**
-     * Détecte les colonnes en analysant les en-têtes de la première ligne de manière générique
+     * Détecte les colonnes en analysant les en-têtes de la première ligne.
+     * Chaque colonne a des groupes de mots-clés : tous les groupes doivent matcher (ET),
+     * au moins un mot par groupe (OU).
      * @param headerRow La première ligne contenant les en-têtes
-     * @param columnMappings Map associant le nom de colonne normalisé à un tableau de mots-clés à rechercher
-     *                       (ex: "nom" -> ["nom"], "dateNaissance" -> ["date", "naissance"])
+     * @param columnMappings Map associant le nom de colonne à des groupes de mots-clés
+     *                       (ex: "emailParent1" -> [["email","mail"], ["parent"], ["1"]])
      * @return Une map associant les noms de colonnes normalisés aux indices de colonnes
      */
-    public static Map<String, Integer> detectColumns(Row headerRow, Map<String, String[]> columnMappings) {
+    public static Map<String, Integer> detectColumns(Row headerRow, Map<String, String[][]> columnMappings) {
         Map<String, Integer> columnMap = new HashMap<>();
         
         for (int i = 0; i < headerRow.getLastCellNum(); i++) {
@@ -39,15 +41,13 @@ public class ExcelHelper {
             if (cell != null) {
                 String headerValue = normalizeColumnName(getCellValueAsString(headerRow, i));
                 
-                // Parcourir les mappings pour trouver une correspondance
-                for (Map.Entry<String, String[]> entry : columnMappings.entrySet()) {
+                for (Map.Entry<String, String[][]> entry : columnMappings.entrySet()) {
                     String columnName = entry.getKey();
-                    String[] keywords = entry.getValue();
+                    String[][] groups = entry.getValue();
                     
-                    // Si la colonne n'a pas encore été trouvée et que le header correspond
-                    if (!columnMap.containsKey(columnName) && containsKeyword(headerValue, keywords)) {
+                    if (!columnMap.containsKey(columnName) && containsAllGroups(headerValue, groups)) {
                         columnMap.put(columnName, i);
-                        break; // Passer à la colonne suivante une fois qu'une correspondance est trouvée
+                        break;
                     }
                 }
             }
@@ -74,8 +74,7 @@ public class ExcelHelper {
     }
     
     /**
-     * Vérifie si un nom de colonne normalisé contient l'un des mots-clés attendus
-     * Permet une détection flexible (ex: "nom de l'enfant" sera détecté car il contient "nom")
+     * Vérifie si un nom de colonne normalisé contient l'un des mots-clés attendus (OU).
      * @param normalizedName Le nom de colonne normalisé
      * @param keywords Les mots-clés à rechercher (au moins un doit être présent)
      * @return true si le nom contient l'un des mots-clés
@@ -84,15 +83,30 @@ public class ExcelHelper {
         if (normalizedName == null || normalizedName.isEmpty()) {
             return false;
         }
-        
         for (String keyword : keywords) {
-            String normalizedKeyword = normalizeColumnName(keyword);
-            // Vérifie si le nom de colonne contient le mot-clé
-            if (normalizedName.contains(normalizedKeyword)) {
+            if (normalizedName.contains(normalizeColumnName(keyword))) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Vérifie si un nom de colonne contient au moins un mot de chaque groupe (ET entre groupes, OU dans un groupe).
+     * @param normalizedName Le nom de colonne normalisé
+     * @param groups Groupes de mots-clés (chaque groupe = alternatives)
+     * @return true si tous les groupes ont au moins une correspondance
+     */
+    public static boolean containsAllGroups(String normalizedName, String[][] groups) {
+        if (normalizedName == null || normalizedName.isEmpty() || groups == null || groups.length == 0) {
+            return false;
+        }
+        for (String[] group : groups) {
+            if (!containsKeyword(normalizedName, group)) {
+                return false;
+            }
+        }
+        return true;
     }
     
     /**

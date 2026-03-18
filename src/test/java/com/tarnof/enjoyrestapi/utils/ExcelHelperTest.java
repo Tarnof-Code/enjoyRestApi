@@ -100,6 +100,39 @@ class ExcelHelperTest {
         }
     }
 
+    @Nested
+    @DisplayName("containsAllGroups")
+    class ContainsAllGroupsTests {
+
+        @Test
+        @DisplayName("Devrait matcher quand tous les groupes sont présents (ET)")
+        void shouldMatchWhenAllGroupsPresent() {
+            String[][] groups = new String[][]{{"email", "mail"}, {"parent"}, {"1"}};
+            assertThat(ExcelHelper.containsAllGroups("emailparent1", groups)).isTrue();
+            assertThat(ExcelHelper.containsAllGroups("mailparent1", groups)).isTrue();
+            assertThat(ExcelHelper.containsAllGroups("emailduparent1", groups)).isTrue();
+        }
+
+        @Test
+        @DisplayName("Devrait refuser quand un groupe manque")
+        void shouldRejectWhenGroupMissing() {
+            String[][] groups = new String[][]{{"email", "mail"}, {"parent"}, {"1"}};
+            assertThat(ExcelHelper.containsAllGroups("email", groups)).isFalse();
+            assertThat(ExcelHelper.containsAllGroups("parent1", groups)).isFalse();
+            assertThat(ExcelHelper.containsAllGroups("emailparent", groups)).isFalse();
+        }
+
+        @Test
+        @DisplayName("Devrait distinguer parent 1 et parent 2")
+        void shouldDistinguishParent1AndParent2() {
+            String[][] groups1 = new String[][]{{"email", "mail"}, {"parent"}, {"1"}};
+            String[][] groups2 = new String[][]{{"email", "mail"}, {"parent"}, {"2"}};
+            assertThat(ExcelHelper.containsAllGroups("emailparent1", groups1)).isTrue();
+            assertThat(ExcelHelper.containsAllGroups("emailparent1", groups2)).isFalse();
+            assertThat(ExcelHelper.containsAllGroups("emailparent2", groups2)).isTrue();
+        }
+    }
+
     // ========== Tests pour detectColumns() ==========
 
     @Nested
@@ -116,10 +149,10 @@ class ExcelHelperTest {
                 headerRow.createCell(1).setCellValue("Prénom");
                 headerRow.createCell(2).setCellValue("Genre");
 
-                Map<String, String[]> columnMappings = new HashMap<>();
-                columnMappings.put("nom", new String[]{"nom"});
-                columnMappings.put("prenom", new String[]{"prenom"});
-                columnMappings.put("genre", new String[]{"genre", "sexe"});
+                Map<String, String[][]> columnMappings = new HashMap<>();
+                columnMappings.put("nom", new String[][]{{"nom"}});
+                columnMappings.put("prenom", new String[][]{{"prenom"}});
+                columnMappings.put("genre", new String[][]{{"genre", "sexe"}});
 
                 Map<String, Integer> result = ExcelHelper.detectColumns(headerRow, columnMappings);
 
@@ -139,9 +172,9 @@ class ExcelHelperTest {
                 headerRow.createCell(0).setCellValue("Nom de l'enfant");
                 headerRow.createCell(1).setCellValue("Date de naissance");
 
-                Map<String, String[]> columnMappings = new HashMap<>();
-                columnMappings.put("nom", new String[]{"nom"});
-                columnMappings.put("dateNaissance", new String[]{"date", "naissance"});
+                Map<String, String[][]> columnMappings = new HashMap<>();
+                columnMappings.put("nom", new String[][]{{"nom"}});
+                columnMappings.put("dateNaissance", new String[][]{{"datenaissance", "naissance"}});
 
                 Map<String, Integer> result = ExcelHelper.detectColumns(headerRow, columnMappings);
 
@@ -159,9 +192,9 @@ class ExcelHelperTest {
                 headerRow.createCell(0).setCellValue("Colonne Invalide");
                 headerRow.createCell(1).setCellValue("Autre");
 
-                Map<String, String[]> columnMappings = new HashMap<>();
-                columnMappings.put("nom", new String[]{"nom"});
-                columnMappings.put("prenom", new String[]{"prenom"});
+                Map<String, String[][]> columnMappings = new HashMap<>();
+                columnMappings.put("nom", new String[][]{{"nom"}});
+                columnMappings.put("prenom", new String[][]{{"prenom"}});
 
                 Map<String, Integer> result = ExcelHelper.detectColumns(headerRow, columnMappings);
 
@@ -178,9 +211,9 @@ class ExcelHelperTest {
                 headerRow.createCell(0).setCellValue("  Prénom enfant  ");
                 headerRow.createCell(1).setCellValue("Niveau scolaire");
 
-                Map<String, String[]> columnMappings = new HashMap<>();
-                columnMappings.put("prenom", new String[]{"prenom"});
-                columnMappings.put("niveauScolaire", new String[]{"niveau", "classe"});
+                Map<String, String[][]> columnMappings = new HashMap<>();
+                columnMappings.put("prenom", new String[][]{{"prenom"}});
+                columnMappings.put("niveauScolaire", new String[][]{{"niveau", "classe"}});
 
                 Map<String, Integer> result = ExcelHelper.detectColumns(headerRow, columnMappings);
 
