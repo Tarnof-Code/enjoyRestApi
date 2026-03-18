@@ -13,6 +13,7 @@ import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
 import com.tarnof.enjoyrestapi.repositories.DossierEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.EnfantRepository;
+import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import org.apache.poi.ss.usermodel.Row;
@@ -23,7 +24,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
@@ -36,6 +36,7 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -54,9 +55,11 @@ class EnfantServiceImplTest {
     private SejourEnfantRepository sejourEnfantRepository;
 
     @Mock
+    private GroupeRepository groupeRepo;
+
+    @Mock
     private DossierEnfantRepository dossierEnfantRepository;
 
-    @InjectMocks
     private EnfantServiceImpl enfantService;
 
     private Sejour sejour;
@@ -67,6 +70,14 @@ class EnfantServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        enfantService = new EnfantServiceImpl(
+                enfantRepository,
+                sejourRepository,
+                sejourEnfantRepository,
+                groupeRepo,
+                dossierEnfantRepository
+        );
+
         dateNaissance = new Date(System.currentTimeMillis() - 86400000L * 365 * 10); // 10 ans
 
         sejour = Sejour.builder()
@@ -97,6 +108,8 @@ class EnfantServiceImplTest {
                 dateNaissance,
                 NiveauScolaire.MS
         );
+
+        lenient().when(groupeRepo.findBySejourId(anyInt())).thenReturn(Collections.emptyList());
     }
 
     // ==================== creerEtAjouterEnfantAuSejour ====================

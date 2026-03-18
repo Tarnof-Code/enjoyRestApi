@@ -23,6 +23,7 @@ import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
 import com.tarnof.enjoyrestapi.entities.DossierEnfant;
 import com.tarnof.enjoyrestapi.entities.Enfant;
+import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEnfant;
 import com.tarnof.enjoyrestapi.entities.SejourEnfantId;
@@ -34,6 +35,7 @@ import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateDossierEnfantRequest;
 import com.tarnof.enjoyrestapi.repositories.DossierEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.EnfantRepository;
+import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEnfantRepository;
 import com.tarnof.enjoyrestapi.excel.ExcelImportSpec;
@@ -50,6 +52,7 @@ public class EnfantServiceImpl implements EnfantService {
     private final EnfantRepository enfantRepository;
     private final SejourRepository sejourRepository;
     private final SejourEnfantRepository sejourEnfantRepository;
+    private final GroupeRepository groupeRepository;
     private final DossierEnfantRepository dossierEnfantRepository;
 
     @Override
@@ -147,6 +150,8 @@ public class EnfantServiceImpl implements EnfantService {
                 // L'enfant existant n'est pas dans le séjour, remplacer l'enfant actuel par l'enfant existant
                 // Comme la propriété enfant fait partie de la clé primaire, on doit supprimer l'ancienne relation
                 // et créer une nouvelle relation avec l'enfant existant
+                // Retirer l'enfant actuel de tous les groupes du séjour avant la suppression
+                retirerEnfantDesGroupesDuSejour(sejourId, enfantActuel.getId());
                 
                 sejourEnfantRepository.delete(sejourEnfant);
                 sejourEnfantRepository.flush();
@@ -200,6 +205,8 @@ public class EnfantServiceImpl implements EnfantService {
         
         long nombreSejours = sejourEnfantRepository.countByEnfantId(enfantId);
         
+        retirerEnfantDesGroupesDuSejour(sejourId, enfantId);
+        
         sejourEnfantRepository.deleteById(sejourEnfantId);
         sejourEnfantRepository.flush();
         
@@ -223,6 +230,14 @@ public class EnfantServiceImpl implements EnfantService {
         }
         
         List<Enfant> enfantsASupprimer = new ArrayList<>();
+        
+        // Retirer tous les enfants des groupes du séjour avant de supprimer les relations
+        for (SejourEnfant sejourEnfant : sejour.getEnfants()) {
+            Enfant e = sejourEnfant.getEnfant();
+            if (e != null) {
+                retirerEnfantDesGroupesDuSejour(sejourId, e.getId());
+            }
+        }
         
         for (SejourEnfant sejourEnfant : sejour.getEnfants()) {
             Enfant enfant = sejourEnfant.getEnfant();
@@ -323,6 +338,16 @@ public class EnfantServiceImpl implements EnfantService {
 
     private static String emptyToNull(String value) {
         return value != null && value.isBlank() ? null : value;
+    }
+
+    /** Retire un enfant de tous les groupes du séjour (règle métier : enfant supprimé du séjour = retiré de tous les groupes). */
+    private void retirerEnfantDesGroupesDuSejour(int sejourId, int enfantId) {
+        List<Groupe> groupes = groupeRepository.findBySejourId(sejourId);
+        for (Groupe groupe : groupes) {
+            if (groupe.getEnfants() != null && groupe.getEnfants().removeIf(e -> e.getId() == enfantId)) {
+                groupeRepository.save(groupe);
+            }
+        }
     }
 
     @Override
