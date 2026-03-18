@@ -2,6 +2,7 @@ package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import com.tarnof.enjoyrestapi.payload.response.SejourDto;
+import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.RefreshToken;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEquipe;
@@ -10,10 +11,12 @@ import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.enums.RoleSejour;
+import com.tarnof.enjoyrestapi.enums.TypeGroupe;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;
 import com.tarnof.enjoyrestapi.payload.request.MembreEquipeRequest;
+import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.RefreshTokenRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
@@ -56,6 +59,9 @@ class SejourServiceImplTest {
 
     @Mock
     private SejourEquipeRepository sejourEquipeRepository;
+
+    @Mock
+    private GroupeRepository groupeRepository;
 
     @InjectMocks
     private SejourServiceImpl sejourService;
@@ -579,15 +585,58 @@ class SejourServiceImplTest {
         doNothing().when(sejourEquipeRepository).flush();
         when(utilisateurRepository.findByTokenId("membre-token-456"))
                 .thenReturn(Optional.of(membre));
+        when(groupeRepository.findBySejourId(1)).thenReturn(Collections.emptyList());
 
         // When
         sejourService.supprimerMembreEquipe(1, "membre-token-456");
 
         // Then
         verify(utilisateurRepository, times(2)).findByTokenId("membre-token-456");
+        verify(groupeRepository).findBySejourId(1);
         verify(sejourEquipeRepository).existsById(eq(sejourEquipeId));
         verify(sejourEquipeRepository).deleteById(eq(sejourEquipeId));
         verify(sejourEquipeRepository).flush();
+    }
+
+    @Test
+    @DisplayName("supprimerMembreEquipe - Devrait retirer le membre des groupes où il est référent")
+    @SuppressWarnings("null")
+    void supprimerMembreEquipe_WhenMemberIsReferent_ShouldRemoveFromGroups() {
+        // Given - membre référent d'un groupe
+        Utilisateur membre = Utilisateur.builder()
+                .id(2)
+                .tokenId("membre-token-456")
+                .nom("Martin")
+                .prenom("Pierre")
+                .role(Role.BASIC_USER)
+                .sejoursEquipe(new ArrayList<>())
+                .build();
+
+        Groupe groupe = Groupe.builder()
+                .id(10)
+                .nom("Groupe A")
+                .typeGroupe(TypeGroupe.THEMATIQUE)
+                .sejour(sejour)
+                .referents(new ArrayList<>(List.of(membre)))
+                .build();
+
+        SejourEquipeId sejourEquipeId = new SejourEquipeId(1, 2);
+
+        when(utilisateurRepository.findByTokenId("membre-token-456"))
+                .thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(sejourEquipeId)).thenReturn(true);
+        doNothing().when(sejourEquipeRepository).deleteById(sejourEquipeId);
+        doNothing().when(sejourEquipeRepository).flush();
+        when(groupeRepository.findBySejourId(1)).thenReturn(List.of(groupe));
+        when(groupeRepository.save(any(Groupe.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        sejourService.supprimerMembreEquipe(1, "membre-token-456");
+
+        // Then
+        verify(groupeRepository).findBySejourId(1);
+        verify(groupeRepository).save(groupe);
+        assertThat(groupe.getReferents()).isEmpty();
     }
 
     @Test

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import com.tarnof.enjoyrestapi.payload.response.SejourDto;
+import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.RefreshToken;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEquipe;
@@ -25,6 +26,7 @@ import com.tarnof.enjoyrestapi.payload.request.MembreEquipeRequest;
 import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.payload.response.AuthenticationResponse;
+import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.RefreshTokenRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
@@ -45,6 +47,7 @@ public class SejourServiceImpl implements SejourService {
     private final AuthenticationService authenticationService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final SejourEquipeRepository sejourEquipeRepository;
+    private final GroupeRepository groupeRepository;
 
     @Override
     public List<SejourDto> getAllSejours() {
@@ -215,7 +218,15 @@ public class SejourServiceImpl implements SejourService {
             throw new ResourceNotFoundException("Le membre ne fait pas partie de l'équipe de ce séjour");
         }
         sejourEquipeRepository.deleteById(sejourEquipeId);
-        sejourEquipeRepository.flush();     
+        sejourEquipeRepository.flush();
+
+        // Retirer le membre de tous les groupes du séjour où il est référent
+        List<Groupe> groupes = groupeRepository.findBySejourId(sejourId);
+        for (Groupe groupe : groupes) {
+            if (groupe.getReferents() != null && groupe.getReferents().removeIf(r -> r.getId() == membre.getId())) {
+                groupeRepository.save(groupe);
+            }
+        }     
         Utilisateur membreRecharge = utilisateurRepository.findByTokenId(membreTokenId)
                 .orElseThrow(() -> new ResourceNotFoundException("Membre non trouvé avec l'ID: " + membreTokenId));       
         if (membreRecharge.getSejoursEquipe() != null && !membreRecharge.getSejoursEquipe().isEmpty()) {
