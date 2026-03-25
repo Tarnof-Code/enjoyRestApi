@@ -1,0 +1,318 @@
+package com.tarnof.enjoyrestapi.services.impl;
+
+import com.tarnof.enjoyrestapi.entities.Activite;
+import com.tarnof.enjoyrestapi.entities.Groupe;
+import com.tarnof.enjoyrestapi.entities.Sejour;
+import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.enums.TypeGroupe;
+import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
+import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
+import com.tarnof.enjoyrestapi.payload.request.UpdateActiviteRequest;
+import com.tarnof.enjoyrestapi.payload.response.ActiviteDto;
+import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
+import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
+import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
+import com.tarnof.enjoyrestapi.repositories.SejourRepository;
+import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.sql.Date;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("Tests unitaires pour ActiviteServiceImpl")
+@SuppressWarnings("null")
+class ActiviteServiceImplTest {
+
+    @Mock
+    private ActiviteRepository activiteRepository;
+    @Mock
+    private SejourRepository sejourRepository;
+    @Mock
+    private UtilisateurRepository utilisateurRepository;
+    @Mock
+    private SejourEquipeRepository sejourEquipeRepository;
+    @Mock
+    private GroupeRepository groupeRepository;
+
+    private ActiviteServiceImpl activiteService;
+    private Sejour sejour;
+    private Utilisateur membre;
+
+    @BeforeEach
+    void setUp() {
+        activiteService = new ActiviteServiceImpl(
+                activiteRepository,
+                sejourRepository,
+                utilisateurRepository,
+                sejourEquipeRepository,
+                groupeRepository);
+        sejour = Sejour.builder()
+                .id(1)
+                .nom("Colo")
+                .dateDebut(Date.valueOf(LocalDate.of(2026, 7, 1)))
+                .dateFin(Date.valueOf(LocalDate.of(2026, 7, 15)))
+                .build();
+        membre = Utilisateur.builder()
+                .id(10)
+                .tokenId("mem-1")
+                .nom("Dupont")
+                .prenom("Jean")
+                .build();
+    }
+
+    @Test
+    @DisplayName("listerActivitesDuSejour - succès")
+    void lister_ShouldReturnDtos() {
+        Activite a = activitePersistee(3, List.of(membre));
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(activiteRepository.findBySejourIdOrderByDateAscIdAsc(1)).thenReturn(List.of(a));
+
+        List<ActiviteDto> result = activiteService.listerActivitesDuSejour(1);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().id()).isEqualTo(3);
+        assertThat(result.getFirst().membres()).hasSize(1);
+        assertThat(result.getFirst().membres().getFirst().tokenId()).isEqualTo("mem-1");
+    }
+
+    @Test
+    @DisplayName("listerActivitesDuSejour - séjour absent")
+    void lister_whenSejourMissing_shouldThrow() {
+        when(sejourRepository.findById(99)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> activiteService.listerActivitesDuSejour(99))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Séjour non trouvé");
+    }
+
+    @Test
+    @DisplayName("creerActivite - succès avec plusieurs groupes")
+    void creer_shouldPersist() {
+        Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        Groupe g6 = Groupe.builder().id(6).nom("G6").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
+        when(groupeRepository.findById(6)).thenReturn(Optional.of(g6));
+        when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> {
+            Activite saved = inv.getArgument(0);
+            saved.setId(100);
+            return saved;
+        });
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                "Sortie matin",
+                List.of("mem-1"),
+                List.of(6, 5));
+
+        ActiviteDto dto = activiteService.creerActivite(1, req);
+
+        assertThat(dto.id()).isEqualTo(100);
+        assertThat(dto.groupeIds()).containsExactly(5, 6);
+        assertThat(dto.nom()).isEqualTo("Kayak");
+    }
+
+    @Test
+    @DisplayName("creerActivite - directeur accepté sans être dans la table équipe")
+    void creer_whenDirecteurNotInEquipe_shouldSucceed() {
+        Utilisateur directeur = Utilisateur.builder()
+                .id(10)
+                .tokenId("dir-1")
+                .nom("Martin")
+                .prenom("Sophie")
+                .build();
+        Sejour sejourAvecDirecteur = Sejour.builder()
+                .id(1)
+                .nom("Colo")
+                .directeur(directeur)
+                .dateDebut(Date.valueOf(LocalDate.of(2026, 7, 1)))
+                .dateFin(Date.valueOf(LocalDate.of(2026, 7, 15)))
+                .build();
+        Groupe g = Groupe.builder().id(5).nom("G").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejourAvecDirecteur).build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejourAvecDirecteur));
+        when(utilisateurRepository.findByTokenId("dir-1")).thenReturn(Optional.of(directeur));
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g));
+        when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> {
+            Activite saved = inv.getArgument(0);
+            saved.setId(100);
+            return saved;
+        });
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Réunion",
+                null,
+                List.of("dir-1"),
+                List.of(5));
+
+        ActiviteDto dto = activiteService.creerActivite(1, req);
+
+        assertThat(dto.id()).isEqualTo(100);
+        verify(sejourEquipeRepository, never()).existsById(any());
+    }
+
+    @Test
+    @DisplayName("creerActivite - membre hors équipe")
+    void creer_whenNotInEquipe_shouldThrow() {
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(false);
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ne fait pas partie de l'équipe");
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("creerActivite - groupe d'un autre séjour")
+    void creer_whenGroupeWrongSejour_shouldThrow() {
+        Sejour autre = Sejour.builder().id(2).nom("X").build();
+        Groupe g = Groupe.builder().id(7).nom("G").typeGroupe(TypeGroupe.THEMATIQUE).sejour(autre).build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(groupeRepository.findById(7)).thenReturn(Optional.of(g));
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                List.of("mem-1"),
+                List.of(7));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("n'appartient pas à ce séjour");
+    }
+
+    @Test
+    @DisplayName("creerActivite - date avant la période du séjour")
+    void creer_whenDateBeforeSejour_shouldThrow() {
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 6, 30),
+                "Kayak",
+                null,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("doit être comprise entre");
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("creerActivite - date après la période du séjour")
+    void creer_whenDateAfterSejour_shouldThrow() {
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 16),
+                "Kayak",
+                null,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("doit être comprise entre");
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("creerActivite - séjour sans dates de début / fin")
+    void creer_whenSejourHasNoBounds_shouldThrow() {
+        Sejour sansDates = Sejour.builder()
+                .id(1)
+                .nom("Colo")
+                .dateDebut(null)
+                .dateFin(null)
+                .build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sansDates));
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("date de début et une date de fin");
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("modifierActivite - date hors période du séjour")
+    void modifier_whenDateOutsideSejour_shouldThrow() {
+        Activite a = activitePersistee(4, List.of(membre));
+        when(activiteRepository.findByIdAndSejourId(4, 1)).thenReturn(Optional.of(a));
+
+        UpdateActiviteRequest req = new UpdateActiviteRequest(
+                LocalDate.of(2026, 7, 20),
+                "Kayak",
+                null,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.modifierActivite(1, 4, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("doit être comprise entre");
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("getActivite - succès")
+    void get_shouldReturnDto() {
+        Activite a = activitePersistee(4, List.of(membre));
+        when(activiteRepository.findByIdAndSejourId(4, 1)).thenReturn(Optional.of(a));
+        ActiviteDto dto =  activiteService.getActivite(1, 4);
+        assertThat(dto.id()).isEqualTo(4);
+    }
+
+    @Test
+    @DisplayName("supprimerActivite - absent")
+    void supprimer_whenMissing_shouldThrow() {
+        when(activiteRepository.findByIdAndSejourId(4, 1)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> activiteService.supprimerActivite(1, 4))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(activiteRepository, never()).delete(any());
+    }
+
+    private Activite activitePersistee(int id, List<Utilisateur> membres) {
+        Activite a = new Activite();
+        a.setId(id);
+        a.setDate(LocalDate.of(2026, 7, 5));
+        a.setNom("Act");
+        a.setDescription("d");
+        a.setSejour(sejour);
+        a.setMembres(new ArrayList<>(membres));
+        a.setGroupes(new ArrayList<>());
+        return a;
+    }
+}
