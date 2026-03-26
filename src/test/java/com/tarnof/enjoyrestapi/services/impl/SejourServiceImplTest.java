@@ -2,6 +2,7 @@ package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import com.tarnof.enjoyrestapi.payload.response.SejourDto;
+import com.tarnof.enjoyrestapi.entities.Activite;
 import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.RefreshToken;
 import com.tarnof.enjoyrestapi.entities.Sejour;
@@ -18,6 +19,7 @@ import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;
 import com.tarnof.enjoyrestapi.payload.request.MembreEquipeRequest;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.RefreshTokenRepository;
+import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
@@ -62,6 +64,9 @@ class SejourServiceImplTest {
 
     @Mock
     private GroupeRepository groupeRepository;
+
+    @Mock
+    private ActiviteRepository activiteRepository;
 
     @InjectMocks
     private SejourServiceImpl sejourService;
@@ -346,6 +351,7 @@ class SejourServiceImplTest {
         );
 
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(activiteRepository.findBySejourIdOrderByDateAscIdAsc(1)).thenReturn(Collections.emptyList());
         when(sejourRepository.save(any(Sejour.class))).thenAnswer(invocation -> {
             Sejour s = invocation.getArgument(0);
             s.setDirecteur(null);
@@ -361,7 +367,55 @@ class SejourServiceImplTest {
         assertThat(result.directeur()).isNull();
         verify(sejourRepository).findById(1);
         verify(utilisateurRepository, never()).findByTokenId(anyString());
+        verify(activiteRepository).findBySejourIdOrderByDateAscIdAsc(1);
         verify(sejourRepository).save(any(Sejour.class));
+    }
+
+    @Test
+    @DisplayName("modifierSejour - Devrait retirer l'ancien directeur des activités quand il change")
+    @SuppressWarnings("null")
+    void modifierSejour_WhenChangingDirecteur_ShouldRemoveOldDirecteurFromActivites() {
+        // Given
+        Utilisateur nouveauDirecteur = Utilisateur.builder()
+                .id(5)
+                .tokenId("directeur-token-999")
+                .nom("Leroy")
+                .prenom("Nina")
+                .role(Role.DIRECTION)
+                .build();
+        Utilisateur autreMembre = Utilisateur.builder()
+                .id(6)
+                .tokenId("membre-token-111")
+                .nom("Durand")
+                .prenom("Marie")
+                .role(Role.BASIC_USER)
+                .build();
+        Activite activite = new Activite();
+        activite.setId(12);
+        activite.setMembres(new ArrayList<>(List.of(directeur, autreMembre)));
+        CreateSejourRequest updateRequest = new CreateSejourRequest(
+                "Séjour Modifié",
+                "Description modifiée",
+                dateDebut,
+                dateFin,
+                "Lieu Modifié",
+                "directeur-token-999"
+        );
+
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(utilisateurRepository.findByTokenId("directeur-token-999")).thenReturn(Optional.of(nouveauDirecteur));
+        when(activiteRepository.findBySejourIdOrderByDateAscIdAsc(1)).thenReturn(List.of(activite));
+        when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(sejourRepository.save(any(Sejour.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        SejourDto result = sejourService.modifierSejour(1, updateRequest);
+
+        // Then
+        assertThat(result).isNotNull();
+        verify(activiteRepository).findBySejourIdOrderByDateAscIdAsc(1);
+        verify(activiteRepository).save(activite);
+        assertThat(activite.getMembres()).extracting(Utilisateur::getId).containsExactly(6);
     }
 
     @Test
@@ -586,6 +640,7 @@ class SejourServiceImplTest {
         when(utilisateurRepository.findByTokenId("membre-token-456"))
                 .thenReturn(Optional.of(membre));
         when(groupeRepository.findBySejourId(1)).thenReturn(Collections.emptyList());
+        when(activiteRepository.findBySejourIdOrderByDateAscIdAsc(1)).thenReturn(Collections.emptyList());
 
         // When
         sejourService.supprimerMembreEquipe(1, "membre-token-456");
@@ -593,6 +648,7 @@ class SejourServiceImplTest {
         // Then
         verify(utilisateurRepository, times(2)).findByTokenId("membre-token-456");
         verify(groupeRepository).findBySejourId(1);
+        verify(activiteRepository).findBySejourIdOrderByDateAscIdAsc(1);
         verify(sejourEquipeRepository).existsById(eq(sejourEquipeId));
         verify(sejourEquipeRepository).deleteById(eq(sejourEquipeId));
         verify(sejourEquipeRepository).flush();
@@ -628,6 +684,7 @@ class SejourServiceImplTest {
         doNothing().when(sejourEquipeRepository).deleteById(sejourEquipeId);
         doNothing().when(sejourEquipeRepository).flush();
         when(groupeRepository.findBySejourId(1)).thenReturn(List.of(groupe));
+        when(activiteRepository.findBySejourIdOrderByDateAscIdAsc(1)).thenReturn(Collections.emptyList());
         when(groupeRepository.save(any(Groupe.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // When
@@ -636,7 +693,53 @@ class SejourServiceImplTest {
         // Then
         verify(groupeRepository).findBySejourId(1);
         verify(groupeRepository).save(groupe);
+        verify(activiteRepository).findBySejourIdOrderByDateAscIdAsc(1);
         assertThat(groupe.getReferents()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("supprimerMembreEquipe - Devrait retirer le membre des activités du séjour")
+    @SuppressWarnings("null")
+    void supprimerMembreEquipe_WhenMemberInActivites_ShouldRemoveFromActivites() {
+        // Given
+        Utilisateur membre = Utilisateur.builder()
+                .id(2)
+                .tokenId("membre-token-456")
+                .nom("Martin")
+                .prenom("Pierre")
+                .role(Role.BASIC_USER)
+                .sejoursEquipe(new ArrayList<>())
+                .build();
+
+        Utilisateur autreMembre = Utilisateur.builder()
+                .id(3)
+                .tokenId("membre-token-789")
+                .nom("Durand")
+                .prenom("Marie")
+                .role(Role.BASIC_USER)
+                .build();
+
+        Activite activite = new Activite();
+        activite.setId(99);
+        activite.setMembres(new ArrayList<>(List.of(membre, autreMembre)));
+
+        SejourEquipeId sejourEquipeId = new SejourEquipeId(1, 2);
+
+        when(utilisateurRepository.findByTokenId("membre-token-456")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(sejourEquipeId)).thenReturn(true);
+        doNothing().when(sejourEquipeRepository).deleteById(sejourEquipeId);
+        doNothing().when(sejourEquipeRepository).flush();
+        when(groupeRepository.findBySejourId(1)).thenReturn(Collections.emptyList());
+        when(activiteRepository.findBySejourIdOrderByDateAscIdAsc(1)).thenReturn(List.of(activite));
+        when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        sejourService.supprimerMembreEquipe(1, "membre-token-456");
+
+        // Then
+        verify(activiteRepository).findBySejourIdOrderByDateAscIdAsc(1);
+        verify(activiteRepository).save(activite);
+        assertThat(activite.getMembres()).extracting(Utilisateur::getId).containsExactly(3);
     }
 
     @Test

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import com.tarnof.enjoyrestapi.payload.response.SejourDto;
+import com.tarnof.enjoyrestapi.entities.Activite;
 import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.RefreshToken;
 import com.tarnof.enjoyrestapi.entities.Sejour;
@@ -28,6 +29,7 @@ import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.payload.response.AuthenticationResponse;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.RefreshTokenRepository;
+import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
@@ -48,6 +50,7 @@ public class SejourServiceImpl implements SejourService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final SejourEquipeRepository sejourEquipeRepository;
     private final GroupeRepository groupeRepository;
+    private final ActiviteRepository activiteRepository;
 
     @Override
     public List<SejourDto> getAllSejours() {
@@ -87,6 +90,7 @@ public class SejourServiceImpl implements SejourService {
     public SejourDto modifierSejour(int id, CreateSejourRequest request) {
         Sejour sejourExistant = sejourRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + id));      
+        Utilisateur ancienDirecteur = sejourExistant.getDirecteur();
         Utilisateur directeur = null;
         if (request.directeurTokenId() != null && !request.directeurTokenId().isBlank()) {
             directeur = utilisateurRepository.findByTokenId(request.directeurTokenId())
@@ -98,6 +102,12 @@ public class SejourServiceImpl implements SejourService {
         sejourExistant.setDateFin(request.dateFin());
         sejourExistant.setLieuDuSejour(request.lieuDuSejour());
         sejourExistant.setDirecteur(directeur);
+        if (ancienDirecteur != null) {
+            boolean directeurSupprimeDuSejour = directeur == null || ancienDirecteur.getId() != directeur.getId();
+            if (directeurSupprimeDuSejour) {
+                retirerMembreDesActivitesDuSejour(id, ancienDirecteur.getId());
+            }
+        }
         Sejour savedSejour = sejourRepository.save(sejourExistant);
         return mapToDTO(savedSejour, false);
     }
@@ -226,7 +236,11 @@ public class SejourServiceImpl implements SejourService {
             if (groupe.getReferents() != null && groupe.getReferents().removeIf(r -> r.getId() == membre.getId())) {
                 groupeRepository.save(groupe);
             }
-        }     
+        }
+
+        // Retirer le membre de toutes les activités du séjour
+        retirerMembreDesActivitesDuSejour(sejourId, membre.getId());
+
         Utilisateur membreRecharge = utilisateurRepository.findByTokenId(membreTokenId)
                 .orElseThrow(() -> new ResourceNotFoundException("Membre non trouvé avec l'ID: " + membreTokenId));       
         if (membreRecharge.getSejoursEquipe() != null && !membreRecharge.getSejoursEquipe().isEmpty()) {
@@ -264,6 +278,15 @@ public class SejourServiceImpl implements SejourService {
         return sejourRepository.findByDirecteur(directeur).stream()
                 .map(sejour -> mapToDTO(sejour,false))
                 .collect(Collectors.toList());
+    }
+
+    private void retirerMembreDesActivitesDuSejour(int sejourId, int membreId) {
+        List<Activite> activites = activiteRepository.findBySejourIdOrderByDateAscIdAsc(sejourId);
+        for (Activite activite : activites) {
+            if (activite.getMembres() != null && activite.getMembres().removeIf(m -> m.getId() == membreId)) {
+                activiteRepository.save(activite);
+            }
+        }
     }
 
     private SejourDto mapToDTO(Sejour sejour,Boolean includeEquipe) {
