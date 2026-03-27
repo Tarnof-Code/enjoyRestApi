@@ -31,4 +31,6 @@ public class Sejour {
     private List<SejourEnfant> enfants;
     @OneToMany(mappedBy = "sejour", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Groupe> groupes;
+    @OneToMany(mappedBy = "sejour", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Lieu> lieux;
 }
