@@ -54,7 +54,7 @@ class LieuServiceImplTest {
         when(lieuRepository.existsBySejourIdAndNomIgnoreCase(1, "salle a")).thenReturn(true);
 
         assertThatThrownBy(() -> lieuService.creerLieu(1,
-                new SaveLieuRequest("  salle a  ", EmplacementLieu.INTERIEUR, null)))
+                new SaveLieuRequest("  salle a  ", EmplacementLieu.INTERIEUR, null, false, null)))
                 .isInstanceOf(ResourceAlreadyExistsException.class)
                 .hasMessageContaining("déjà");
 
@@ -75,7 +75,7 @@ class LieuServiceImplTest {
         when(lieuRepository.save(any(Lieu.class))).thenReturn(saved);
 
         var dto = lieuService.creerLieu(1,
-                new SaveLieuRequest("  Terrain  ", EmplacementLieu.EXTERIEUR, null));
+                new SaveLieuRequest("  Terrain  ", EmplacementLieu.EXTERIEUR, null, false, null));
 
         assertThat(dto.nom()).isEqualTo("Terrain");
         assertThat(dto.id()).isEqualTo(10);
@@ -93,7 +93,7 @@ class LieuServiceImplTest {
         when(lieuRepository.existsBySejourIdAndNomIgnoreCaseAndIdNot(1, "Autre", 5)).thenReturn(true);
 
         assertThatThrownBy(() -> lieuService.modifierLieu(1, 5,
-                new SaveLieuRequest("Autre", EmplacementLieu.EXTERIEUR, 20)))
+                new SaveLieuRequest("Autre", EmplacementLieu.EXTERIEUR, 20, false, null)))
                 .isInstanceOf(ResourceAlreadyExistsException.class);
 
         verify(lieuRepository, never()).save(any());
@@ -112,7 +112,7 @@ class LieuServiceImplTest {
         when(lieuRepository.save(any(Lieu.class))).thenAnswer(inv -> inv.getArgument(0));
 
         lieuService.modifierLieu(1, 5,
-                new SaveLieuRequest("SALLE", EmplacementLieu.HORS_CENTRE, null));
+                new SaveLieuRequest("SALLE", EmplacementLieu.HORS_CENTRE, null, false, null));
 
         verify(lieuRepository).save(lieu);
         assertThat(lieu.getNom()).isEqualTo("SALLE");
@@ -126,6 +126,37 @@ class LieuServiceImplTest {
 
         assertThatThrownBy(() -> lieuService.listerLieuxDuSejour(99))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("creerLieu - partage activé sans nombre max")
+    void creerLieu_whenPartageSansMax_shouldThrow400() {
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+
+        assertThatThrownBy(() -> lieuService.creerLieu(1,
+                new SaveLieuRequest("Salle", EmplacementLieu.INTERIEUR, null, true, null)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("simultanées");
+
+        verify(lieuRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("creerLieu - partage avec max 2 OK")
+    void creerLieu_whenPartageAvecMax2_shouldSucceed() {
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(lieuRepository.existsBySejourIdAndNomIgnoreCase(1, "Grande salle")).thenReturn(false);
+        when(lieuRepository.save(any(Lieu.class))).thenAnswer(inv -> {
+            Lieu l = inv.getArgument(0);
+            l.setId(9);
+            return l;
+        });
+
+        var dto = lieuService.creerLieu(1,
+                new SaveLieuRequest("Grande salle", EmplacementLieu.INTERIEUR, null, true, 2));
+
+        assertThat(dto.partageableEntreAnimateurs()).isTrue();
+        assertThat(dto.nombreMaxActivitesSimultanees()).isEqualTo(2);
     }
 
     @Test

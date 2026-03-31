@@ -2,6 +2,7 @@ package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.Activite;
 import com.tarnof.enjoyrestapi.entities.Groupe;
+import com.tarnof.enjoyrestapi.entities.Lieu;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
@@ -9,8 +10,10 @@ import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActiviteDto;
+import com.tarnof.enjoyrestapi.payload.response.LieuDto;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
+import com.tarnof.enjoyrestapi.repositories.LieuRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
@@ -38,13 +41,14 @@ public class ActiviteServiceImpl implements ActiviteService {
     private final UtilisateurRepository utilisateurRepository;
     private final SejourEquipeRepository sejourEquipeRepository;
     private final GroupeRepository groupeRepository;
+    private final LieuRepository lieuRepository;
 
     @Override
     @Transactional(readOnly = true)
     public List<ActiviteDto> listerActivitesDuSejour(int sejourId) {
         verifierSejourExiste(sejourId);
         return activiteRepository.findBySejourIdOrderByDateAscIdAsc(sejourId).stream()
-                .map(this::toDto)
+                .map(a -> toDto(a, null))
                 .collect(Collectors.toList());
     }
 
@@ -54,7 +58,7 @@ public class ActiviteServiceImpl implements ActiviteService {
         Activite activite = activiteRepository.findByIdAndSejourId(activiteId, sejourId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Activité non trouvée pour ce séjour (id: " + activiteId + ")"));
-        return toDto(activite);
+        return toDto(activite, null);
     }
 
     @Override
@@ -64,15 +68,19 @@ public class ActiviteServiceImpl implements ActiviteService {
         verifierDateActiviteDansSejour(sejour, request.date());
         List<Utilisateur> membres = resoudreEtVerifierMembresEquipe(sejour, request.membreTokenIds());
         List<Groupe> groupes = resoudreGroupesDuSejour(sejourId, request.groupeIds());
+        Lieu lieu = resoudreLieuPourSejour(sejourId, request.lieuId());
+        String avertissementLieu = verifierDisponibiliteLieuPourActivite(lieu, request.date(), sejourId, null);
 
         Activite activite = new Activite();
         activite.setDate(request.date());
         activite.setNom(request.nom());
         activite.setDescription(request.description());
+        activite.setLieu(lieu);
         activite.setSejour(sejour);
         activite.setMembres(new ArrayList<>(membres));
         activite.setGroupes(new ArrayList<>(groupes));
-        return toDto(activiteRepository.save(activite));
+        activite = activiteRepository.save(activite);
+        return toDto(activite, avertissementLieu);
     }
 
     @Override
@@ -86,14 +94,19 @@ public class ActiviteServiceImpl implements ActiviteService {
         List<Utilisateur> membres = resoudreEtVerifierMembresEquipe(activite.getSejour(), request.membreTokenIds());
         List<Groupe> groupes = resoudreGroupesDuSejour(sejourId, request.groupeIds());
 
+        Lieu lieu = resoudreLieuPourSejour(sejourId, request.lieuId());
+        String avertissementLieu = verifierDisponibiliteLieuPourActivite(lieu, request.date(), sejourId, activite.getId());
+
         activite.setDate(request.date());
         activite.setNom(request.nom());
         activite.setDescription(request.description());
+        activite.setLieu(lieu);
         activite.getMembres().clear();
         activite.getMembres().addAll(membres);
         activite.getGroupes().clear();
         activite.getGroupes().addAll(groupes);
-        return toDto(activiteRepository.save(activite));
+        activite = activiteRepository.save(activite);
+        return toDto(activite, avertissementLieu);
     }
 
     @Override
@@ -173,7 +186,75 @@ public class ActiviteServiceImpl implements ActiviteService {
         return result;
     }
 
-    private ActiviteDto toDto(Activite a) {
+    private Lieu resoudreLieuPourSejour(int sejourId, Integer lieuId) {
+        if (lieuId == null) {
+            return null;
+        }
+        return lieuRepository.findByIdAndSejourId(lieuId, sejourId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Lieu non trouvé pour ce séjour (id: " + lieuId + ")"));
+    }
+
+    private String verifierDisponibiliteLieuPourActivite(
+            Lieu lieu, LocalDate date, int sejourId, Integer excludeActiviteId) {
+        if (lieu == null) {
+            return null;
+        }
+        long autres = excludeActiviteId == null
+                ? activiteRepository.countBySejour_IdAndLieu_IdAndDate(sejourId, lieu.getId(), date)
+                : activiteRepository.countBySejour_IdAndLieu_IdAndDateAndIdNot(
+                        sejourId, lieu.getId(), date, excludeActiviteId);
+
+        if (autres == 0) {
+            return null;
+        }
+
+        if (!lieu.isPartageableEntreAnimateurs()) {
+            throw new IllegalArgumentException(
+                    "Ce lieu est déjà utilisé par une autre activité le "
+                            + DateFormatHelper.formatDdMmYyyy(date)
+                            + ". Il n’est pas configuré pour être partagé entre animateurs.");
+        }
+
+        Integer max = lieu.getNombreMaxActivitesSimultanees();
+        if (max == null) {
+            throw new IllegalStateException(
+                    "Lieu partageable sans nombre maximal d’activités simultanées : configuration invalide (lieu id "
+                            + lieu.getId()
+                            + ").");
+        }
+
+        if (autres >= max) {
+            throw new IllegalArgumentException(
+                    "Vous ne pouvez pas utiliser ce lieu le "
+                            + DateFormatHelper.formatDdMmYyyy(date)
+                            + " : la limite de partage ("
+                            + max
+                            + " activité(s) au maximum) est déjà atteinte.");
+        }
+
+        return "Ce lieu est déjà affecté à "
+                + autres
+                + " autre(s) activité(s) le "
+                + DateFormatHelper.formatDdMmYyyy(date)
+                + ". L’affectation est acceptée car le lieu autorise le partage et la limite n’est pas encore atteinte.";
+    }
+
+    private static LieuDto lieuVersDto(Lieu lieu) {
+        if (lieu == null) {
+            return null;
+        }
+        return new LieuDto(
+                lieu.getId(),
+                lieu.getNom(),
+                lieu.getEmplacement(),
+                lieu.getNombreMax(),
+                lieu.isPartageableEntreAnimateurs(),
+                lieu.getNombreMaxActivitesSimultanees(),
+                lieu.getSejour().getId());
+    }
+
+    private ActiviteDto toDto(Activite a, String avertissementLieu) {
         List<ActiviteDto.MembreEquipeInfo> membresInfos = a.getMembres().stream()
                 .map(u -> new ActiviteDto.MembreEquipeInfo(u.getTokenId(), u.getNom(), u.getPrenom()))
                 .collect(Collectors.toList());
@@ -187,7 +268,9 @@ public class ActiviteServiceImpl implements ActiviteService {
                 a.getNom(),
                 a.getDescription(),
                 a.getSejour().getId(),
+                lieuVersDto(a.getLieu()),
                 membresInfos,
-                groupeIds);
+                groupeIds,
+                avertissementLieu);
     }
 }

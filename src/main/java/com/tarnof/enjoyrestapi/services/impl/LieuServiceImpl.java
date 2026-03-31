@@ -46,10 +46,14 @@ public class LieuServiceImpl implements LieuService {
         Sejour sejour = verifierSejourExiste(sejourId);
         String nom = normaliserNom(request.nom());
         verifierNomLieuUniquePourSejour(sejourId, nom, null);
+        validerParametresPartage(request);
         Lieu lieu = new Lieu();
         lieu.setNom(nom);
         lieu.setEmplacement(request.emplacement());
         lieu.setNombreMax(request.nombreMax());
+        lieu.setPartageableEntreAnimateurs(request.partageableEntreAnimateurs());
+        lieu.setNombreMaxActivitesSimultanees(
+                request.partageableEntreAnimateurs() ? request.nombreMaxActivitesSimultanees() : null);
         lieu.setSejour(sejour);
         return mapToDto(lieuRepository.save(lieu));
     }
@@ -60,9 +64,13 @@ public class LieuServiceImpl implements LieuService {
         Lieu lieu = getLieuEtVerifierSejour(sejourId, lieuId);
         String nom = normaliserNom(request.nom());
         verifierNomLieuUniquePourSejour(sejourId, nom, lieuId);
+        validerParametresPartage(request);
         lieu.setNom(nom);
         lieu.setEmplacement(request.emplacement());
         lieu.setNombreMax(request.nombreMax());
+        lieu.setPartageableEntreAnimateurs(request.partageableEntreAnimateurs());
+        lieu.setNombreMaxActivitesSimultanees(
+                request.partageableEntreAnimateurs() ? request.nombreMaxActivitesSimultanees() : null);
         return mapToDto(lieuRepository.save(lieu));
     }
 
@@ -96,6 +104,20 @@ public class LieuServiceImpl implements LieuService {
      *
      * @param excludeLieuId id du lieu à exclure lors d'une mise à jour ({@code null} à la création)
      */
+    private static void validerParametresPartage(SaveLieuRequest request) {
+        if (request.partageableEntreAnimateurs()) {
+            Integer max = request.nombreMaxActivitesSimultanees();
+            if (max == null || max < 2) {
+                throw new IllegalArgumentException(
+                        "Lorsque le lieu est partageable entre animateurs, le nombre maximal d’activités "
+                                + "simultanées doit être défini et au moins égal à 2.");
+            }
+        } else if (request.nombreMaxActivitesSimultanees() != null) {
+            throw new IllegalArgumentException(
+                    "Le nombre maximal d’activités simultanées n’a de sens que si le partage entre animateurs est activé.");
+        }
+    }
+
     private void verifierNomLieuUniquePourSejour(int sejourId, String nom, Integer excludeLieuId) {
         boolean doublon = excludeLieuId == null
                 ? lieuRepository.existsBySejourIdAndNomIgnoreCase(sejourId, nom)
@@ -111,6 +133,8 @@ public class LieuServiceImpl implements LieuService {
                 lieu.getNom(),
                 lieu.getEmplacement(),
                 lieu.getNombreMax(),
+                lieu.isPartageableEntreAnimateurs(),
+                lieu.getNombreMaxActivitesSimultanees(),
                 lieu.getSejour().getId()
         );
     }

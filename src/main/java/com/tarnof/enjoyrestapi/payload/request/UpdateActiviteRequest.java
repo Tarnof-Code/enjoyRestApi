@@ -19,6 +19,8 @@ public record UpdateActiviteRequest(
         @Size(max = 5000)
         String description,
 
+        Integer lieuId,
+
         @NotEmpty(message = "Au moins un membre d'équipe est requis")
         List<@NotBlank(message = "Identifiant membre invalide") String> membreTokenIds,
 

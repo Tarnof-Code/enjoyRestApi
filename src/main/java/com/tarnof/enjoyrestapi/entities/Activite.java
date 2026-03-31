@@ -9,10 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Activité planifiée pour un séjour, avec animateurs (membres d'équipe).
- * <p>
- * Pour lier plus tard d'autres concepts sans refonte : ajouter des associations
- * {@code ManyToOne} optionnelles (nullable) sur Lieu, Materiel, MomentJournee, etc.
+ * Activité planifiée pour un séjour, avec animateurs (membres d'équipe) et lieu optionnel.
  */
 @Entity
 @Table(name = "activite")
@@ -36,6 +33,10 @@ public class Activite {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "sejour_id", nullable = false)
     private Sejour sejour;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lieu_id")
+    private Lieu lieu;
 
     @ManyToMany
     @JoinTable(
@@ -92,6 +93,14 @@ public class Activite {
 
     public void setSejour(Sejour sejour) {
         this.sejour = sejour;
+    }
+
+    public Lieu getLieu() {
+        return lieu;
+    }
+
+    public void setLieu(Lieu lieu) {
+        this.lieu = lieu;
     }
 
     public List<Utilisateur> getMembres() {

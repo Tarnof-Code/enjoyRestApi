@@ -56,8 +56,8 @@ class LieuControllerTest {
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
 
-        lieuDto = new LieuDto(3, "Salle polyvalente", EmplacementLieu.INTERIEUR, 40, 1);
-        saveLieuRequest = new SaveLieuRequest("Salle polyvalente", EmplacementLieu.INTERIEUR, 40);
+        lieuDto = new LieuDto(3, "Salle polyvalente", EmplacementLieu.INTERIEUR, 40, false, null, 1);
+        saveLieuRequest = new SaveLieuRequest("Salle polyvalente", EmplacementLieu.INTERIEUR, 40, false, null);
     }
 
     @Test

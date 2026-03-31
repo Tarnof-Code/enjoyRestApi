@@ -2,9 +2,11 @@ package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.Activite;
 import com.tarnof.enjoyrestapi.entities.Groupe;
+import com.tarnof.enjoyrestapi.entities.Lieu;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
 import com.tarnof.enjoyrestapi.enums.TypeGroupe;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
@@ -12,6 +14,7 @@ import com.tarnof.enjoyrestapi.payload.request.UpdateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActiviteDto;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
+import com.tarnof.enjoyrestapi.repositories.LieuRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
@@ -48,6 +51,8 @@ class ActiviteServiceImplTest {
     private SejourEquipeRepository sejourEquipeRepository;
     @Mock
     private GroupeRepository groupeRepository;
+    @Mock
+    private LieuRepository lieuRepository;
 
     private ActiviteServiceImpl activiteService;
     private Sejour sejour;
@@ -60,7 +65,8 @@ class ActiviteServiceImplTest {
                 sejourRepository,
                 utilisateurRepository,
                 sejourEquipeRepository,
-                groupeRepository);
+                groupeRepository,
+                lieuRepository);
         sejour = Sejour.builder()
                 .id(1)
                 .nom("Colo")
@@ -119,6 +125,7 @@ class ActiviteServiceImplTest {
                 LocalDate.of(2026, 7, 5),
                 "Kayak",
                 "Sortie matin",
+                null,
                 List.of("mem-1"),
                 List.of(6, 5));
 
@@ -127,6 +134,177 @@ class ActiviteServiceImplTest {
         assertThat(dto.id()).isEqualTo(100);
         assertThat(dto.groupeIds()).containsExactly(5, 6);
         assertThat(dto.nom()).isEqualTo("Kayak");
+        assertThat(dto.lieu()).isNull();
+        assertThat(dto.avertissementLieu()).isNull();
+    }
+
+    @Test
+    @DisplayName("creerActivite - lieu du séjour")
+    void creer_withLieuDuSejour_shouldSetLieu() {
+        Lieu lieu = new Lieu();
+        lieu.setId(42);
+        lieu.setNom("Salle polyvalente");
+        lieu.setEmplacement(EmplacementLieu.INTERIEUR);
+        lieu.setSejour(sejour);
+        lieu.setPartageableEntreAnimateurs(false);
+        Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
+        when(activiteRepository.countBySejour_IdAndLieu_IdAndDate(1, 42, LocalDate.of(2026, 7, 5)))
+                .thenReturn(0L);
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
+        when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> {
+            Activite saved = inv.getArgument(0);
+            saved.setId(100);
+            return saved;
+        });
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                42,
+                List.of("mem-1"),
+                List.of(5));
+
+        ActiviteDto dto = activiteService.creerActivite(1, req);
+
+        assertThat(dto.lieu()).isNotNull();
+        assertThat(dto.lieu().id()).isEqualTo(42);
+        assertThat(dto.lieu().nom()).isEqualTo("Salle polyvalente");
+        assertThat(dto.avertissementLieu()).isNull();
+    }
+
+    @Test
+    @DisplayName("creerActivite - lieu déjà pris et non partageable")
+    void creer_whenLieuDejaPrisNonPartageable_shouldThrow() {
+        Lieu lieu = new Lieu();
+        lieu.setId(42);
+        lieu.setNom("Salle");
+        lieu.setEmplacement(EmplacementLieu.INTERIEUR);
+        lieu.setSejour(sejour);
+        lieu.setPartageableEntreAnimateurs(false);
+        Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
+        when(activiteRepository.countBySejour_IdAndLieu_IdAndDate(1, 42, LocalDate.of(2026, 7, 5)))
+                .thenReturn(1L);
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                42,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("déjà utilisé")
+                .hasMessageContaining("partagé");
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("creerActivite - lieu partageable avec avertissement")
+    void creer_whenLieuPartageableDejaOccupe_shouldReturnAvertissement() {
+        Lieu lieu = new Lieu();
+        lieu.setId(42);
+        lieu.setNom("Terrain");
+        lieu.setEmplacement(EmplacementLieu.EXTERIEUR);
+        lieu.setSejour(sejour);
+        lieu.setPartageableEntreAnimateurs(true);
+        lieu.setNombreMaxActivitesSimultanees(3);
+        Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
+        when(activiteRepository.countBySejour_IdAndLieu_IdAndDate(1, 42, LocalDate.of(2026, 7, 5)))
+                .thenReturn(1L);
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
+        when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> {
+            Activite saved = inv.getArgument(0);
+            saved.setId(100);
+            return saved;
+        });
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Foot",
+                null,
+                42,
+                List.of("mem-1"),
+                List.of(5));
+
+        ActiviteDto dto = activiteService.creerActivite(1, req);
+
+        assertThat(dto.avertissementLieu()).isNotNull();
+        assertThat(dto.avertissementLieu()).contains("déjà affecté");
+        assertThat(dto.avertissementLieu()).contains("acceptée");
+    }
+
+    @Test
+    @DisplayName("creerActivite - lieu partageable limite atteinte")
+    void creer_whenLieuPartageableLimiteAtteinte_shouldThrow() {
+        Lieu lieu = new Lieu();
+        lieu.setId(42);
+        lieu.setNom("Terrain");
+        lieu.setEmplacement(EmplacementLieu.EXTERIEUR);
+        lieu.setSejour(sejour);
+        lieu.setPartageableEntreAnimateurs(true);
+        lieu.setNombreMaxActivitesSimultanees(2);
+        Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
+        when(activiteRepository.countBySejour_IdAndLieu_IdAndDate(1, 42, LocalDate.of(2026, 7, 5)))
+                .thenReturn(2L);
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Foot",
+                null,
+                42,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("limite")
+                .hasMessageContaining("partage");
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("creerActivite - lieu absent ou autre séjour")
+    void creer_whenLieuNotInSejour_shouldThrow() {
+        Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(lieuRepository.findByIdAndSejourId(99, 1)).thenReturn(Optional.empty());
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                99,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Lieu non trouvé pour ce séjour");
+        verify(activiteRepository, never()).save(any());
     }
 
     @Test
@@ -159,6 +337,7 @@ class ActiviteServiceImplTest {
                 LocalDate.of(2026, 7, 5),
                 "Réunion",
                 null,
+                null,
                 List.of("dir-1"),
                 List.of(5));
 
@@ -178,6 +357,7 @@ class ActiviteServiceImplTest {
         CreateActiviteRequest req = new CreateActiviteRequest(
                 LocalDate.of(2026, 7, 5),
                 "Kayak",
+                null,
                 null,
                 List.of("mem-1"),
                 List.of(5));
@@ -202,6 +382,7 @@ class ActiviteServiceImplTest {
                 LocalDate.of(2026, 7, 5),
                 "Kayak",
                 null,
+                null,
                 List.of("mem-1"),
                 List.of(7));
 
@@ -217,6 +398,7 @@ class ActiviteServiceImplTest {
         CreateActiviteRequest req = new CreateActiviteRequest(
                 LocalDate.of(2026, 6, 30),
                 "Kayak",
+                null,
                 null,
                 List.of("mem-1"),
                 List.of(5));
@@ -234,6 +416,7 @@ class ActiviteServiceImplTest {
         CreateActiviteRequest req = new CreateActiviteRequest(
                 LocalDate.of(2026, 7, 16),
                 "Kayak",
+                null,
                 null,
                 List.of("mem-1"),
                 List.of(5));
@@ -258,6 +441,7 @@ class ActiviteServiceImplTest {
                 LocalDate.of(2026, 7, 5),
                 "Kayak",
                 null,
+                null,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -277,6 +461,7 @@ class ActiviteServiceImplTest {
                 LocalDate.of(2026, 7, 20),
                 "Kayak",
                 null,
+                null,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -291,8 +476,9 @@ class ActiviteServiceImplTest {
     void get_shouldReturnDto() {
         Activite a = activitePersistee(4, List.of(membre));
         when(activiteRepository.findByIdAndSejourId(4, 1)).thenReturn(Optional.of(a));
-        ActiviteDto dto =  activiteService.getActivite(1, 4);
+        ActiviteDto dto = activiteService.getActivite(1, 4);
         assertThat(dto.id()).isEqualTo(4);
+        assertThat(dto.avertissementLieu()).isNull();
     }
 
     @Test

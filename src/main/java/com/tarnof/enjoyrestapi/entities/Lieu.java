@@ -26,6 +26,19 @@ public class Lieu {
     /** Capacité maximale optionnelle (nombre de personnes, places, etc.). */
     private Integer nombreMax;
 
+    /**
+     * Si {@code true}, plusieurs activités peuvent utiliser ce lieu le même jour,
+     * dans la limite de {@link #nombreMaxActivitesSimultanees}.
+     */
+    @Column(nullable = false)
+    private boolean partageableEntreAnimateurs;
+
+    /**
+     * Nombre maximal d’activités autorisées le même jour sur ce lieu (inclusif) ;
+     * {@code null} lorsque le lieu n’est pas partageable.
+     */
+    private Integer nombreMaxActivitesSimultanees;
+
     @ManyToOne
     @JoinColumn(name = "sejour_id", nullable = false)
     private Sejour sejour;
@@ -63,6 +76,22 @@ public class Lieu {
 
     public void setNombreMax(Integer nombreMax) {
         this.nombreMax = nombreMax;
+    }
+
+    public boolean isPartageableEntreAnimateurs() {
+        return partageableEntreAnimateurs;
+    }
+
+    public void setPartageableEntreAnimateurs(boolean partageableEntreAnimateurs) {
+        this.partageableEntreAnimateurs = partageableEntreAnimateurs;
+    }
+
+    public Integer getNombreMaxActivitesSimultanees() {
+        return nombreMaxActivitesSimultanees;
+    }
+
+    public void setNombreMaxActivitesSimultanees(Integer nombreMaxActivitesSimultanees) {
+        this.nombreMaxActivitesSimultanees = nombreMaxActivitesSimultanees;
     }
 
     public Sejour getSejour() {

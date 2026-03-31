@@ -15,5 +15,9 @@ public record SaveLieuRequest(
         EmplacementLieu emplacement,
 
         @Positive(message = "Le nombre maximum doit être strictement positif")
-        Integer nombreMax
+        Integer nombreMax,
+
+        boolean partageableEntreAnimateurs,
+
+        Integer nombreMaxActivitesSimultanees
 ) {}

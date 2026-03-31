@@ -7,5 +7,7 @@ public record LieuDto(
         String nom,
         EmplacementLieu emplacement,
         Integer nombreMax,
+        boolean partageableEntreAnimateurs,
+        Integer nombreMaxActivitesSimultanees,
         int sejourId
 ) {}
