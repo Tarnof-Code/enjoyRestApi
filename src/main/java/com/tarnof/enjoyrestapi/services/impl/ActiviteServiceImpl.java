@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.services.impl;
 import com.tarnof.enjoyrestapi.entities.Activite;
 import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.Lieu;
+import com.tarnof.enjoyrestapi.entities.Moment;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
@@ -11,9 +12,11 @@ import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActiviteDto;
 import com.tarnof.enjoyrestapi.payload.response.LieuDto;
+import com.tarnof.enjoyrestapi.payload.response.MomentDto;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.LieuRepository;
+import com.tarnof.enjoyrestapi.repositories.MomentRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
@@ -42,6 +45,7 @@ public class ActiviteServiceImpl implements ActiviteService {
     private final SejourEquipeRepository sejourEquipeRepository;
     private final GroupeRepository groupeRepository;
     private final LieuRepository lieuRepository;
+    private final MomentRepository momentRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -65,17 +69,21 @@ public class ActiviteServiceImpl implements ActiviteService {
     @Transactional
     public ActiviteDto creerActivite(int sejourId, CreateActiviteRequest request) {
         Sejour sejour = verifierSejourExiste(sejourId);
+        verifierMomentsEtResolution(sejourId, request.momentId());
+        Moment moment = resoudreMomentPourSejour(sejourId, request.momentId());
         verifierDateActiviteDansSejour(sejour, request.date());
         List<Utilisateur> membres = resoudreEtVerifierMembresEquipe(sejour, request.membreTokenIds());
         List<Groupe> groupes = resoudreGroupesDuSejour(sejourId, request.groupeIds());
         Lieu lieu = resoudreLieuPourSejour(sejourId, request.lieuId());
-        String avertissementLieu = verifierDisponibiliteLieuPourActivite(lieu, request.date(), sejourId, null);
+        String avertissementLieu = verifierDisponibiliteLieuPourActivite(
+                lieu, request.date(), sejourId, null, moment);
 
         Activite activite = new Activite();
         activite.setDate(request.date());
         activite.setNom(request.nom());
         activite.setDescription(request.description());
         activite.setLieu(lieu);
+        activite.setMoment(moment);
         activite.setSejour(sejour);
         activite.setMembres(new ArrayList<>(membres));
         activite.setGroupes(new ArrayList<>(groupes));
@@ -90,17 +98,20 @@ public class ActiviteServiceImpl implements ActiviteService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Activité non trouvée pour ce séjour (id: " + activiteId + ")"));
 
+        verifierMomentsEtResolution(sejourId, request.momentId());
+        Moment moment = resoudreMomentPourSejour(sejourId, request.momentId());
         verifierDateActiviteDansSejour(activite.getSejour(), request.date());
         List<Utilisateur> membres = resoudreEtVerifierMembresEquipe(activite.getSejour(), request.membreTokenIds());
         List<Groupe> groupes = resoudreGroupesDuSejour(sejourId, request.groupeIds());
-
         Lieu lieu = resoudreLieuPourSejour(sejourId, request.lieuId());
-        String avertissementLieu = verifierDisponibiliteLieuPourActivite(lieu, request.date(), sejourId, activite.getId());
+        String avertissementLieu = verifierDisponibiliteLieuPourActivite(
+                lieu, request.date(), sejourId, activite.getId(), moment);
 
         activite.setDate(request.date());
         activite.setNom(request.nom());
         activite.setDescription(request.description());
         activite.setLieu(lieu);
+        activite.setMoment(moment);
         activite.getMembres().clear();
         activite.getMembres().addAll(membres);
         activite.getGroupes().clear();
@@ -195,15 +206,34 @@ public class ActiviteServiceImpl implements ActiviteService {
                         "Lieu non trouvé pour ce séjour (id: " + lieuId + ")"));
     }
 
+    private void verifierMomentsEtResolution(int sejourId, Integer momentId) {
+        if (momentRepository.countBySejourId(sejourId) == 0) {
+            throw new IllegalArgumentException(
+                    "Aucun moment n'est défini pour ce séjour. Demandez à la direction de créer des moments avant "
+                            + "de planifier des activités.");
+        }
+        if (momentId == null) {
+            throw new IllegalArgumentException("Le moment est obligatoire pour chaque activité.");
+        }
+    }
+
+    private Moment resoudreMomentPourSejour(int sejourId, Integer momentId) {
+        return momentRepository.findByIdAndSejourId(momentId, sejourId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Moment non trouvé pour ce séjour (id: " + momentId + ")"));
+    }
+
     private String verifierDisponibiliteLieuPourActivite(
-            Lieu lieu, LocalDate date, int sejourId, Integer excludeActiviteId) {
+            Lieu lieu, LocalDate date, int sejourId, Integer excludeActiviteId, Moment moment) {
         if (lieu == null) {
             return null;
         }
+        int momentId = moment.getId();
         long autres = excludeActiviteId == null
-                ? activiteRepository.countBySejour_IdAndLieu_IdAndDate(sejourId, lieu.getId(), date)
-                : activiteRepository.countBySejour_IdAndLieu_IdAndDateAndIdNot(
-                        sejourId, lieu.getId(), date, excludeActiviteId);
+                ? activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(
+                        sejourId, lieu.getId(), date, momentId)
+                : activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_IdAndIdNot(
+                        sejourId, lieu.getId(), date, momentId, excludeActiviteId);
 
         if (autres == 0) {
             return null;
@@ -213,7 +243,9 @@ public class ActiviteServiceImpl implements ActiviteService {
             throw new IllegalArgumentException(
                     "Ce lieu est déjà utilisé par une autre activité le "
                             + DateFormatHelper.formatDdMmYyyy(date)
-                            + ". Il n’est pas configuré pour être partagé entre animateurs.");
+                            + " pour le moment « "
+                            + moment.getNom()
+                            + " ». Il n’est pas configuré pour être partagé entre animateurs.");
         }
 
         Integer max = lieu.getNombreMaxActivitesSimultanees();
@@ -228,7 +260,9 @@ public class ActiviteServiceImpl implements ActiviteService {
             throw new IllegalArgumentException(
                     "Vous ne pouvez pas utiliser ce lieu le "
                             + DateFormatHelper.formatDdMmYyyy(date)
-                            + " : la limite de partage ("
+                            + " pour le moment « "
+                            + moment.getNom()
+                            + " » : la limite de partage ("
                             + max
                             + " activité(s) au maximum) est déjà atteinte.");
         }
@@ -237,7 +271,9 @@ public class ActiviteServiceImpl implements ActiviteService {
                 + autres
                 + " autre(s) activité(s) le "
                 + DateFormatHelper.formatDdMmYyyy(date)
-                + ". L’affectation est acceptée car le lieu autorise le partage et la limite n’est pas encore atteinte.";
+                + " pour le moment « "
+                + moment.getNom()
+                + " ». L’affectation est acceptée car le lieu autorise le partage et la limite n’est pas encore atteinte.";
     }
 
     private static LieuDto lieuVersDto(Lieu lieu) {
@@ -254,6 +290,10 @@ public class ActiviteServiceImpl implements ActiviteService {
                 lieu.getSejour().getId());
     }
 
+    private static MomentDto momentVersDto(Moment moment) {
+        return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId());
+    }
+
     private ActiviteDto toDto(Activite a, String avertissementLieu) {
         List<ActiviteDto.MembreEquipeInfo> membresInfos = a.getMembres().stream()
                 .map(u -> new ActiviteDto.MembreEquipeInfo(u.getTokenId(), u.getNom(), u.getPrenom()))
@@ -268,6 +308,7 @@ public class ActiviteServiceImpl implements ActiviteService {
                 a.getNom(),
                 a.getDescription(),
                 a.getSejour().getId(),
+                momentVersDto(a.getMoment()),
                 lieuVersDto(a.getLieu()),
                 membresInfos,
                 groupeIds,

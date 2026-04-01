@@ -21,6 +21,8 @@ public record CreateActiviteRequest(
 
         Integer lieuId,
 
+        Integer momentId,
+
         @NotEmpty(message = "Au moins un membre d'équipe est requis")
         List<@NotBlank(message = "Identifiant membre invalide") String> membreTokenIds,
 

@@ -9,6 +9,7 @@ public record ActiviteDto(
         String nom,
         String description,
         int sejourId,
+        MomentDto moment,
         LieuDto lieu,
         List<MembreEquipeInfo> membres,
         List<Integer> groupeIds,

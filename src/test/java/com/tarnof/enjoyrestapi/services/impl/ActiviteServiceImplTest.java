@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.services.impl;
 import com.tarnof.enjoyrestapi.entities.Activite;
 import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.Lieu;
+import com.tarnof.enjoyrestapi.entities.Moment;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
@@ -15,6 +16,7 @@ import com.tarnof.enjoyrestapi.payload.response.ActiviteDto;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.LieuRepository;
+import com.tarnof.enjoyrestapi.repositories.MomentRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
@@ -34,12 +36,15 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Tests unitaires pour ActiviteServiceImpl")
 @SuppressWarnings("null")
 class ActiviteServiceImplTest {
+
+    private static final int MOMENT_ID = 55;
 
     @Mock
     private ActiviteRepository activiteRepository;
@@ -53,10 +58,13 @@ class ActiviteServiceImplTest {
     private GroupeRepository groupeRepository;
     @Mock
     private LieuRepository lieuRepository;
+    @Mock
+    private MomentRepository momentRepository;
 
     private ActiviteServiceImpl activiteService;
     private Sejour sejour;
     private Utilisateur membre;
+    private Moment momentMatin;
 
     @BeforeEach
     void setUp() {
@@ -66,7 +74,8 @@ class ActiviteServiceImplTest {
                 utilisateurRepository,
                 sejourEquipeRepository,
                 groupeRepository,
-                lieuRepository);
+                lieuRepository,
+                momentRepository);
         sejour = Sejour.builder()
                 .id(1)
                 .nom("Colo")
@@ -79,6 +88,15 @@ class ActiviteServiceImplTest {
                 .nom("Dupont")
                 .prenom("Jean")
                 .build();
+        momentMatin = new Moment();
+        momentMatin.setId(MOMENT_ID);
+        momentMatin.setNom("Matin");
+        momentMatin.setSejour(sejour);
+    }
+
+    private void givenMomentsAuMoinsUnPourSejour1() {
+        when(momentRepository.countBySejourId(1)).thenReturn(1L);
+        when(momentRepository.findByIdAndSejourId(MOMENT_ID, 1)).thenReturn(Optional.of(momentMatin));
     }
 
     @Test
@@ -111,6 +129,7 @@ class ActiviteServiceImplTest {
         Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
         Groupe g6 = Groupe.builder().id(6).nom("G6").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
         when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
@@ -126,6 +145,7 @@ class ActiviteServiceImplTest {
                 "Kayak",
                 "Sortie matin",
                 null,
+                MOMENT_ID,
                 List.of("mem-1"),
                 List.of(6, 5));
 
@@ -149,8 +169,9 @@ class ActiviteServiceImplTest {
         lieu.setPartageableEntreAnimateurs(false);
         Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
         when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
-        when(activiteRepository.countBySejour_IdAndLieu_IdAndDate(1, 42, LocalDate.of(2026, 7, 5)))
+        when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(1, 42, LocalDate.of(2026, 7, 5), MOMENT_ID))
                 .thenReturn(0L);
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
@@ -166,6 +187,7 @@ class ActiviteServiceImplTest {
                 "Kayak",
                 null,
                 42,
+                MOMENT_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -188,8 +210,9 @@ class ActiviteServiceImplTest {
         lieu.setPartageableEntreAnimateurs(false);
         Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
         when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
-        when(activiteRepository.countBySejour_IdAndLieu_IdAndDate(1, 42, LocalDate.of(2026, 7, 5)))
+        when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(1, 42, LocalDate.of(2026, 7, 5), MOMENT_ID))
                 .thenReturn(1L);
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
@@ -200,6 +223,7 @@ class ActiviteServiceImplTest {
                 "Kayak",
                 null,
                 42,
+                MOMENT_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -222,8 +246,9 @@ class ActiviteServiceImplTest {
         lieu.setNombreMaxActivitesSimultanees(3);
         Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
         when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
-        when(activiteRepository.countBySejour_IdAndLieu_IdAndDate(1, 42, LocalDate.of(2026, 7, 5)))
+        when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(1, 42, LocalDate.of(2026, 7, 5), MOMENT_ID))
                 .thenReturn(1L);
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
@@ -239,6 +264,7 @@ class ActiviteServiceImplTest {
                 "Foot",
                 null,
                 42,
+                MOMENT_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -261,8 +287,9 @@ class ActiviteServiceImplTest {
         lieu.setNombreMaxActivitesSimultanees(2);
         Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
         when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
-        when(activiteRepository.countBySejour_IdAndLieu_IdAndDate(1, 42, LocalDate.of(2026, 7, 5)))
+        when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(1, 42, LocalDate.of(2026, 7, 5), MOMENT_ID))
                 .thenReturn(2L);
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
@@ -273,6 +300,7 @@ class ActiviteServiceImplTest {
                 "Foot",
                 null,
                 42,
+                MOMENT_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -288,6 +316,7 @@ class ActiviteServiceImplTest {
     void creer_whenLieuNotInSejour_shouldThrow() {
         Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
         when(lieuRepository.findByIdAndSejourId(99, 1)).thenReturn(Optional.empty());
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
@@ -298,6 +327,7 @@ class ActiviteServiceImplTest {
                 "Kayak",
                 null,
                 99,
+                MOMENT_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -325,6 +355,7 @@ class ActiviteServiceImplTest {
                 .build();
         Groupe g = Groupe.builder().id(5).nom("G").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejourAvecDirecteur).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejourAvecDirecteur));
+        givenMomentsAuMoinsUnPourSejour1();
         when(utilisateurRepository.findByTokenId("dir-1")).thenReturn(Optional.of(directeur));
         when(groupeRepository.findById(5)).thenReturn(Optional.of(g));
         when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> {
@@ -338,6 +369,7 @@ class ActiviteServiceImplTest {
                 "Réunion",
                 null,
                 null,
+                MOMENT_ID,
                 List.of("dir-1"),
                 List.of(5));
 
@@ -351,6 +383,7 @@ class ActiviteServiceImplTest {
     @DisplayName("creerActivite - membre hors équipe")
     void creer_whenNotInEquipe_shouldThrow() {
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(false);
 
@@ -359,6 +392,7 @@ class ActiviteServiceImplTest {
                 "Kayak",
                 null,
                 null,
+                MOMENT_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -374,6 +408,7 @@ class ActiviteServiceImplTest {
         Sejour autre = Sejour.builder().id(2).nom("X").build();
         Groupe g = Groupe.builder().id(7).nom("G").typeGroupe(TypeGroupe.THEMATIQUE).sejour(autre).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
         when(groupeRepository.findById(7)).thenReturn(Optional.of(g));
@@ -383,6 +418,7 @@ class ActiviteServiceImplTest {
                 "Kayak",
                 null,
                 null,
+                MOMENT_ID,
                 List.of("mem-1"),
                 List.of(7));
 
@@ -395,11 +431,13 @@ class ActiviteServiceImplTest {
     @DisplayName("creerActivite - date avant la période du séjour")
     void creer_whenDateBeforeSejour_shouldThrow() {
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
         CreateActiviteRequest req = new CreateActiviteRequest(
                 LocalDate.of(2026, 6, 30),
                 "Kayak",
                 null,
                 null,
+                MOMENT_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -413,11 +451,13 @@ class ActiviteServiceImplTest {
     @DisplayName("creerActivite - date après la période du séjour")
     void creer_whenDateAfterSejour_shouldThrow() {
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
         CreateActiviteRequest req = new CreateActiviteRequest(
                 LocalDate.of(2026, 7, 16),
                 "Kayak",
                 null,
                 null,
+                MOMENT_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -437,11 +477,13 @@ class ActiviteServiceImplTest {
                 .dateFin(null)
                 .build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sansDates));
+        givenMomentsAuMoinsUnPourSejour1();
         CreateActiviteRequest req = new CreateActiviteRequest(
                 LocalDate.of(2026, 7, 5),
                 "Kayak",
                 null,
                 null,
+                MOMENT_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -456,12 +498,14 @@ class ActiviteServiceImplTest {
     void modifier_whenDateOutsideSejour_shouldThrow() {
         Activite a = activitePersistee(4, List.of(membre));
         when(activiteRepository.findByIdAndSejourId(4, 1)).thenReturn(Optional.of(a));
+        givenMomentsAuMoinsUnPourSejour1();
 
         UpdateActiviteRequest req = new UpdateActiviteRequest(
                 LocalDate.of(2026, 7, 20),
                 "Kayak",
                 null,
                 null,
+                MOMENT_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -490,6 +534,49 @@ class ActiviteServiceImplTest {
         verify(activiteRepository, never()).delete(any());
     }
 
+    @Test
+    @DisplayName("creerActivite - aucun moment pour le séjour")
+    void creer_whenAucunMoment_shouldAskDirection() {
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(momentRepository.countBySejourId(1)).thenReturn(0L);
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                null,
+                MOMENT_ID,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("direction");
+        verify(momentRepository, never()).findByIdAndSejourId(anyInt(), anyInt());
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("creerActivite - moment non renseigné alors qu'il en existe")
+    void creer_whenMomentIdNull_shouldThrow() {
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(momentRepository.countBySejourId(1)).thenReturn(1L);
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                null,
+                null,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("obligatoire");
+        verify(activiteRepository, never()).save(any());
+    }
+
     private Activite activitePersistee(int id, List<Utilisateur> membres) {
         Activite a = new Activite();
         a.setId(id);
@@ -497,6 +584,7 @@ class ActiviteServiceImplTest {
         a.setNom("Act");
         a.setDescription("d");
         a.setSejour(sejour);
+        a.setMoment(momentMatin);
         a.setMembres(new ArrayList<>(membres));
         a.setGroupes(new ArrayList<>());
         return a;

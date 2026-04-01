@@ -15,7 +15,11 @@ public interface ActiviteRepository extends JpaRepository<Activite, Integer> {
 
     Optional<Activite> findByIdAndSejourId(int id, int sejourId);
 
-    long countBySejour_IdAndLieu_IdAndDate(int sejourId, int lieuId, LocalDate date);
+    long countBySejour_IdAndLieu_IdAndDateAndMoment_Id(
+            int sejourId, int lieuId, LocalDate date, int momentId);
 
-    long countBySejour_IdAndLieu_IdAndDateAndIdNot(int sejourId, int lieuId, LocalDate date, int activiteId);
+    long countBySejour_IdAndLieu_IdAndDateAndMoment_IdAndIdNot(
+            int sejourId, int lieuId, LocalDate date, int momentId, int activiteId);
+
+    boolean existsByMomentId(int momentId);
 }

@@ -8,6 +8,7 @@ import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActiviteDto;
 import com.tarnof.enjoyrestapi.payload.response.LieuDto;
+import com.tarnof.enjoyrestapi.payload.response.MomentDto;
 import com.tarnof.enjoyrestapi.services.ActiviteService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -61,10 +62,11 @@ class ActiviteControllerTest {
     void lister_shouldReturn200() throws Exception {
         LocalDate date = LocalDate.of(2026, 7, 5);
         LieuDto lieu = new LieuDto(8, "Terrain", EmplacementLieu.EXTERIEUR, null, false, null, 3);
+        MomentDto moment = new MomentDto(2, "Matin", 3);
         List<ActiviteDto.MembreEquipeInfo> membres =
                 List.of(new ActiviteDto.MembreEquipeInfo("t1", "N", "P"));
         List<Integer> groupeIds = List.of(2, 4);
-        ActiviteDto dto = new ActiviteDto(1, date, "Kayak", "Desc", 3, lieu, membres, groupeIds, null);
+        ActiviteDto dto = new ActiviteDto(1, date, "Kayak", "Desc", 3, moment, lieu, membres, groupeIds, null);
         when(activiteService.listerActivitesDuSejour(3)).thenReturn(List.of(dto));
 
         mockMvc.perform(get("/api/v1/sejours/3/activites"))
@@ -78,16 +80,18 @@ class ActiviteControllerTest {
     void creer_shouldReturn201() throws Exception {
         LocalDate date = LocalDate.of(2026, 7, 5);
         Integer lieuId = 7;
+        int momentId = 4;
         List<String> membreTokenIds = List.of("tok");
         List<Integer> reqGroupes = List.of(12, 11);
         CreateActiviteRequest req = new CreateActiviteRequest(
-                date, "Kayak", null, lieuId, membreTokenIds, reqGroupes);
+                date, "Kayak", null, lieuId, momentId, membreTokenIds, reqGroupes);
 
+        MomentDto momentResponse = new MomentDto(momentId, "Après-midi", 3);
         LieuDto lieuResponse = null;
         List<ActiviteDto.MembreEquipeInfo> membresResponse = Collections.emptyList();
         List<Integer> dtoGroupes = List.of(11, 12);
         ActiviteDto dto = new ActiviteDto(
-                9, req.date(), req.nom(), req.description(), 3, lieuResponse, membresResponse, dtoGroupes, null);
+                9, req.date(), req.nom(), req.description(), 3, momentResponse, lieuResponse, membresResponse, dtoGroupes, null);
         when(activiteService.creerActivite(eq(3), eq(req))).thenReturn(dto);
 
         mockMvc.perform(post("/api/v1/sejours/3/activites")
