@@ -12,8 +12,8 @@ import com.tarnof.enjoyrestapi.services.JwtService;
 import com.tarnof.enjoyrestapi.services.RefreshTokenService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
@@ -26,13 +26,20 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class RefreshTokenServiceImpl implements RefreshTokenService {
+
+    private static final Logger log = LoggerFactory.getLogger(RefreshTokenServiceImpl.class);
 
     private final UtilisateurRepository utilisateurRepository ;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
+
+    public RefreshTokenServiceImpl(UtilisateurRepository utilisateurRepository, RefreshTokenRepository refreshTokenRepository,
+                                   JwtService jwtService) {
+        this.utilisateurRepository = utilisateurRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.jwtService = jwtService;
+    }
 
     @Value("${application.security.jwt.refresh-token.expiration}")
     private long refreshExpiration;

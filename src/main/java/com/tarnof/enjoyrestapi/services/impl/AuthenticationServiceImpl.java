@@ -10,7 +10,6 @@ import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.AuthenticationService;
 import com.tarnof.enjoyrestapi.services.JwtService;
 import com.tarnof.enjoyrestapi.services.RefreshTokenService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,7 +20,6 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Service @Transactional
-@RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final PasswordEncoder passwordEncoder;
@@ -29,6 +27,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UtilisateurRepository utilisateurRepository;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
+
+    public AuthenticationServiceImpl(PasswordEncoder passwordEncoder, JwtService jwtService,
+                                     UtilisateurRepository utilisateurRepository,
+                                     AuthenticationManager authenticationManager,
+                                     RefreshTokenService refreshTokenService) {
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.utilisateurRepository = utilisateurRepository;
+        this.authenticationManager = authenticationManager;
+        this.refreshTokenService = refreshTokenService;
+    }
 
     private String generateTokenId() {
         return UUID.randomUUID().toString().replace("-", "");

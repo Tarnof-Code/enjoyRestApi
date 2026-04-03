@@ -1,6 +1,5 @@
 package com.tarnof.enjoyrestapi.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -14,13 +13,20 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 @EnableMethodSecurity
 public class SecurityConfiguration {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthenticationProvider authenticationProvider;
     private final Http401UnauthorizedEntryPoint unauthorizedEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
+
+    public SecurityConfiguration(JwtAuthenticationFilter jwtAuthenticationFilter, AuthenticationProvider authenticationProvider,
+                               Http401UnauthorizedEntryPoint unauthorizedEntryPoint, CustomAccessDeniedHandler accessDeniedHandler) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.authenticationProvider = authenticationProvider;
+        this.unauthorizedEntryPoint = unauthorizedEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain (HttpSecurity http) throws Exception {

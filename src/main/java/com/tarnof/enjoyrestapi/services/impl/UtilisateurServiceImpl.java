@@ -18,7 +18,6 @@ import jakarta.transaction.Transactional;
 import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import lombok.RequiredArgsConstructor;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -26,12 +25,19 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class UtilisateurServiceImpl implements UtilisateurService {
     private final UtilisateurRepository utilisateurRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final SejourRepository sejourRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
+
+    public UtilisateurServiceImpl(UtilisateurRepository utilisateurRepository, RefreshTokenRepository refreshTokenRepository,
+                                  SejourRepository sejourRepository, BCryptPasswordEncoder bCryptPasswordEncoder) {
+        this.utilisateurRepository = utilisateurRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.sejourRepository = sejourRepository;
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+    }
 
     @Override
     public Utilisateur creerUtilisateur(Utilisateur utilisateur) {

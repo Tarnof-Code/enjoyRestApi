@@ -5,7 +5,6 @@ import com.tarnof.enjoyrestapi.payload.request.UpdateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActiviteDto;
 import com.tarnof.enjoyrestapi.services.ActiviteService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -14,10 +13,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api/v1/sejours/{sejourId}/activites")
-@RequiredArgsConstructor
 public class ActiviteController {
 
     private final ActiviteService activiteService;
+
+    public ActiviteController(ActiviteService activiteService) {
+        this.activiteService = activiteService;
+    }
 
     @GetMapping
     @PreAuthorize("hasRole('DIRECTION')")

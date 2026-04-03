@@ -1,7 +1,6 @@
 package com.tarnof.enjoyrestapi.config;
 
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,9 +13,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
-@RequiredArgsConstructor
 public class ApplicationSecurityConfig {
     private final UtilisateurRepository utilisateurRepository;
+
+    public ApplicationSecurityConfig(UtilisateurRepository utilisateurRepository) {
+        this.utilisateurRepository = utilisateurRepository;
+    }
 
     private boolean isEmail(String identifier) {
         String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z\\p{L}]{2,7}$";

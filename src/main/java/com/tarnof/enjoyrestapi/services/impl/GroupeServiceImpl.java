@@ -10,7 +10,6 @@ import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.GroupeDto;
 import com.tarnof.enjoyrestapi.repositories.*;
 import com.tarnof.enjoyrestapi.services.GroupeService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +22,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @SuppressWarnings("null") // save(), findById().orElseThrow() garantissent des retours non-null à l'exécution
 public class GroupeServiceImpl implements GroupeService {
 
@@ -32,6 +30,16 @@ public class GroupeServiceImpl implements GroupeService {
     private final EnfantRepository enfantRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final SejourEnfantRepository sejourEnfantRepository;
+
+    public GroupeServiceImpl(GroupeRepository groupeRepository, SejourRepository sejourRepository,
+                             EnfantRepository enfantRepository, UtilisateurRepository utilisateurRepository,
+                             SejourEnfantRepository sejourEnfantRepository) {
+        this.groupeRepository = groupeRepository;
+        this.sejourRepository = sejourRepository;
+        this.enfantRepository = enfantRepository;
+        this.utilisateurRepository = utilisateurRepository;
+        this.sejourEnfantRepository = sejourEnfantRepository;
+    }
 
     @Override
     public List<GroupeDto> getGroupesDuSejour(int sejourId) {

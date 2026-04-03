@@ -9,14 +9,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.validation.constraints.Pattern;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import java.util.Objects;
 
 @Entity
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class DossierEnfant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -59,4 +55,198 @@ public class DossierEnfant {
     @Lob
     @Column(columnDefinition = "TEXT")
     private String aPrendreEnSortie;
+
+    public DossierEnfant() {
+    }
+
+    public DossierEnfant(Integer id, Enfant enfant, String emailParent1, String telephoneParent1, String emailParent2,
+                         String telephoneParent2, String informationsMedicales, String pai, String informationsAlimentaires,
+                         String traitementMatin, String traitementMidi, String traitementSoir, String traitementSiBesoin,
+                         String autresInformations, String aPrendreEnSortie) {
+        this.id = id;
+        this.enfant = enfant;
+        this.emailParent1 = emailParent1;
+        this.telephoneParent1 = telephoneParent1;
+        this.emailParent2 = emailParent2;
+        this.telephoneParent2 = telephoneParent2;
+        this.informationsMedicales = informationsMedicales;
+        this.pai = pai;
+        this.informationsAlimentaires = informationsAlimentaires;
+        this.traitementMatin = traitementMatin;
+        this.traitementMidi = traitementMidi;
+        this.traitementSoir = traitementSoir;
+        this.traitementSiBesoin = traitementSiBesoin;
+        this.autresInformations = autresInformations;
+        this.aPrendreEnSortie = aPrendreEnSortie;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public Enfant getEnfant() {
+        return enfant;
+    }
+
+    public void setEnfant(Enfant enfant) {
+        this.enfant = enfant;
+    }
+
+    public String getEmailParent1() {
+        return emailParent1;
+    }
+
+    public void setEmailParent1(String emailParent1) {
+        this.emailParent1 = emailParent1;
+    }
+
+    public String getTelephoneParent1() {
+        return telephoneParent1;
+    }
+
+    public void setTelephoneParent1(String telephoneParent1) {
+        this.telephoneParent1 = telephoneParent1;
+    }
+
+    public String getEmailParent2() {
+        return emailParent2;
+    }
+
+    public void setEmailParent2(String emailParent2) {
+        this.emailParent2 = emailParent2;
+    }
+
+    public String getTelephoneParent2() {
+        return telephoneParent2;
+    }
+
+    public void setTelephoneParent2(String telephoneParent2) {
+        this.telephoneParent2 = telephoneParent2;
+    }
+
+    public String getInformationsMedicales() {
+        return informationsMedicales;
+    }
+
+    public void setInformationsMedicales(String informationsMedicales) {
+        this.informationsMedicales = informationsMedicales;
+    }
+
+    public String getPai() {
+        return pai;
+    }
+
+    public void setPai(String pai) {
+        this.pai = pai;
+    }
+
+    public String getInformationsAlimentaires() {
+        return informationsAlimentaires;
+    }
+
+    public void setInformationsAlimentaires(String informationsAlimentaires) {
+        this.informationsAlimentaires = informationsAlimentaires;
+    }
+
+    public String getTraitementMatin() {
+        return traitementMatin;
+    }
+
+    public void setTraitementMatin(String traitementMatin) {
+        this.traitementMatin = traitementMatin;
+    }
+
+    public String getTraitementMidi() {
+        return traitementMidi;
+    }
+
+    public void setTraitementMidi(String traitementMidi) {
+        this.traitementMidi = traitementMidi;
+    }
+
+    public String getTraitementSoir() {
+        return traitementSoir;
+    }
+
+    public void setTraitementSoir(String traitementSoir) {
+        this.traitementSoir = traitementSoir;
+    }
+
+    public String getTraitementSiBesoin() {
+        return traitementSiBesoin;
+    }
+
+    public void setTraitementSiBesoin(String traitementSiBesoin) {
+        this.traitementSiBesoin = traitementSiBesoin;
+    }
+
+    public String getAutresInformations() {
+        return autresInformations;
+    }
+
+    public void setAutresInformations(String autresInformations) {
+        this.autresInformations = autresInformations;
+    }
+
+    public String getAPrendreEnSortie() {
+        return aPrendreEnSortie;
+    }
+
+    public void setAPrendreEnSortie(String aPrendreEnSortie) {
+        this.aPrendreEnSortie = aPrendreEnSortie;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DossierEnfant that = (DossierEnfant) o;
+        return Objects.equals(id, that.id)
+                && Objects.equals(enfant, that.enfant)
+                && Objects.equals(emailParent1, that.emailParent1)
+                && Objects.equals(telephoneParent1, that.telephoneParent1)
+                && Objects.equals(emailParent2, that.emailParent2)
+                && Objects.equals(telephoneParent2, that.telephoneParent2)
+                && Objects.equals(informationsMedicales, that.informationsMedicales)
+                && Objects.equals(pai, that.pai)
+                && Objects.equals(informationsAlimentaires, that.informationsAlimentaires)
+                && Objects.equals(traitementMatin, that.traitementMatin)
+                && Objects.equals(traitementMidi, that.traitementMidi)
+                && Objects.equals(traitementSoir, that.traitementSoir)
+                && Objects.equals(traitementSiBesoin, that.traitementSiBesoin)
+                && Objects.equals(autresInformations, that.autresInformations)
+                && Objects.equals(aPrendreEnSortie, that.aPrendreEnSortie);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, enfant, emailParent1, telephoneParent1, emailParent2, telephoneParent2,
+                informationsMedicales, pai, informationsAlimentaires, traitementMatin, traitementMidi, traitementSoir,
+                traitementSiBesoin, autresInformations, aPrendreEnSortie);
+    }
+
+    @Override
+    public String toString() {
+        return "DossierEnfant{" +
+                "id=" + id +
+                ", enfant=" + enfant +
+                ", emailParent1='" + emailParent1 + '\'' +
+                ", telephoneParent1='" + telephoneParent1 + '\'' +
+                ", emailParent2='" + emailParent2 + '\'' +
+                ", telephoneParent2='" + telephoneParent2 + '\'' +
+                ", informationsMedicales='" + informationsMedicales + '\'' +
+                ", pai='" + pai + '\'' +
+                ", informationsAlimentaires='" + informationsAlimentaires + '\'' +
+                ", traitementMatin='" + traitementMatin + '\'' +
+                ", traitementMidi='" + traitementMidi + '\'' +
+                ", traitementSoir='" + traitementSoir + '\'' +
+                ", traitementSiBesoin='" + traitementSiBesoin + '\'' +
+                ", autresInformations='" + autresInformations + '\'' +
+                ", aPrendreEnSortie='" + aPrendreEnSortie + '\'' +
+                '}';
+    }
 }

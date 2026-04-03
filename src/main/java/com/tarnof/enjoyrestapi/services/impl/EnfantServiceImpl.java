@@ -43,10 +43,8 @@ import com.tarnof.enjoyrestapi.services.EnfantService;
 import com.tarnof.enjoyrestapi.utils.ExcelHelper;
 
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class EnfantServiceImpl implements EnfantService {
 
     private final EnfantRepository enfantRepository;
@@ -54,6 +52,16 @@ public class EnfantServiceImpl implements EnfantService {
     private final SejourEnfantRepository sejourEnfantRepository;
     private final GroupeRepository groupeRepository;
     private final DossierEnfantRepository dossierEnfantRepository;
+
+    public EnfantServiceImpl(EnfantRepository enfantRepository, SejourRepository sejourRepository,
+                             SejourEnfantRepository sejourEnfantRepository, GroupeRepository groupeRepository,
+                             DossierEnfantRepository dossierEnfantRepository) {
+        this.enfantRepository = enfantRepository;
+        this.sejourRepository = sejourRepository;
+        this.sejourEnfantRepository = sejourEnfantRepository;
+        this.groupeRepository = groupeRepository;
+        this.dossierEnfantRepository = dossierEnfantRepository;
+    }
 
     @Override
     @Transactional

@@ -13,14 +13,16 @@ import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.services.SejourService;
     
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("api/v1/sejours")
-@RequiredArgsConstructor
 public class SejourController {
     
     private final SejourService sejourService;
+
+    public SejourController(SejourService sejourService) {
+        this.sejourService = sejourService;
+    }
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")

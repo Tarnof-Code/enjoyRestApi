@@ -4,7 +4,8 @@ import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.exceptions.UtilisateurException;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,8 +16,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 @ControllerAdvice
-@Slf4j
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
         log.warn("Validation error: {}", ex.getMessage());

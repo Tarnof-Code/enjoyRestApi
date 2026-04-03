@@ -38,10 +38,8 @@ import com.tarnof.enjoyrestapi.services.AuthenticationService;
 import com.tarnof.enjoyrestapi.services.SejourService;
 
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class SejourServiceImpl implements SejourService {
 
     private final SejourRepository sejourRepository;
@@ -51,6 +49,19 @@ public class SejourServiceImpl implements SejourService {
     private final SejourEquipeRepository sejourEquipeRepository;
     private final GroupeRepository groupeRepository;
     private final ActiviteRepository activiteRepository;
+
+    public SejourServiceImpl(SejourRepository sejourRepository, UtilisateurRepository utilisateurRepository,
+                             AuthenticationService authenticationService, RefreshTokenRepository refreshTokenRepository,
+                             SejourEquipeRepository sejourEquipeRepository, GroupeRepository groupeRepository,
+                             ActiviteRepository activiteRepository) {
+        this.sejourRepository = sejourRepository;
+        this.utilisateurRepository = utilisateurRepository;
+        this.authenticationService = authenticationService;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.sejourEquipeRepository = sejourEquipeRepository;
+        this.groupeRepository = groupeRepository;
+        this.activiteRepository = activiteRepository;
+    }
 
     @Override
     public List<SejourDto> getAllSejours() {

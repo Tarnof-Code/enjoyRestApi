@@ -10,7 +10,6 @@ import com.tarnof.enjoyrestapi.services.RefreshTokenService;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -18,10 +17,14 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@RequiredArgsConstructor
 public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final RefreshTokenService refreshTokenService;
+
+    public AuthenticationController(AuthenticationService authenticationService, RefreshTokenService refreshTokenService) {
+        this.authenticationService = authenticationService;
+        this.refreshTokenService = refreshTokenService;
+    }
 
     @PostMapping("/inscription")
     public ResponseEntity<AuthenticationResponse> inscription(@Valid @RequestBody RegisterRequest request) {

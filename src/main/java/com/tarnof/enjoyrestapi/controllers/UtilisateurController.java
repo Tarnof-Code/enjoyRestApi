@@ -9,7 +9,6 @@ import com.tarnof.enjoyrestapi.payload.request.ChangePasswordRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
 import com.tarnof.enjoyrestapi.services.UtilisateurService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,10 +25,13 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("api/v1/utilisateurs")
-@RequiredArgsConstructor
 public class UtilisateurController {
 
     private final UtilisateurService utilisateurService;
+
+    public UtilisateurController(UtilisateurService utilisateurService) {
+        this.utilisateurService = utilisateurService;
+    }
 
     @GetMapping
     @PreAuthorize("hasAuthority('GESTION_UTILISATEURS')")

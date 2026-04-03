@@ -5,7 +5,6 @@ import com.tarnof.enjoyrestapi.payload.request.CreateGroupeRequest;
 import com.tarnof.enjoyrestapi.payload.response.GroupeDto;
 import com.tarnof.enjoyrestapi.services.GroupeService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -14,10 +13,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api/v1/sejours/{sejourId}/groupes")
-@RequiredArgsConstructor
 public class GroupeController {
 
     private final GroupeService groupeService;
+
+    public GroupeController(GroupeService groupeService) {
+        this.groupeService = groupeService;
+    }
 
     @GetMapping
     @PreAuthorize("hasRole('DIRECTION')")

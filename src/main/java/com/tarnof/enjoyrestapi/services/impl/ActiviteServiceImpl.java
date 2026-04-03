@@ -22,7 +22,6 @@ import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.ActiviteService;
 import com.tarnof.enjoyrestapi.utils.DateFormatHelper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +34,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @SuppressWarnings("null")
 public class ActiviteServiceImpl implements ActiviteService {
 
@@ -46,6 +44,19 @@ public class ActiviteServiceImpl implements ActiviteService {
     private final GroupeRepository groupeRepository;
     private final LieuRepository lieuRepository;
     private final MomentRepository momentRepository;
+
+    public ActiviteServiceImpl(ActiviteRepository activiteRepository, SejourRepository sejourRepository,
+                               UtilisateurRepository utilisateurRepository, SejourEquipeRepository sejourEquipeRepository,
+                               GroupeRepository groupeRepository, LieuRepository lieuRepository,
+                               MomentRepository momentRepository) {
+        this.activiteRepository = activiteRepository;
+        this.sejourRepository = sejourRepository;
+        this.utilisateurRepository = utilisateurRepository;
+        this.sejourEquipeRepository = sejourEquipeRepository;
+        this.groupeRepository = groupeRepository;
+        this.lieuRepository = lieuRepository;
+        this.momentRepository = momentRepository;
+    }
 
     @Override
     @Transactional(readOnly = true)

@@ -21,14 +21,16 @@ import com.tarnof.enjoyrestapi.payload.request.UpdateDossierEnfantRequest;
 import com.tarnof.enjoyrestapi.services.EnfantService;
     
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("api/v1/sejours/{sejourId}/enfants")
-@RequiredArgsConstructor
 public class EnfantController {
     
     private final EnfantService enfantService;
+
+    public EnfantController(EnfantService enfantService) {
+        this.enfantService = enfantService;
+    }
 
     @GetMapping
     @PreAuthorize("hasRole('DIRECTION')")
