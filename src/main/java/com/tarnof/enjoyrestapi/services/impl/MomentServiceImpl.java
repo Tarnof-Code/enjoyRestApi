@@ -4,6 +4,7 @@ import com.tarnof.enjoyrestapi.entities.Moment;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
+import com.tarnof.enjoyrestapi.payload.request.ReorderMomentsRequest;
 import com.tarnof.enjoyrestapi.payload.request.SaveMomentRequest;
 import com.tarnof.enjoyrestapi.payload.response.MomentDto;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
@@ -13,7 +14,9 @@ import com.tarnof.enjoyrestapi.services.MomentService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,7 +40,7 @@ public class MomentServiceImpl implements MomentService {
     @Transactional(readOnly = true)
     public List<MomentDto> listerMomentsDuSejour(int sejourId) {
         verifierSejourExiste(sejourId);
-        return momentRepository.findBySejourIdOrderByNomAscIdAsc(sejourId).stream()
+        return momentRepository.findBySejourIdOrderChronologique(sejourId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
@@ -57,6 +60,7 @@ public class MomentServiceImpl implements MomentService {
         Moment moment = new Moment();
         moment.setNom(nom);
         moment.setSejour(sejour);
+        moment.setOrdre(prochainOrdrePourSejour(sejourId));
         return mapToDto(momentRepository.save(moment));
     }
 
@@ -68,6 +72,33 @@ public class MomentServiceImpl implements MomentService {
         verifierNomMomentUniquePourSejour(sejourId, nom, momentId);
         moment.setNom(nom);
         return mapToDto(momentRepository.save(moment));
+    }
+
+    @Override
+    @Transactional
+    public List<MomentDto> reorderMoments(int sejourId, ReorderMomentsRequest request) {
+        verifierSejourExiste(sejourId);
+        List<Moment> existants = momentRepository.findBySejourIdOrderChronologique(sejourId);
+        Set<Integer> idsSejour =
+                existants.stream().map(Moment::getId).collect(Collectors.toSet());
+        List<Integer> demandes = request.momentIds();
+        if (demandes.size() != existants.size()) {
+            throw new IllegalArgumentException(
+                    "La liste doit contenir exactement tous les moments du séjour, dans le nouvel ordre.");
+        }
+        if (demandes.size() != new HashSet<>(demandes).size()) {
+            throw new IllegalArgumentException("La liste des identifiants ne doit pas contenir de doublons.");
+        }
+        if (!idsSejour.equals(new HashSet<>(demandes))) {
+            throw new IllegalArgumentException(
+                    "La liste des moments ne correspond pas à ceux du séjour (identifiants invalides ou manquants).");
+        }
+        var parId = existants.stream().collect(Collectors.toMap(Moment::getId, m -> m));
+        for (int i = 0; i < demandes.size(); i++) {
+            parId.get(demandes.get(i)).setOrdre(i);
+        }
+        momentRepository.saveAll(existants);
+        return listerMomentsDuSejour(sejourId);
     }
 
     @Override
@@ -109,6 +140,16 @@ public class MomentServiceImpl implements MomentService {
     }
 
     private MomentDto mapToDto(Moment moment) {
-        return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId());
+        int ordreAffiche =
+                moment.getOrdre() != null ? moment.getOrdre() : moment.getId();
+        return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId(), ordreAffiche);
+    }
+
+    private int prochainOrdrePourSejour(int sejourId) {
+        return momentRepository.findBySejourIdOrderChronologique(sejourId).stream()
+                        .mapToInt(m -> m.getOrdre() != null ? m.getOrdre() : m.getId())
+                        .max()
+                        .orElse(-1)
+                + 1;
     }
 }

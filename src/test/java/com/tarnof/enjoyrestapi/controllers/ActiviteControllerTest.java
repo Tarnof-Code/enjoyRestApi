@@ -62,7 +62,7 @@ class ActiviteControllerTest {
     void lister_shouldReturn200() throws Exception {
         LocalDate date = LocalDate.of(2026, 7, 5);
         LieuDto lieu = new LieuDto(8, "Terrain", EmplacementLieu.EXTERIEUR, null, false, null, 3);
-        MomentDto moment = new MomentDto(2, "Matin", 3);
+        MomentDto moment = new MomentDto(2, "Matin", 3, 0);
         List<ActiviteDto.MembreEquipeInfo> membres =
                 List.of(new ActiviteDto.MembreEquipeInfo("t1", "N", "P"));
         List<Integer> groupeIds = List.of(2, 4);
@@ -86,7 +86,7 @@ class ActiviteControllerTest {
         CreateActiviteRequest req = new CreateActiviteRequest(
                 date, "Kayak", null, lieuId, momentId, membreTokenIds, reqGroupes);
 
-        MomentDto momentResponse = new MomentDto(momentId, "Après-midi", 3);
+        MomentDto momentResponse = new MomentDto(momentId, "Après-midi", 3, 1);
         LieuDto lieuResponse = null;
         List<ActiviteDto.MembreEquipeInfo> membresResponse = Collections.emptyList();
         List<Integer> dtoGroupes = List.of(11, 12);

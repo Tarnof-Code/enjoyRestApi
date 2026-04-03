@@ -21,6 +21,13 @@ public class Moment {
     @JoinColumn(name = "sejour_id", nullable = false)
     private Sejour sejour;
 
+    /**
+     * Position du moment dans la journée pour ce séjour (0 = premier). Nullable pour compatibilité
+     * des lignes créées avant ce champ ; le tri utilise {@code COALESCE(ordre, id)}.
+     */
+    @Column(name = "ordre")
+    private Integer ordre;
+
     public Moment() {
     }
 
@@ -46,5 +53,13 @@ public class Moment {
 
     public void setSejour(Sejour sejour) {
         this.sejour = sejour;
+    }
+
+    public Integer getOrdre() {
+        return ordre;
+    }
+
+    public void setOrdre(Integer ordre) {
+        this.ordre = ordre;
     }
 }

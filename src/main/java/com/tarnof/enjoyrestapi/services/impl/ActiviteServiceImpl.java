@@ -291,7 +291,9 @@ public class ActiviteServiceImpl implements ActiviteService {
     }
 
     private static MomentDto momentVersDto(Moment moment) {
-        return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId());
+        int ordreAffiche =
+                moment.getOrdre() != null ? moment.getOrdre() : moment.getId();
+        return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId(), ordreAffiche);
     }
 
     private ActiviteDto toDto(Activite a, String avertissementLieu) {

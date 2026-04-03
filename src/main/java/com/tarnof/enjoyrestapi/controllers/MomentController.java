@@ -1,5 +1,6 @@
 package com.tarnof.enjoyrestapi.controllers;
 
+import com.tarnof.enjoyrestapi.payload.request.ReorderMomentsRequest;
 import com.tarnof.enjoyrestapi.payload.request.SaveMomentRequest;
 import com.tarnof.enjoyrestapi.payload.response.MomentDto;
 import com.tarnof.enjoyrestapi.services.MomentService;
@@ -41,6 +42,14 @@ public class MomentController {
             @PathVariable("sejourId") int sejourId,
             @Valid @RequestBody SaveMomentRequest request) {
         return momentService.creerMoment(sejourId, request);
+    }
+
+    @PutMapping("/reorder")
+    @PreAuthorize("hasRole('DIRECTION')")
+    public List<MomentDto> reorder(
+            @PathVariable("sejourId") int sejourId,
+            @Valid @RequestBody ReorderMomentsRequest request) {
+        return momentService.reorderMoments(sejourId, request);
     }
 
     @PutMapping("/{momentId}")
