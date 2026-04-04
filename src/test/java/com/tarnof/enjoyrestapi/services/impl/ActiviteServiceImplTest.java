@@ -6,6 +6,7 @@ import com.tarnof.enjoyrestapi.entities.Lieu;
 import com.tarnof.enjoyrestapi.entities.Moment;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
+import com.tarnof.enjoyrestapi.entities.TypeActivite;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
 import com.tarnof.enjoyrestapi.enums.TypeGroupe;
@@ -19,6 +20,7 @@ import com.tarnof.enjoyrestapi.repositories.LieuRepository;
 import com.tarnof.enjoyrestapi.repositories.MomentRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
+import com.tarnof.enjoyrestapi.repositories.TypeActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,6 +47,7 @@ import static org.mockito.Mockito.*;
 class ActiviteServiceImplTest {
 
     private static final int MOMENT_ID = 55;
+    private static final int TYPE_ACTIVITE_ID = 88;
 
     @Mock
     private ActiviteRepository activiteRepository;
@@ -60,11 +63,14 @@ class ActiviteServiceImplTest {
     private LieuRepository lieuRepository;
     @Mock
     private MomentRepository momentRepository;
+    @Mock
+    private TypeActiviteRepository typeActiviteRepository;
 
     private ActiviteServiceImpl activiteService;
     private Sejour sejour;
     private Utilisateur membre;
     private Moment momentMatin;
+    private TypeActivite typeActiviteSport;
 
     @BeforeEach
     void setUp() {
@@ -75,7 +81,8 @@ class ActiviteServiceImplTest {
                 sejourEquipeRepository,
                 groupeRepository,
                 lieuRepository,
-                momentRepository);
+                momentRepository,
+                typeActiviteRepository);
         sejour = Sejour.builder()
                 .id(1)
                 .nom("Colo")
@@ -92,11 +99,20 @@ class ActiviteServiceImplTest {
         momentMatin.setId(MOMENT_ID);
         momentMatin.setNom("Matin");
         momentMatin.setSejour(sejour);
+        typeActiviteSport = new TypeActivite();
+        typeActiviteSport.setId(TYPE_ACTIVITE_ID);
+        typeActiviteSport.setLibelle("Sport");
+        typeActiviteSport.setPredefini(false);
+        typeActiviteSport.setSejour(sejour);
     }
 
     private void givenMomentsAuMoinsUnPourSejour1() {
         when(momentRepository.countBySejourId(1)).thenReturn(1L);
         when(momentRepository.findByIdAndSejourId(MOMENT_ID, 1)).thenReturn(Optional.of(momentMatin));
+    }
+
+    private void givenTypeActivitePourSejour1() {
+        when(typeActiviteRepository.findByIdAndSejourId(TYPE_ACTIVITE_ID, 1)).thenReturn(Optional.of(typeActiviteSport));
     }
 
     @Test
@@ -130,6 +146,7 @@ class ActiviteServiceImplTest {
         Groupe g6 = Groupe.builder().id(6).nom("G6").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
         givenMomentsAuMoinsUnPourSejour1();
+        givenTypeActivitePourSejour1();
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
         when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
@@ -146,12 +163,14 @@ class ActiviteServiceImplTest {
                 "Sortie matin",
                 null,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(6, 5));
 
         ActiviteDto dto = activiteService.creerActivite(1, req);
 
         assertThat(dto.id()).isEqualTo(100);
+        assertThat(dto.typeActivite().id()).isEqualTo(TYPE_ACTIVITE_ID);
         assertThat(dto.groupeIds()).containsExactly(5, 6);
         assertThat(dto.nom()).isEqualTo("Kayak");
         assertThat(dto.lieu()).isNull();
@@ -170,6 +189,7 @@ class ActiviteServiceImplTest {
         Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
         givenMomentsAuMoinsUnPourSejour1();
+        givenTypeActivitePourSejour1();
         when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
         when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(1, 42, LocalDate.of(2026, 7, 5), MOMENT_ID))
                 .thenReturn(0L);
@@ -188,6 +208,7 @@ class ActiviteServiceImplTest {
                 null,
                 42,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -211,6 +232,7 @@ class ActiviteServiceImplTest {
         Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
         givenMomentsAuMoinsUnPourSejour1();
+        givenTypeActivitePourSejour1();
         when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
         when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(1, 42, LocalDate.of(2026, 7, 5), MOMENT_ID))
                 .thenReturn(1L);
@@ -224,6 +246,7 @@ class ActiviteServiceImplTest {
                 null,
                 42,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -247,6 +270,7 @@ class ActiviteServiceImplTest {
         Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
         givenMomentsAuMoinsUnPourSejour1();
+        givenTypeActivitePourSejour1();
         when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
         when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(1, 42, LocalDate.of(2026, 7, 5), MOMENT_ID))
                 .thenReturn(1L);
@@ -265,6 +289,7 @@ class ActiviteServiceImplTest {
                 null,
                 42,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -288,6 +313,7 @@ class ActiviteServiceImplTest {
         Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
         givenMomentsAuMoinsUnPourSejour1();
+        givenTypeActivitePourSejour1();
         when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
         when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(1, 42, LocalDate.of(2026, 7, 5), MOMENT_ID))
                 .thenReturn(2L);
@@ -301,6 +327,7 @@ class ActiviteServiceImplTest {
                 null,
                 42,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -328,6 +355,7 @@ class ActiviteServiceImplTest {
                 null,
                 99,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -356,6 +384,7 @@ class ActiviteServiceImplTest {
         Groupe g = Groupe.builder().id(5).nom("G").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejourAvecDirecteur).build();
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejourAvecDirecteur));
         givenMomentsAuMoinsUnPourSejour1();
+        givenTypeActivitePourSejour1();
         when(utilisateurRepository.findByTokenId("dir-1")).thenReturn(Optional.of(directeur));
         when(groupeRepository.findById(5)).thenReturn(Optional.of(g));
         when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> {
@@ -370,6 +399,7 @@ class ActiviteServiceImplTest {
                 null,
                 null,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("dir-1"),
                 List.of(5));
 
@@ -393,6 +423,7 @@ class ActiviteServiceImplTest {
                 null,
                 null,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -419,6 +450,7 @@ class ActiviteServiceImplTest {
                 null,
                 null,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(7));
 
@@ -438,6 +470,7 @@ class ActiviteServiceImplTest {
                 null,
                 null,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -458,6 +491,7 @@ class ActiviteServiceImplTest {
                 null,
                 null,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -484,6 +518,7 @@ class ActiviteServiceImplTest {
                 null,
                 null,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -506,6 +541,7 @@ class ActiviteServiceImplTest {
                 null,
                 null,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -546,6 +582,7 @@ class ActiviteServiceImplTest {
                 null,
                 null,
                 MOMENT_ID,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -568,6 +605,7 @@ class ActiviteServiceImplTest {
                 null,
                 null,
                 null,
+                TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
                 List.of(5));
 
@@ -585,6 +623,7 @@ class ActiviteServiceImplTest {
         a.setDescription("d");
         a.setSejour(sejour);
         a.setMoment(momentMatin);
+        a.setTypeActivite(typeActiviteSport);
         a.setMembres(new ArrayList<>(membres));
         a.setGroupes(new ArrayList<>());
         return a;

@@ -6,6 +6,7 @@ import com.tarnof.enjoyrestapi.entities.Lieu;
 import com.tarnof.enjoyrestapi.entities.Moment;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
+import com.tarnof.enjoyrestapi.entities.TypeActivite;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
@@ -13,12 +14,14 @@ import com.tarnof.enjoyrestapi.payload.request.UpdateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActiviteDto;
 import com.tarnof.enjoyrestapi.payload.response.LieuDto;
 import com.tarnof.enjoyrestapi.payload.response.MomentDto;
+import com.tarnof.enjoyrestapi.payload.response.TypeActiviteDto;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.LieuRepository;
 import com.tarnof.enjoyrestapi.repositories.MomentRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
+import com.tarnof.enjoyrestapi.repositories.TypeActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.ActiviteService;
 import com.tarnof.enjoyrestapi.utils.DateFormatHelper;
@@ -31,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,11 +48,12 @@ public class ActiviteServiceImpl implements ActiviteService {
     private final GroupeRepository groupeRepository;
     private final LieuRepository lieuRepository;
     private final MomentRepository momentRepository;
+    private final TypeActiviteRepository typeActiviteRepository;
 
     public ActiviteServiceImpl(ActiviteRepository activiteRepository, SejourRepository sejourRepository,
                                UtilisateurRepository utilisateurRepository, SejourEquipeRepository sejourEquipeRepository,
                                GroupeRepository groupeRepository, LieuRepository lieuRepository,
-                               MomentRepository momentRepository) {
+                               MomentRepository momentRepository, TypeActiviteRepository typeActiviteRepository) {
         this.activiteRepository = activiteRepository;
         this.sejourRepository = sejourRepository;
         this.utilisateurRepository = utilisateurRepository;
@@ -56,6 +61,7 @@ public class ActiviteServiceImpl implements ActiviteService {
         this.groupeRepository = groupeRepository;
         this.lieuRepository = lieuRepository;
         this.momentRepository = momentRepository;
+        this.typeActiviteRepository = typeActiviteRepository;
     }
 
     @Override
@@ -86,6 +92,7 @@ public class ActiviteServiceImpl implements ActiviteService {
         List<Utilisateur> membres = resoudreEtVerifierMembresEquipe(sejour, request.membreTokenIds());
         List<Groupe> groupes = resoudreGroupesDuSejour(sejourId, request.groupeIds());
         Lieu lieu = resoudreLieuPourSejour(sejourId, request.lieuId());
+        TypeActivite typeActivite = resoudreTypeActivite(sejourId, request.typeActiviteId());
         String avertissementLieu = verifierDisponibiliteLieuPourActivite(
                 lieu, request.date(), sejourId, null, moment);
 
@@ -95,6 +102,7 @@ public class ActiviteServiceImpl implements ActiviteService {
         activite.setDescription(request.description());
         activite.setLieu(lieu);
         activite.setMoment(moment);
+        activite.setTypeActivite(typeActivite);
         activite.setSejour(sejour);
         activite.setMembres(new ArrayList<>(membres));
         activite.setGroupes(new ArrayList<>(groupes));
@@ -115,6 +123,7 @@ public class ActiviteServiceImpl implements ActiviteService {
         List<Utilisateur> membres = resoudreEtVerifierMembresEquipe(activite.getSejour(), request.membreTokenIds());
         List<Groupe> groupes = resoudreGroupesDuSejour(sejourId, request.groupeIds());
         Lieu lieu = resoudreLieuPourSejour(sejourId, request.lieuId());
+        TypeActivite typeActivite = resoudreTypeActivite(sejourId, request.typeActiviteId());
         String avertissementLieu = verifierDisponibiliteLieuPourActivite(
                 lieu, request.date(), sejourId, activite.getId(), moment);
 
@@ -123,6 +132,7 @@ public class ActiviteServiceImpl implements ActiviteService {
         activite.setDescription(request.description());
         activite.setLieu(lieu);
         activite.setMoment(moment);
+        activite.setTypeActivite(typeActivite);
         activite.getMembres().clear();
         activite.getMembres().addAll(membres);
         activite.getGroupes().clear();
@@ -217,6 +227,16 @@ public class ActiviteServiceImpl implements ActiviteService {
                         "Lieu non trouvé pour ce séjour (id: " + lieuId + ")"));
     }
 
+    private TypeActivite resoudreTypeActivite(int sejourId, Integer typeActiviteId) {
+        if (typeActiviteId == null) {
+            throw new IllegalArgumentException("Le type d'activité est obligatoire pour chaque activité.");
+        }
+        return typeActiviteRepository
+                .findByIdAndSejourId(typeActiviteId, sejourId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Type d'activité non trouvé pour ce séjour (id: " + typeActiviteId + ")"));
+    }
+
     private void verifierMomentsEtResolution(int sejourId, Integer momentId) {
         if (momentRepository.countBySejourId(sejourId) == 0) {
             throw new IllegalArgumentException(
@@ -307,6 +327,15 @@ public class ActiviteServiceImpl implements ActiviteService {
         return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId(), ordreAffiche);
     }
 
+    private static TypeActiviteDto typeActiviteVersDto(TypeActivite typeActivite) {
+        Objects.requireNonNull(typeActivite, "typeActivite");
+        return new TypeActiviteDto(
+                typeActivite.getId(),
+                typeActivite.getLibelle(),
+                typeActivite.isPredefini(),
+                typeActivite.getSejour().getId());
+    }
+
     private ActiviteDto toDto(Activite a, String avertissementLieu) {
         List<ActiviteDto.MembreEquipeInfo> membresInfos = a.getMembres().stream()
                 .map(u -> new ActiviteDto.MembreEquipeInfo(u.getTokenId(), u.getNom(), u.getPrenom()))
@@ -323,6 +352,7 @@ public class ActiviteServiceImpl implements ActiviteService {
                 a.getSejour().getId(),
                 momentVersDto(a.getMoment()),
                 lieuVersDto(a.getLieu()),
+                typeActiviteVersDto(a.getTypeActivite()),
                 membresInfos,
                 groupeIds,
                 avertissementLieu);

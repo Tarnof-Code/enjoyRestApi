@@ -36,6 +36,7 @@ import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
 import com.tarnof.enjoyrestapi.services.AuthenticationService;
 import com.tarnof.enjoyrestapi.services.SejourService;
+import com.tarnof.enjoyrestapi.services.TypeActiviteService;
 
 import jakarta.transaction.Transactional;
 
@@ -49,11 +50,12 @@ public class SejourServiceImpl implements SejourService {
     private final SejourEquipeRepository sejourEquipeRepository;
     private final GroupeRepository groupeRepository;
     private final ActiviteRepository activiteRepository;
+    private final TypeActiviteService typeActiviteService;
 
     public SejourServiceImpl(SejourRepository sejourRepository, UtilisateurRepository utilisateurRepository,
                              AuthenticationService authenticationService, RefreshTokenRepository refreshTokenRepository,
                              SejourEquipeRepository sejourEquipeRepository, GroupeRepository groupeRepository,
-                             ActiviteRepository activiteRepository) {
+                             ActiviteRepository activiteRepository, TypeActiviteService typeActiviteService) {
         this.sejourRepository = sejourRepository;
         this.utilisateurRepository = utilisateurRepository;
         this.authenticationService = authenticationService;
@@ -61,6 +63,7 @@ public class SejourServiceImpl implements SejourService {
         this.sejourEquipeRepository = sejourEquipeRepository;
         this.groupeRepository = groupeRepository;
         this.activiteRepository = activiteRepository;
+        this.typeActiviteService = typeActiviteService;
     }
 
     @Override
@@ -94,6 +97,7 @@ public class SejourServiceImpl implements SejourService {
                 .build();
         Objects.requireNonNull(sejour, "Séjour non créé");
         Sejour savedSejour = sejourRepository.save(sejour);
+        typeActiviteService.assurerTypesParDefautPourSejour(savedSejour.getId());
         return mapToDTO(savedSejour, false);
     }
 

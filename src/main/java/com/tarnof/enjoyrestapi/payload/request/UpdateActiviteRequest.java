@@ -23,6 +23,9 @@ public record UpdateActiviteRequest(
 
         Integer momentId,
 
+        @NotNull(message = "Le type d'activité est obligatoire")
+        Integer typeActiviteId,
+
         @NotEmpty(message = "Au moins un membre d'équipe est requis")
         List<@NotBlank(message = "Identifiant membre invalide") String> membreTokenIds,
 

@@ -42,6 +42,10 @@ public class Activite {
     @JoinColumn(name = "moment_id", nullable = false)
     private Moment moment;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "type_activite_id", nullable = false)
+    private TypeActivite typeActivite;
+
     @ManyToMany
     @JoinTable(
             name = "activite_membre_equipe",
@@ -113,6 +117,14 @@ public class Activite {
 
     public void setMoment(Moment moment) {
         this.moment = moment;
+    }
+
+    public TypeActivite getTypeActivite() {
+        return typeActivite;
+    }
+
+    public void setTypeActivite(TypeActivite typeActivite) {
+        this.typeActivite = typeActivite;
     }
 
     public List<Utilisateur> getMembres() {

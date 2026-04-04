@@ -24,6 +24,7 @@ import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.AuthenticationService;
+import com.tarnof.enjoyrestapi.services.TypeActiviteService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,9 @@ class SejourServiceImplTest {
 
     @Mock
     private ActiviteRepository activiteRepository;
+
+    @Mock
+    private TypeActiviteService typeActiviteService;
 
     @InjectMocks
     private SejourServiceImpl sejourService;
@@ -235,6 +239,7 @@ class SejourServiceImplTest {
         assertThat(result.nom()).isEqualTo("Séjour Test");
         verify(utilisateurRepository).findByTokenId("directeur-token-123");
         verify(sejourRepository).save(any(Sejour.class));
+        verify(typeActiviteService).assurerTypesParDefautPourSejour(sejour.getId());
     }
 
     @Test
@@ -273,6 +278,7 @@ class SejourServiceImplTest {
         assertThat(result.directeur()).isNull();
         verify(utilisateurRepository, never()).findByTokenId(anyString());
         verify(sejourRepository).save(any(Sejour.class));
+        verify(typeActiviteService).assurerTypesParDefautPourSejour(sejourSansDirecteur.getId());
     }
 
     @Test
@@ -289,6 +295,7 @@ class SejourServiceImplTest {
                 .hasMessageContaining("Directeur non trouvé avec l'ID: directeur-token-123");
         verify(utilisateurRepository).findByTokenId("directeur-token-123");
         verify(sejourRepository, never()).save(any(Sejour.class));
+        verify(typeActiviteService, never()).assurerTypesParDefautPourSejour(anyInt());
     }
 
     @Test

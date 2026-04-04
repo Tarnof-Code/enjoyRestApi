@@ -22,4 +22,6 @@ public interface ActiviteRepository extends JpaRepository<Activite, Integer> {
             int sejourId, int lieuId, LocalDate date, int momentId, int activiteId);
 
     boolean existsByMomentId(int momentId);
+
+    long countByTypeActivite_Id(int typeActiviteId);
 }

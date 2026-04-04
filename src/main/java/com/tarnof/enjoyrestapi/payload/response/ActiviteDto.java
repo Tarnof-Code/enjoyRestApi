@@ -11,6 +11,7 @@ public record ActiviteDto(
         int sejourId,
         MomentDto moment,
         LieuDto lieu,
+        TypeActiviteDto typeActivite,
         List<MembreEquipeInfo> membres,
         List<Integer> groupeIds,
         String avertissementLieu
