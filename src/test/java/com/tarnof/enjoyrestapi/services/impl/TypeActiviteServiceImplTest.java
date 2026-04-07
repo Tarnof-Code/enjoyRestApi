@@ -6,8 +6,8 @@ import com.tarnof.enjoyrestapi.entities.TypeActivite;
 import com.tarnof.enjoyrestapi.payload.request.SaveTypeActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.TypeActiviteDto;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
-import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.TypeActiviteRepository;
+import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,14 +38,14 @@ class TypeActiviteServiceImplTest {
     @Mock
     private ActiviteRepository activiteRepository;
     @Mock
-    private SejourRepository sejourRepository;
+    private SejourVerificationService sejourVerificationService;
 
     private TypeActiviteServiceImpl service;
     private Sejour sejour;
 
     @BeforeEach
     void setUp() {
-        service = new TypeActiviteServiceImpl(typeActiviteRepository, activiteRepository, sejourRepository);
+        service = new TypeActiviteServiceImpl(typeActiviteRepository, activiteRepository, sejourVerificationService);
         sejour = new Sejour();
         sejour.setId(SEJOUR_ID);
     }
@@ -53,7 +53,7 @@ class TypeActiviteServiceImplTest {
     @Test
     @DisplayName("creerTypeActivite — type ajouté : predefini false, rattaché au séjour")
     void creer_shouldPersistPredefiniFalseAndSejour() {
-        when(sejourRepository.findById(SEJOUR_ID)).thenReturn(Optional.of(sejour));
+        when(sejourVerificationService.verifierSejourExiste(SEJOUR_ID)).thenReturn(sejour);
         when(typeActiviteRepository.existsBySejourIdAndLibelleIgnoreCase(SEJOUR_ID, "Danse")).thenReturn(false);
         when(typeActiviteRepository.save(any(TypeActivite.class))).thenAnswer(inv -> {
             TypeActivite e = inv.getArgument(0);
@@ -140,7 +140,7 @@ class TypeActiviteServiceImplTest {
     @Test
     @DisplayName("assurerTypesParDefautPourSejour — insère un libellé manquant")
     void assurerTypesParDefaut_shouldInsertWhenAbsent() {
-        when(sejourRepository.findById(SEJOUR_ID)).thenReturn(Optional.of(sejour));
+        when(sejourVerificationService.verifierSejourExiste(SEJOUR_ID)).thenReturn(sejour);
         when(typeActiviteRepository.findBySejourIdAndLibelleIgnoreCase(eq(SEJOUR_ID), any()))
                 .thenReturn(Optional.empty());
         when(typeActiviteRepository.save(any(TypeActivite.class))).thenAnswer(inv -> inv.getArgument(0));

@@ -10,6 +10,7 @@ import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.GroupeDto;
 import com.tarnof.enjoyrestapi.repositories.*;
 import com.tarnof.enjoyrestapi.services.GroupeService;
+import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,16 +27,16 @@ import java.util.stream.Collectors;
 public class GroupeServiceImpl implements GroupeService {
 
     private final GroupeRepository groupeRepository;
-    private final SejourRepository sejourRepository;
+    private final SejourVerificationService sejourVerificationService;
     private final EnfantRepository enfantRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final SejourEnfantRepository sejourEnfantRepository;
 
-    public GroupeServiceImpl(GroupeRepository groupeRepository, SejourRepository sejourRepository,
+    public GroupeServiceImpl(GroupeRepository groupeRepository, SejourVerificationService sejourVerificationService,
                              EnfantRepository enfantRepository, UtilisateurRepository utilisateurRepository,
                              SejourEnfantRepository sejourEnfantRepository) {
         this.groupeRepository = groupeRepository;
-        this.sejourRepository = sejourRepository;
+        this.sejourVerificationService = sejourVerificationService;
         this.enfantRepository = enfantRepository;
         this.utilisateurRepository = utilisateurRepository;
         this.sejourEnfantRepository = sejourEnfantRepository;
@@ -43,7 +44,7 @@ public class GroupeServiceImpl implements GroupeService {
 
     @Override
     public List<GroupeDto> getGroupesDuSejour(int sejourId) {
-        verifierSejourExiste(sejourId);
+        sejourVerificationService.verifierSejourExiste(sejourId);
         return groupeRepository.findBySejourId(sejourId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -58,7 +59,7 @@ public class GroupeServiceImpl implements GroupeService {
     @Override
     @Transactional
     public GroupeDto creerGroupe(int sejourId, CreateGroupeRequest request) {
-        Sejour sejour = verifierSejourExiste(sejourId);
+        Sejour sejour = sejourVerificationService.verifierSejourExiste(sejourId);
         validerTranche(request);
 
         Groupe groupe = Groupe.builder()
@@ -205,11 +206,6 @@ public class GroupeServiceImpl implements GroupeService {
     private LocalDate toLocalDate(Date date) {
         if (date == null) return null;
         return Instant.ofEpochMilli(date.getTime()).atZone(ZoneId.systemDefault()).toLocalDate();
-    }
-
-    private Sejour verifierSejourExiste(int sejourId) {
-        return sejourRepository.findById(sejourId)
-                .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
     }
 
     private Groupe getGroupeEtVerifierSejour(int sejourId, int groupeId) {

@@ -9,8 +9,8 @@ import com.tarnof.enjoyrestapi.payload.request.SaveMomentRequest;
 import com.tarnof.enjoyrestapi.payload.response.MomentDto;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.MomentRepository;
-import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.services.MomentService;
+import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,22 +24,22 @@ import java.util.stream.Collectors;
 public class MomentServiceImpl implements MomentService {
 
     private final MomentRepository momentRepository;
-    private final SejourRepository sejourRepository;
+    private final SejourVerificationService sejourVerificationService;
     private final ActiviteRepository activiteRepository;
 
     public MomentServiceImpl(
             MomentRepository momentRepository,
-            SejourRepository sejourRepository,
+            SejourVerificationService sejourVerificationService,
             ActiviteRepository activiteRepository) {
         this.momentRepository = momentRepository;
-        this.sejourRepository = sejourRepository;
+        this.sejourVerificationService = sejourVerificationService;
         this.activiteRepository = activiteRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<MomentDto> listerMomentsDuSejour(int sejourId) {
-        verifierSejourExiste(sejourId);
+        sejourVerificationService.verifierSejourExiste(sejourId);
         return momentRepository.findBySejourIdOrderChronologique(sejourId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -54,7 +54,7 @@ public class MomentServiceImpl implements MomentService {
     @Override
     @Transactional
     public MomentDto creerMoment(int sejourId, SaveMomentRequest request) {
-        Sejour sejour = verifierSejourExiste(sejourId);
+        Sejour sejour = sejourVerificationService.verifierSejourExiste(sejourId);
         String nom = normaliserNom(request.nom());
         verifierNomMomentUniquePourSejour(sejourId, nom, null);
         Moment moment = new Moment();
@@ -77,7 +77,7 @@ public class MomentServiceImpl implements MomentService {
     @Override
     @Transactional
     public List<MomentDto> reorderMoments(int sejourId, ReorderMomentsRequest request) {
-        verifierSejourExiste(sejourId);
+        sejourVerificationService.verifierSejourExiste(sejourId);
         List<Moment> existants = momentRepository.findBySejourIdOrderChronologique(sejourId);
         Set<Integer> idsSejour =
                 existants.stream().map(Moment::getId).collect(Collectors.toSet());
@@ -110,11 +110,6 @@ public class MomentServiceImpl implements MomentService {
                     "Impossible de supprimer ce moment : des activités y sont encore rattachées.");
         }
         momentRepository.delete(moment);
-    }
-
-    private Sejour verifierSejourExiste(int sejourId) {
-        return sejourRepository.findById(sejourId)
-                .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
     }
 
     private Moment getMomentEtVerifierSejour(int sejourId, int momentId) {

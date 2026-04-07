@@ -10,6 +10,7 @@ import com.tarnof.enjoyrestapi.payload.request.AjouterReferentRequest;
 import com.tarnof.enjoyrestapi.payload.request.CreateGroupeRequest;
 import com.tarnof.enjoyrestapi.payload.response.GroupeDto;
 import com.tarnof.enjoyrestapi.repositories.*;
+import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,7 +57,7 @@ class GroupeServiceImplTest {
     void setUp() {
         groupeService = new GroupeServiceImpl(
                 groupeRepository,
-                sejourRepository,
+                new SejourVerificationService(sejourRepository),
                 enfantRepository,
                 utilisateurRepository,
                 sejourEnfantRepository

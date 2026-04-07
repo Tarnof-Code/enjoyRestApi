@@ -20,10 +20,10 @@ import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.LieuRepository;
 import com.tarnof.enjoyrestapi.repositories.MomentRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
-import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.TypeActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.ActiviteService;
+import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import com.tarnof.enjoyrestapi.utils.DateFormatHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 public class ActiviteServiceImpl implements ActiviteService {
 
     private final ActiviteRepository activiteRepository;
-    private final SejourRepository sejourRepository;
+    private final SejourVerificationService sejourVerificationService;
     private final UtilisateurRepository utilisateurRepository;
     private final SejourEquipeRepository sejourEquipeRepository;
     private final GroupeRepository groupeRepository;
@@ -50,12 +50,12 @@ public class ActiviteServiceImpl implements ActiviteService {
     private final MomentRepository momentRepository;
     private final TypeActiviteRepository typeActiviteRepository;
 
-    public ActiviteServiceImpl(ActiviteRepository activiteRepository, SejourRepository sejourRepository,
+    public ActiviteServiceImpl(ActiviteRepository activiteRepository, SejourVerificationService sejourVerificationService,
                                UtilisateurRepository utilisateurRepository, SejourEquipeRepository sejourEquipeRepository,
                                GroupeRepository groupeRepository, LieuRepository lieuRepository,
                                MomentRepository momentRepository, TypeActiviteRepository typeActiviteRepository) {
         this.activiteRepository = activiteRepository;
-        this.sejourRepository = sejourRepository;
+        this.sejourVerificationService = sejourVerificationService;
         this.utilisateurRepository = utilisateurRepository;
         this.sejourEquipeRepository = sejourEquipeRepository;
         this.groupeRepository = groupeRepository;
@@ -67,7 +67,7 @@ public class ActiviteServiceImpl implements ActiviteService {
     @Override
     @Transactional(readOnly = true)
     public List<ActiviteDto> listerActivitesDuSejour(int sejourId) {
-        verifierSejourExiste(sejourId);
+        sejourVerificationService.verifierSejourExiste(sejourId);
         return activiteRepository.findBySejourIdOrderByDateAscIdAsc(sejourId).stream()
                 .map(a -> toDto(a, null))
                 .collect(Collectors.toList());
@@ -85,7 +85,7 @@ public class ActiviteServiceImpl implements ActiviteService {
     @Override
     @Transactional
     public ActiviteDto creerActivite(int sejourId, CreateActiviteRequest request) {
-        Sejour sejour = verifierSejourExiste(sejourId);
+        Sejour sejour = sejourVerificationService.verifierSejourExiste(sejourId);
         verifierMomentsEtResolution(sejourId, request.momentId());
         Moment moment = resoudreMomentPourSejour(sejourId, request.momentId());
         verifierDateActiviteDansSejour(sejour, request.date());
@@ -148,11 +148,6 @@ public class ActiviteServiceImpl implements ActiviteService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Activité non trouvée pour ce séjour (id: " + activiteId + ")"));
         activiteRepository.delete(activite);
-    }
-
-    private Sejour verifierSejourExiste(int sejourId) {
-        return sejourRepository.findById(sejourId)
-                .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
     }
 
     private void verifierDateActiviteDansSejour(Sejour sejour, LocalDate dateActivite) {

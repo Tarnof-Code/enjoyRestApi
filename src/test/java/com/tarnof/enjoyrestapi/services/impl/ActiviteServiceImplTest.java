@@ -22,6 +22,7 @@ import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.TypeActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
+import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -76,7 +77,7 @@ class ActiviteServiceImplTest {
     void setUp() {
         activiteService = new ActiviteServiceImpl(
                 activiteRepository,
-                sejourRepository,
+                new SejourVerificationService(sejourRepository),
                 utilisateurRepository,
                 sejourEquipeRepository,
                 groupeRepository,

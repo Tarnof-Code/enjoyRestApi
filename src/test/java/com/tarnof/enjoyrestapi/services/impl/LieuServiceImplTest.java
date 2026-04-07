@@ -8,11 +8,11 @@ import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.SaveLieuRequest;
 import com.tarnof.enjoyrestapi.repositories.LieuRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
+import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -36,13 +36,13 @@ class LieuServiceImplTest {
     @Mock
     private SejourRepository sejourRepository;
 
-    @InjectMocks
     private LieuServiceImpl lieuService;
 
     private Sejour sejour;
 
     @BeforeEach
     void setUp() {
+        lieuService = new LieuServiceImpl(lieuRepository, new SejourVerificationService(sejourRepository));
         sejour = new Sejour();
         sejour.setId(1);
     }

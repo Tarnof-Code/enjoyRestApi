@@ -7,8 +7,8 @@ import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.SaveTypeActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.TypeActiviteDto;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
-import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.TypeActiviteRepository;
+import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import com.tarnof.enjoyrestapi.services.TypeActiviteService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,23 +21,21 @@ public class TypeActiviteServiceImpl implements TypeActiviteService {
 
     private final TypeActiviteRepository typeActiviteRepository;
     private final ActiviteRepository activiteRepository;
-    private final SejourRepository sejourRepository;
+    private final SejourVerificationService sejourVerificationService;
 
     public TypeActiviteServiceImpl(
             TypeActiviteRepository typeActiviteRepository,
             ActiviteRepository activiteRepository,
-            SejourRepository sejourRepository) {
+            SejourVerificationService sejourVerificationService) {
         this.typeActiviteRepository = typeActiviteRepository;
         this.activiteRepository = activiteRepository;
-        this.sejourRepository = sejourRepository;
+        this.sejourVerificationService = sejourVerificationService;
     }
 
     @Override
     @Transactional
     public void assurerTypesParDefautPourSejour(int sejourId) {
-        Sejour sejour = sejourRepository
-                .findById(sejourId)
-                .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
+        Sejour sejour = sejourVerificationService.verifierSejourExiste(sejourId);
         for (String libelle : TypeActiviteLibellesParDefaut.LIBELLES) {
             typeActiviteRepository
                     .findBySejourIdAndLibelleIgnoreCase(sejourId, libelle)
@@ -61,7 +59,7 @@ public class TypeActiviteServiceImpl implements TypeActiviteService {
     @Override
     @Transactional(readOnly = true)
     public List<TypeActiviteDto> listerTypesActivite(int sejourId) {
-        verifierSejourExiste(sejourId);
+        sejourVerificationService.verifierSejourExiste(sejourId);
         return typeActiviteRepository.findBySejourIdOrderByLibelleAsc(sejourId).stream()
                 .map(TypeActiviteServiceImpl::toDto)
                 .toList();
@@ -76,7 +74,7 @@ public class TypeActiviteServiceImpl implements TypeActiviteService {
     @Override
     @Transactional
     public TypeActiviteDto creerTypeActivite(int sejourId, SaveTypeActiviteRequest request) {
-        Sejour sejour = verifierSejourExiste(sejourId);
+        Sejour sejour = sejourVerificationService.verifierSejourExiste(sejourId);
         String libelle = normaliserLibelle(request.libelle());
         verifierLibelleUnique(sejourId, libelle, null);
         TypeActivite entity = new TypeActivite();
@@ -110,12 +108,6 @@ public class TypeActiviteServiceImpl implements TypeActiviteService {
                             + " activité(s) y sont encore associée(s). Retirez le type sur ces activités d'abord.");
         }
         typeActiviteRepository.delete(entity);
-    }
-
-    private Sejour verifierSejourExiste(int sejourId) {
-        return sejourRepository
-                .findById(sejourId)
-                .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
     }
 
     private TypeActivite typeActiviteParIdEtSejour(int id, int sejourId) {

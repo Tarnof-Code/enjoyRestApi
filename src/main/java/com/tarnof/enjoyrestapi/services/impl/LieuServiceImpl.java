@@ -7,8 +7,8 @@ import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.SaveLieuRequest;
 import com.tarnof.enjoyrestapi.payload.response.LieuDto;
 import com.tarnof.enjoyrestapi.repositories.LieuRepository;
-import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.services.LieuService;
+import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,16 +20,16 @@ import java.util.stream.Collectors;
 public class LieuServiceImpl implements LieuService {
 
     private final LieuRepository lieuRepository;
-    private final SejourRepository sejourRepository;
+    private final SejourVerificationService sejourVerificationService;
 
-    public LieuServiceImpl(LieuRepository lieuRepository, SejourRepository sejourRepository) {
+    public LieuServiceImpl(LieuRepository lieuRepository, SejourVerificationService sejourVerificationService) {
         this.lieuRepository = lieuRepository;
-        this.sejourRepository = sejourRepository;
+        this.sejourVerificationService = sejourVerificationService;
     }
 
     @Override
     public List<LieuDto> listerLieuxDuSejour(int sejourId) {
-        verifierSejourExiste(sejourId);
+        sejourVerificationService.verifierSejourExiste(sejourId);
         return lieuRepository.findBySejourId(sejourId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -43,7 +43,7 @@ public class LieuServiceImpl implements LieuService {
     @Override
     @Transactional
     public LieuDto creerLieu(int sejourId, SaveLieuRequest request) {
-        Sejour sejour = verifierSejourExiste(sejourId);
+        Sejour sejour = sejourVerificationService.verifierSejourExiste(sejourId);
         String nom = normaliserNom(request.nom());
         verifierNomLieuUniquePourSejour(sejourId, nom, null);
         validerParametresPartage(request);
@@ -79,11 +79,6 @@ public class LieuServiceImpl implements LieuService {
     public void supprimerLieu(int sejourId, int lieuId) {
         Lieu lieu = getLieuEtVerifierSejour(sejourId, lieuId);
         lieuRepository.delete(lieu);
-    }
-
-    private Sejour verifierSejourExiste(int sejourId) {
-        return sejourRepository.findById(sejourId)
-                .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
     }
 
     private Lieu getLieuEtVerifierSejour(int sejourId, int lieuId) {
