@@ -188,32 +188,6 @@ public class Utilisateur implements UserDetails {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Utilisateur that = (Utilisateur) o;
-        return id == that.id
-                && Objects.equals(tokenId, that.tokenId)
-                && role == that.role
-                && Objects.equals(sejoursEquipe, that.sejoursEquipe)
-                && Objects.equals(nom, that.nom)
-                && Objects.equals(prenom, that.prenom)
-                && genre == that.genre
-                && Objects.equals(telephone, that.telephone)
-                && Objects.equals(email, that.email)
-                && Objects.equals(dateNaissance, that.dateNaissance)
-                && Objects.equals(motDePasse, that.motDePasse)
-                && Objects.equals(dateExpirationCompte, that.dateExpirationCompte)
-                && Objects.equals(refreshToken, that.refreshToken);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, tokenId, role, sejoursEquipe, nom, prenom, genre, telephone, email, dateNaissance,
-                motDePasse, dateExpirationCompte, refreshToken);
-    }
-
-    @Override
     public String toString() {
         return "Utilisateur{" +
                 "id=" + id +

@@ -101,4 +101,17 @@ public class Lieu {
     public void setSejour(Sejour sejour) {
         this.sejour = sejour;
     }
+
+    /** Sans {@code sejour} : évite lazy load et référence circulaire avec {@link Sejour}. */
+    @Override
+    public String toString() {
+        return "Lieu{" +
+                "id=" + id +
+                ", nom='" + nom + '\'' +
+                ", emplacement=" + emplacement +
+                ", nombreMax=" + nombreMax +
+                ", partageableEntreAnimateurs=" + partageableEntreAnimateurs +
+                ", nombreMaxActivitesSimultanees=" + nombreMaxActivitesSimultanees +
+                '}';
+    }
 }

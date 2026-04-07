@@ -3,7 +3,6 @@ package com.tarnof.enjoyrestapi.entities;
 import jakarta.persistence.*;
 
 import java.time.Instant;
-import java.util.Objects;
 
 @Entity
 public class RefreshToken {
@@ -75,23 +74,6 @@ public class RefreshToken {
 
     public void setRevoked(boolean revoked) {
         this.revoked = revoked;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        RefreshToken that = (RefreshToken) o;
-        return id == that.id
-                && revoked == that.revoked
-                && Objects.equals(utilisateur, that.utilisateur)
-                && Objects.equals(token, that.token)
-                && Objects.equals(expiryDate, that.expiryDate);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, utilisateur, token, expiryDate, revoked);
     }
 
     @Override

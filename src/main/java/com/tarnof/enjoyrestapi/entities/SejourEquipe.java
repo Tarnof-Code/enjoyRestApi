@@ -3,8 +3,6 @@ package com.tarnof.enjoyrestapi.entities;
 import com.tarnof.enjoyrestapi.enums.RoleSejour;
 import jakarta.persistence.*;
 
-import java.util.Objects;
-
 @Entity
 @Table(name = "sejour_equipe")
 public class SejourEquipe {
@@ -69,22 +67,6 @@ public class SejourEquipe {
 
     public void setRoleSejour(RoleSejour roleSejour) {
         this.roleSejour = roleSejour;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SejourEquipe that = (SejourEquipe) o;
-        return Objects.equals(id, that.id)
-                && Objects.equals(sejour, that.sejour)
-                && Objects.equals(utilisateur, that.utilisateur)
-                && roleSejour == that.roleSejour;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, sejour, utilisateur, roleSejour);
     }
 
     @Override

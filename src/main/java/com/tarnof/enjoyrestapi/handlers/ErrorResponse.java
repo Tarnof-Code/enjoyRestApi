@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponse {
@@ -77,24 +76,6 @@ public class ErrorResponse {
 
     public void setErrors(List<String> errors) {
         this.errors = errors;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ErrorResponse that = (ErrorResponse) o;
-        return status == that.status
-                && Objects.equals(error, that.error)
-                && Objects.equals(timestamp, that.timestamp)
-                && Objects.equals(message, that.message)
-                && Objects.equals(path, that.path)
-                && Objects.equals(errors, that.errors);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(status, error, timestamp, message, path, errors);
     }
 
     @Override

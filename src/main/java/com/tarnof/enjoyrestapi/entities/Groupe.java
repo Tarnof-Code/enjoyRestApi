@@ -8,7 +8,6 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Entity
 public class Groupe {
@@ -163,27 +162,6 @@ public class Groupe {
 
     public void setReferents(List<Utilisateur> referents) {
         this.referents = referents;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Groupe groupe = (Groupe) o;
-        return Objects.equals(id, groupe.id)
-                && Objects.equals(nom, groupe.nom)
-                && Objects.equals(description, groupe.description)
-                && typeGroupe == groupe.typeGroupe
-                && Objects.equals(ageMin, groupe.ageMin)
-                && Objects.equals(ageMax, groupe.ageMax)
-                && Objects.equals(niveauScolaireMin, groupe.niveauScolaireMin)
-                && Objects.equals(niveauScolaireMax, groupe.niveauScolaireMax)
-                && Objects.equals(sejour, groupe.sejour);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, nom, description, typeGroupe, ageMin, ageMax, niveauScolaireMin, niveauScolaireMax, sejour);
     }
 
     @Override

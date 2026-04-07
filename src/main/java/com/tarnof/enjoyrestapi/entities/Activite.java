@@ -142,4 +142,17 @@ public class Activite {
     public void setGroupes(List<Groupe> groupes) {
         this.groupes = groupes;
     }
+
+    /**
+     * Représentation de débogage sans associations (évite lazy load et cycles).
+     */
+    @Override
+    public String toString() {
+        return "Activite{" +
+                "id=" + id +
+                ", date=" + date +
+                ", nom='" + nom + '\'' +
+                ", description='" + description + '\'' +
+                '}';
+    }
 }

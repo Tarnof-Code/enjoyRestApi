@@ -62,4 +62,14 @@ public class Moment {
     public void setOrdre(Integer ordre) {
         this.ordre = ordre;
     }
+
+    /** Sans {@code sejour} : évite lazy load et cycle avec {@link Sejour}. */
+    @Override
+    public String toString() {
+        return "Moment{" +
+                "id=" + id +
+                ", nom='" + nom + '\'' +
+                ", ordre=" + ordre +
+                '}';
+    }
 }

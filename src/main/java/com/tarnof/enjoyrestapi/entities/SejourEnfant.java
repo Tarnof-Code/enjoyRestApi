@@ -2,8 +2,6 @@ package com.tarnof.enjoyrestapi.entities;
 
 import jakarta.persistence.*;
 
-import java.util.Objects;
-
 @Entity
 @Table(name = "sejour_enfant")
 public class SejourEnfant {
@@ -59,21 +57,6 @@ public class SejourEnfant {
 
     public void setEnfant(Enfant enfant) {
         this.enfant = enfant;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SejourEnfant that = (SejourEnfant) o;
-        return Objects.equals(id, that.id)
-                && Objects.equals(sejour, that.sejour)
-                && Objects.equals(enfant, that.enfant);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, sejour, enfant);
     }
 
     @Override

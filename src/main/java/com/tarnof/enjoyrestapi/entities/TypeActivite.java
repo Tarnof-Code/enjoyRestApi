@@ -68,4 +68,14 @@ public class TypeActivite {
     public void setSejour(Sejour sejour) {
         this.sejour = sejour;
     }
+
+    /** Sans {@code sejour} : évite lazy load et cycle avec {@link Sejour}. */
+    @Override
+    public String toString() {
+        return "TypeActivite{" +
+                "id=" + id +
+                ", libelle='" + libelle + '\'' +
+                ", predefini=" + predefini +
+                '}';
+    }
 }

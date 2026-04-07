@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 
 @Entity
 public class Sejour {
@@ -147,30 +146,6 @@ public class Sejour {
 
     public void setMoments(List<Moment> moments) {
         this.moments = moments;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Sejour sejour = (Sejour) o;
-        return id == sejour.id
-                && Objects.equals(nom, sejour.nom)
-                && Objects.equals(description, sejour.description)
-                && Objects.equals(dateDebut, sejour.dateDebut)
-                && Objects.equals(dateFin, sejour.dateFin)
-                && Objects.equals(lieuDuSejour, sejour.lieuDuSejour)
-                && Objects.equals(directeur, sejour.directeur)
-                && Objects.equals(equipeRoles, sejour.equipeRoles)
-                && Objects.equals(enfants, sejour.enfants)
-                && Objects.equals(groupes, sejour.groupes)
-                && Objects.equals(lieux, sejour.lieux)
-                && Objects.equals(moments, sejour.moments);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, nom, description, dateDebut, dateFin, lieuDuSejour, directeur, equipeRoles, enfants, groupes, lieux, moments);
     }
 
     @Override

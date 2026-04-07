@@ -10,8 +10,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.validation.constraints.Pattern;
 
-import java.util.Objects;
-
 @Entity
 public class DossierEnfant {
     @Id
@@ -198,35 +196,6 @@ public class DossierEnfant {
 
     public void setAPrendreEnSortie(String aPrendreEnSortie) {
         this.aPrendreEnSortie = aPrendreEnSortie;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DossierEnfant that = (DossierEnfant) o;
-        return Objects.equals(id, that.id)
-                && Objects.equals(enfant, that.enfant)
-                && Objects.equals(emailParent1, that.emailParent1)
-                && Objects.equals(telephoneParent1, that.telephoneParent1)
-                && Objects.equals(emailParent2, that.emailParent2)
-                && Objects.equals(telephoneParent2, that.telephoneParent2)
-                && Objects.equals(informationsMedicales, that.informationsMedicales)
-                && Objects.equals(pai, that.pai)
-                && Objects.equals(informationsAlimentaires, that.informationsAlimentaires)
-                && Objects.equals(traitementMatin, that.traitementMatin)
-                && Objects.equals(traitementMidi, that.traitementMidi)
-                && Objects.equals(traitementSoir, that.traitementSoir)
-                && Objects.equals(traitementSiBesoin, that.traitementSiBesoin)
-                && Objects.equals(autresInformations, that.autresInformations)
-                && Objects.equals(aPrendreEnSortie, that.aPrendreEnSortie);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, enfant, emailParent1, telephoneParent1, emailParent2, telephoneParent2,
-                informationsMedicales, pai, informationsAlimentaires, traitementMatin, traitementMidi, traitementSoir,
-                traitementSiBesoin, autresInformations, aPrendreEnSortie);
     }
 
     @Override

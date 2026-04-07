@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Pattern;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 
 import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.NiveauScolaire;
@@ -129,24 +128,6 @@ public class Enfant {
 
     public void setGroupes(List<Groupe> groupes) {
         this.groupes = groupes;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Enfant enfant = (Enfant) o;
-        return id == enfant.id
-                && Objects.equals(nom, enfant.nom)
-                && Objects.equals(prenom, enfant.prenom)
-                && genre == enfant.genre
-                && Objects.equals(dateNaissance, enfant.dateNaissance)
-                && niveauScolaire == enfant.niveauScolaire;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, nom, prenom, genre, dateNaissance, niveauScolaire);
     }
 
     @Override
