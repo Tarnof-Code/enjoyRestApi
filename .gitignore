@@ -38,11 +38,9 @@ build/
 ### Stack Dump Files ###
 *.stackdump
 
-# Cursor rules
-.cursorrules
-
-# Fichiers Markdown (tous les fichiers .md)
+# Fichiers Markdown (tous les fichiers .md), sauf la memory bank versionnée
 *.md
+!AI_MEMORY.md
 
 # Fichiers SQL
 *.sql

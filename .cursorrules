@@ -1,0 +1,121 @@
+# Règles pour l'Assistant AI (Java Spring Boot Architect)
+
+## 1. Langue et Communication
+- **Réponse** : Toujours répondre en **Français**.
+- **Commits** : Messages de commit en **Anglais** uniquement.
+- **Ton** : Professionnel, concis, expert.
+
+## 2. Contexte Automatique
+- Analyser systématiquement le `pom.xml` pour identifier les bibliothèques disponibles avant de proposer du code.
+- Vérifier la version de Java (actuellement Java 21) pour utiliser les fonctionnalités modernes (Records, Virtual Threads, etc.).
+
+## 3. Principes Java & Spring Boot
+
+### Injection de Dépendances
+- **INTERDIT** : Ne jamais utiliser `@Autowired` sur les champs (Field Injection).
+- **OBLIGATOIRE** : Utiliser l'injection par constructeur.
+  - Utiliser `@RequiredArgsConstructor` (Lombok) pour les classes `final`.
+  - Ou générer un constructeur explicite si nécessaire.
+- **Cohérence par module** : Certains modules suivent une convention « sans Lombok » sur l’entité JPA **et** les classes qui la manipulent explicitement (ex. **`Lieu`** : entité POJO + `LieuServiceImpl` + `LieuController` avec **constructeurs explicites**, pas `@RequiredArgsConstructor` sur ces classes). Ne pas y ajouter `@Data` / `@Builder` sur l’entité sans décision explicite ; pour les tests du même module, `@InjectMocks` reste valide avec un contrôleur / service à constructeur explicite.
+
+### Data Objects (DTOs & Records)
+- Puisque le projet est en Java 21+, utiliser les **Java Records** pour :
+  - Les DTOs (`record SejourDto(...) {}`) - Note: utiliser `Dto` avec 'd' minuscule pour correspondre aux conventions Java
+  - Les Payloads de requête/réponse
+- Les entités JPA restent des classes classiques avec `@Entity`.
+- **Synchronisation Frontend** : Les types sont synchronisés avec le frontend via `api.d.ts`. Vérifier la cohérence des noms (ex: `EnfantDto`, `GroupeDto` en Java correspondent aux types TypeScript).
+
+### Logique et Flux
+- **Contrôleurs (`@RestController`)** :
+  - Doivent être "stupides". Aucune logique métier.
+  - Appellent le Service et renvoient un DTO ou une `ResponseEntity`.
+  - **Jamais** de `try-catch` dans le contrôleur. Laisser les exceptions remonter vers le `@ControllerAdvice`.
+- **Services** :
+  - Contiennent toute la logique métier.
+  - Retournent des objets (DTOs ou Entités selon le cas), pas de `ResponseEntity`.
+  - **Jamais** de `try-catch` qui masquent les exceptions en retournant `null`. Toujours laisser les exceptions remonter vers les handlers.
+- **Stream API & Optional** :
+  - Privilégier `Optional.map()`, `.orElseThrow()` plutôt que les vérifications `if (obj != null)`.
+  - Utiliser les `Stream` pour les collections.
+
+## 4. Qualité du Code
+
+### Nommage
+- Classes : `PascalCase` (ex: `SejourController`)
+- Méthodes/Variables : `camelCase` (ex: `findSejourById`)
+- Constantes : `UPPER_SNAKE_CASE`
+- Booléens : Préfixe explicite (`isActive`, `hasAccess`).
+
+### Imports
+- **OBLIGATOIRE** : Toujours déclarer les imports en haut du fichier dans la section des imports.
+- **INTERDIT** : Ne jamais utiliser des noms de classes qualifiés complets (ex: `com.package.ClassName`) dans le corps du code.
+- Utiliser les imports standards pour améliorer la lisibilité du code.
+- Les imports doivent être organisés par groupes : packages Java standard, bibliothèques tierces, packages du projet.
+
+
+### Gestion des Erreurs
+- Utiliser des exceptions personnalisées (ex: `ResourceNotFoundException`, `ResourceAlreadyExistsException`, `EmailDejaUtiliseException`, `UtilisateurException`, `TokenException`).
+- Centraliser la gestion dans `GlobalExceptionHandler` et `TokenControllerHandler`.
+- **Jamais** retourner `null` dans les services en cas d'erreur. Toujours lancer une exception appropriée.
+- Les services ne doivent pas avoir de `try-catch` qui masquent les exceptions. Laisser les exceptions remonter vers les handlers.
+
+### Format et Locale
+- **Excel/POI** : Lors de l'utilisation de `DataFormatter` (Apache POI), utiliser `new DataFormatter(Locale.US)` pour garantir un format décimal cohérent (point au lieu de virgule) indépendamment de la locale système. Sinon, les tests peuvent échouer sur des machines en locale française.
+- **Dates en messages utilisateur** : Pour formater une `java.time.LocalDate` en `dd/MM/yyyy` dans un message d'erreur ou métier, utiliser `DateFormatHelper.formatDdMmYyyy(date)` plutôt que dupliquer un `DateTimeFormatter` local.
+
+### Tests Unitaires
+- Utiliser **JUnit 5** (`@Test`, `@DisplayName`, `@BeforeEach`) et **Mockito** (`@Mock`, `@InjectMocks`, `@ExtendWith(MockitoExtension.class)`).
+- Structure des tests : Given-When-Then (Arrange-Act-Assert).
+- Utiliser `@DisplayName` pour des descriptions claires en français des scénarios testés.
+- Tester tous les cas d'usage : cas nominal, cas limites, cas d'erreur.
+- Utiliser `AssertJ` pour les assertions (`assertThat()`, `assertThatThrownBy()`).
+- Vérifier les interactions avec les mocks avec `verify()`.
+- Un test = un scénario précis (ne pas tester plusieurs comportements dans un même test).
+- **Important** : Dans les assertions `assertThatThrownBy()`, utiliser le type d'exception exacte lancée par le code (ex: `ResourceNotFoundException` au lieu de `RuntimeException`) pour une meilleure précision des tests.
+- **Tests de contrôleurs** : Utiliser `@InjectMocks` pour injecter automatiquement les mocks dans le contrôleur, puis utiliser `MockMvcBuilders.standaloneSetup(@InjectMocks controller)` pour créer le contexte de test. Cela assure la cohérence avec les autres tests unitaires.
+- **Null-safety / Eclipse** : Pour les classes de test avec nombreux avertissements sur les mocks (`when().thenReturn()`, etc.), préférer `@SuppressWarnings("null")` **une seule fois au niveau de la classe** plutôt que sur chaque méthode (évite l’erreur Eclipse 1102 « compiler option being ignored »).
+
+## 5. Messages de Commit
+
+- Les messages de commit Git doivent toujours être générés en anglais
+- Format détaillé multi-lignes obligatoire :
+  1. Première ligne : type(scope): description courte (ex: "feat: add user authentication", "refactor: restructure components")
+  2. Ligne vide
+  3. Liste à puces détaillant chaque changement significatif avec "- " au début de chaque ligne
+  4. Ligne vide
+  5. Paragraphe final (1-3 phrases) expliquant les bénéfices, le contexte et l'impact des changements
+- Analyser tous les fichiers modifiés pour créer une liste exhaustive des changements
+- Grouper les changements par catégorie logique (components, services, helpers, etc.)
+
+Types autorisés :
+- `feat`: Nouvelle fonctionnalité
+- `fix`: Correction de bug
+- `refactor`: Modification du code sans changement fonctionnel (nettoyage, performance)
+- `chore`: Tâches de build, dépendances, configuration
+- `docs`: Documentation
+
+Exemple de format attendu :
+```
+refactor: restructure components and improve code organization
+
+- Rename Formulaire_ajout_modif_utilisateur to User_form for better naming
+- Extract Liste component from Liste_utilisateurs for reusability
+- Add generic Form component for reusable form handling across the application
+- Refactor User_form to use the new generic Form component
+- Update imports and references across affected components
+
+This refactoring improves code maintainability and component reusability while reducing code duplication in the admin user management section.
+```
+
+## 6. AI MEMORY BANK PROTOCOL
+
+1.  **Lecture** : Au début de chaque session ou nouvelle tâche majeure, lis le fichier `AI_MEMORY.md` pour comprendre le contexte actif et architectural.
+2.  **Mise à jour** : Si une décision architecturale change ou qu'une tâche de la roadmap est complétée, propose une mise à jour de `AI_MEMORY.md` à la fin de ta réponse.
+3.  **Réflexivité** : Vérifie que tout code généré respecte les "Décisions Architecturales" listées dans la Memory Bank (ex: vérifier l'injection par constructeur).
+
+## 7. Post-Commit & Post-Push
+
+Quand un **commit** est fait **ET** qu'un **push** est effectué :
+1.  **AI_MEMORY.md** : Mettre à jour le fichier si des changements architecturaux, des décisions techniques ou des tâches complétées le justifient.
+2.  **.cursorrules** : Mettre à jour si de nouvelles conventions, règles ou patterns ont été introduits par les changements poussés.
+
