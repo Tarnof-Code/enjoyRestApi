@@ -27,13 +27,15 @@ public class Sejour {
     private List<Lieu> lieux;
     @OneToMany(mappedBy = "sejour", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Moment> moments;
+    @OneToMany(mappedBy = "sejour", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Horaire> horaires;
 
     public Sejour() {
     }
 
     public Sejour(int id, String nom, String description, Date dateDebut, Date dateFin, String lieuDuSejour,
                   Utilisateur directeur, List<SejourEquipe> equipeRoles, List<SejourEnfant> enfants,
-                  List<Groupe> groupes, List<Lieu> lieux, List<Moment> moments) {
+                  List<Groupe> groupes, List<Lieu> lieux, List<Moment> moments, List<Horaire> horaires) {
         this.id = id;
         this.nom = nom;
         this.description = description;
@@ -46,6 +48,7 @@ public class Sejour {
         this.groupes = groupes;
         this.lieux = lieux;
         this.moments = moments;
+        this.horaires = horaires;
     }
 
     public static SejourBuilder builder() {
@@ -148,6 +151,14 @@ public class Sejour {
         this.moments = moments;
     }
 
+    public List<Horaire> getHoraires() {
+        return horaires;
+    }
+
+    public void setHoraires(List<Horaire> horaires) {
+        this.horaires = horaires;
+    }
+
     @Override
     public String toString() {
         return "Sejour{" +
@@ -163,6 +174,7 @@ public class Sejour {
                 ", groupes=" + groupes +
                 ", lieux=" + lieux +
                 ", moments=" + moments +
+                ", horaires=" + horaires +
                 '}';
     }
 
@@ -179,6 +191,7 @@ public class Sejour {
         private List<Groupe> groupes;
         private List<Lieu> lieux;
         private List<Moment> moments;
+        private List<Horaire> horaires;
 
         public SejourBuilder id(int id) {
             this.id = id;
@@ -240,8 +253,13 @@ public class Sejour {
             return this;
         }
 
+        public SejourBuilder horaires(List<Horaire> horaires) {
+            this.horaires = horaires;
+            return this;
+        }
+
         public Sejour build() {
-            return new Sejour(id, nom, description, dateDebut, dateFin, lieuDuSejour, directeur, equipeRoles, enfants, groupes, lieux, moments);
+            return new Sejour(id, nom, description, dateDebut, dateFin, lieuDuSejour, directeur, equipeRoles, enfants, groupes, lieux, moments, horaires);
         }
     }
 }
