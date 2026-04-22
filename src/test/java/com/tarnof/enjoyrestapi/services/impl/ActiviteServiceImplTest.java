@@ -10,6 +10,7 @@ import com.tarnof.enjoyrestapi.entities.TypeActivite;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
 import com.tarnof.enjoyrestapi.enums.TypeGroupe;
+import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningAnimateurException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateActiviteRequest;
@@ -40,6 +41,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -411,6 +414,34 @@ class ActiviteServiceImplTest {
     }
 
     @Test
+    @DisplayName("creerActivite - animateur déjà pris sur un autre créneau identique (même jour, même moment)")
+    void creer_whenAnimateurDejaSurAutreActiviteMemeCreneau_shouldThrow() {
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(activiteRepository.countActivitesAvecMembreMemeCreneau(
+                        eq(1), eq(LocalDate.of(2026, 7, 5)), eq(MOMENT_ID), eq(10), isNull()))
+                .thenReturn(1L);
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                null,
+                MOMENT_ID,
+                TYPE_ACTIVITE_ID,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+                .isInstanceOf(ConflitPlanningAnimateurException.class)
+                .hasMessageContaining("encadre déjà une autre activité")
+                .hasMessageContaining("Matin");
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("creerActivite - membre hors équipe")
     void creer_whenNotInEquipe_shouldThrow() {
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
@@ -526,6 +557,67 @@ class ActiviteServiceImplTest {
         assertThatThrownBy(() -> activiteService.creerActivite(1, req))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("date de début et une date de fin");
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("modifierActivite - succès, décompte d’exclusion de l’activité courante pour la dispo animateur")
+    void modifier_shouldExcludeCurrentActivityForMembreCheck() {
+        Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        Activite a = activitePersistee(4, List.of(membre));
+        when(activiteRepository.findByIdAndSejourId(4, 1)).thenReturn(Optional.of(a));
+        givenMomentsAuMoinsUnPourSejour1();
+        givenTypeActivitePourSejour1();
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
+        when(activiteRepository.countActivitesAvecMembreMemeCreneau(
+                        eq(1), eq(LocalDate.of(2026, 7, 5)), eq(MOMENT_ID), eq(10), eq(4)))
+                .thenReturn(0L);
+        when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        UpdateActiviteRequest req = new UpdateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Renommé",
+                null,
+                null,
+                MOMENT_ID,
+                TYPE_ACTIVITE_ID,
+                List.of("mem-1"),
+                List.of(5));
+
+        ActiviteDto dto = activiteService.modifierActivite(1, 4, req);
+
+        assertThat(dto.nom()).isEqualTo("Renommé");
+        verify(activiteRepository)
+                .countActivitesAvecMembreMemeCreneau(1, LocalDate.of(2026, 7, 5), MOMENT_ID, 10, 4);
+    }
+
+    @Test
+    @DisplayName("modifierActivite - animateur déjà sur une autre activité au même créneau")
+    void modifier_whenAnimateurDejaSurAutreActiviteMemeCreneau_shouldThrow() {
+        Activite a = activitePersistee(4, List.of(membre));
+        when(activiteRepository.findByIdAndSejourId(4, 1)).thenReturn(Optional.of(a));
+        givenMomentsAuMoinsUnPourSejour1();
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(activiteRepository.countActivitesAvecMembreMemeCreneau(
+                        eq(1), eq(LocalDate.of(2026, 7, 5)), eq(MOMENT_ID), eq(10), eq(4)))
+                .thenReturn(1L);
+
+        UpdateActiviteRequest req = new UpdateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                null,
+                MOMENT_ID,
+                TYPE_ACTIVITE_ID,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.modifierActivite(1, 4, req))
+                .isInstanceOf(ConflitPlanningAnimateurException.class)
+                .hasMessageContaining("encadre déjà une autre activité");
         verify(activiteRepository, never()).save(any());
     }
 

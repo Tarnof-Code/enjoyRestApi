@@ -8,6 +8,7 @@ import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
 import com.tarnof.enjoyrestapi.entities.TypeActivite;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningAnimateurException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateActiviteRequest;
@@ -90,6 +91,7 @@ public class ActiviteServiceImpl implements ActiviteService {
         Moment moment = resoudreMomentPourSejour(sejourId, request.momentId());
         verifierDateActiviteDansSejour(sejour, request.date());
         List<Utilisateur> membres = resoudreEtVerifierMembresEquipe(sejour, request.membreTokenIds());
+        verifierMembresDisponiblesPourCreneau(sejourId, request.date(), moment, membres, null);
         List<Groupe> groupes = resoudreGroupesDuSejour(sejourId, request.groupeIds());
         Lieu lieu = resoudreLieuPourSejour(sejourId, request.lieuId());
         TypeActivite typeActivite = resoudreTypeActivite(sejourId, request.typeActiviteId());
@@ -121,6 +123,7 @@ public class ActiviteServiceImpl implements ActiviteService {
         Moment moment = resoudreMomentPourSejour(sejourId, request.momentId());
         verifierDateActiviteDansSejour(activite.getSejour(), request.date());
         List<Utilisateur> membres = resoudreEtVerifierMembresEquipe(activite.getSejour(), request.membreTokenIds());
+        verifierMembresDisponiblesPourCreneau(sejourId, request.date(), moment, membres, activite.getId());
         List<Groupe> groupes = resoudreGroupesDuSejour(sejourId, request.groupeIds());
         Lieu lieu = resoudreLieuPourSejour(sejourId, request.lieuId());
         TypeActivite typeActivite = resoudreTypeActivite(sejourId, request.typeActiviteId());
@@ -247,6 +250,27 @@ public class ActiviteServiceImpl implements ActiviteService {
         return momentRepository.findByIdAndSejourId(momentId, sejourId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Moment non trouvé pour ce séjour (id: " + momentId + ")"));
+    }
+
+    private void verifierMembresDisponiblesPourCreneau(
+            int sejourId, LocalDate date, Moment moment, List<Utilisateur> membres, Integer excludeActiviteId) {
+        int momentId = moment.getId();
+        for (Utilisateur m : membres) {
+            long conflits = activiteRepository.countActivitesAvecMembreMemeCreneau(
+                    sejourId, date, momentId, m.getId(), excludeActiviteId);
+            if (conflits > 0) {
+                String prenomOuNom = m.getPrenom() != null && !m.getPrenom().isBlank()
+                        ? m.getPrenom().strip()
+                        : (m.getNom() != null ? m.getNom().strip() : "");
+                throw new ConflitPlanningAnimateurException(
+                        prenomOuNom
+                                + " encadre déjà une autre activité le "
+                                + DateFormatHelper.formatDdMmYyyy(date)
+                                + " au moment \""
+                                + moment.getNom()
+                                + "\".");
+            }
+        }
     }
 
     private String verifierDisponibiliteLieuPourActivite(
