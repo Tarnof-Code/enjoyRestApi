@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.tarnof.enjoyrestapi.payload.response.SejourDto;
 import com.tarnof.enjoyrestapi.payload.request.MembreEquipeRequest;
+import com.tarnof.enjoyrestapi.payload.request.UpdateMembreEquipeRoleRequest;
 import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.services.SejourService;
@@ -56,7 +57,7 @@ public class SejourController {
     public void modifierRoleMembreEquipe(
             @PathVariable("id") int sejourId, 
             @PathVariable("membreTokenId") String membreTokenId,
-            @Valid @RequestBody MembreEquipeRequest request) {
+            @Valid @RequestBody UpdateMembreEquipeRoleRequest request) {
         sejourService.modifierRoleMembreEquipe(sejourId, membreTokenId, request.roleSejour());
     }
 

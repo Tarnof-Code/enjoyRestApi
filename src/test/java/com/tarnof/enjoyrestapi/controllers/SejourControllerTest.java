@@ -11,6 +11,7 @@ import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;
 import com.tarnof.enjoyrestapi.payload.request.MembreEquipeRequest;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
+import com.tarnof.enjoyrestapi.payload.request.UpdateMembreEquipeRoleRequest;
 import com.tarnof.enjoyrestapi.payload.response.SejourDto;
 import com.tarnof.enjoyrestapi.services.SejourService;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,6 +55,7 @@ class SejourControllerTest {
     private SejourDto sejourDto2;
     private CreateSejourRequest createSejourRequest;
     private MembreEquipeRequest membreEquipeRequest;
+    private UpdateMembreEquipeRoleRequest updateMembreEquipeRoleRequest;
     private RegisterRequest registerRequest;
     private Date dateDebut;
     private Date dateFin;
@@ -116,6 +118,8 @@ class SejourControllerTest {
                 "membre-token-456",
                 RoleSejour.ANIM
         );
+
+        updateMembreEquipeRoleRequest = new UpdateMembreEquipeRoleRequest(RoleSejour.ANIM);
 
         Date dateNaissance = new Date(System.currentTimeMillis() - 86400000L * 365 * 25);
         Instant dateExpiration = Instant.now().plusSeconds(86400 * 30);
@@ -431,7 +435,7 @@ class SejourControllerTest {
     void ajouterMembreExistant_ShouldReturn400WhenValidationFails() throws Exception {
         // Given - requête invalide (tokenId vide)
         MembreEquipeRequest invalidRequest = new MembreEquipeRequest(
-                "", // tokenId vide
+                "",
                 RoleSejour.ANIM
         );
 
@@ -568,13 +572,12 @@ class SejourControllerTest {
     @SuppressWarnings("null")
     void modifierRoleMembreEquipe_ShouldReturn204NoContent() throws Exception {
         // Given
-        // Le membreEquipeRequest contient RoleSejour.ANIM, donc on mocke avec ANIM
         doNothing().when(sejourService).modifierRoleMembreEquipe(eq(1), eq("membre-token-456"), eq(RoleSejour.ANIM));
 
         // When & Then
         mockMvc.perform(put("/api/v1/sejours/1/equipe/membre-token-456")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(membreEquipeRequest)))
+                        .content(objectMapper.writeValueAsString(updateMembreEquipeRoleRequest)))
                 .andExpect(status().isNoContent());
 
         verify(sejourService).modifierRoleMembreEquipe(eq(1), eq("membre-token-456"), eq(RoleSejour.ANIM));
@@ -585,10 +588,7 @@ class SejourControllerTest {
     @SuppressWarnings("null")
     void modifierRoleMembreEquipe_ShouldReturn400WhenValidationFails() throws Exception {
         // Given - requête invalide (roleSejour null)
-        MembreEquipeRequest invalidRequest = new MembreEquipeRequest(
-                "membre-token-456",
-                null // roleSejour null
-        );
+        UpdateMembreEquipeRoleRequest invalidRequest = new UpdateMembreEquipeRoleRequest(null);
 
         // When & Then
         mockMvc.perform(put("/api/v1/sejours/1/equipe/membre-token-456")
@@ -610,7 +610,7 @@ class SejourControllerTest {
         // When & Then
         mockMvc.perform(put("/api/v1/sejours/999/equipe/membre-token-456")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(membreEquipeRequest)))
+                        .content(objectMapper.writeValueAsString(updateMembreEquipeRoleRequest)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Séjour non trouvé avec l'ID: 999"));
 

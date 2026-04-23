@@ -89,7 +89,7 @@
    - Tous les DTOs et Payloads utilisent maintenant des Records Java :
     - `ProfilDto`, `SejourDto` (avec record imbriqué `DirecteurInfos`), `EnfantDto`, `DossierEnfantDto`, `GroupeDto` (avec record imbriqué `ReferentInfos`), **`MomentDto`** (**`ordre`** inclus), **`HoraireDto`** (`id`, `libelle`, `sejourId`), `ActiviteDto` (record imbriqué `MembreEquipeInfo`, **`MomentDto moment`** avec **`ordre`**, **`LieuDto lieu`** nullable, **`TypeActiviteDto typeActivite`** avec **`sejourId`** — **renseigné** pour toute activité persistée conforme, `groupeIds`, **`avertissementLieu`**), **`TypeActiviteDto`** (`id`, `libelle`, `predefini`, **`sejourId`**), `LieuDto` (**`partageableEntreAnimateurs`**, **`nombreMaxActivitesSimultanees`**)
     - `CreateSejourRequest`, `CreateEnfantRequest`, `UpdateDossierEnfantRequest`, `CreateGroupeRequest`, `AjouterReferentRequest`, `CreateActiviteRequest`, `UpdateActiviteRequest` (incl. **`typeActiviteId`** **obligatoire** `@NotNull`), **`SaveMomentRequest`**, **`ReorderMomentsRequest`** (`momentIds`), `SaveLieuRequest`, **`SaveHoraireRequest`** (`libelle`), **`SaveTypeActiviteRequest`** (`libelle`), `RegisterRequest`, `AuthenticationRequest`, `UpdateUserRequest`
-    - `MembreEquipeRequest`, `ChangePasswordRequest`, `RefreshTokenRequest`
+    - `MembreEquipeRequest` (POST membre **existant** : `tokenId` + `roleSejour`), **`UpdateMembreEquipeRoleRequest`** (PUT **changer le rôle** : `roleSejour` seul — le membre est identifié par l’URL), `ChangePasswordRequest`, `RefreshTokenRequest`
      - `AuthenticationResponse`, `RefreshTokenResponse`
    - Les Records offrent l'immutabilité native et une syntaxe concise, idéale pour Java 21.
    - **Note** : `ErrorResponse` est une **classe Java** avec getters/setters et un **`ErrorResponseBuilder`** statique interne (`ErrorResponse.builder()` … `build()`) — pas de Lombok.
@@ -473,7 +473,7 @@
 ### Synchronisation Backend-Frontend
 - Le dépôt **enjoyApi** ne contient pas le frontend ; les chemins ci-dessous supposent le projet web associé (ex. `enjoyWebApp`).
 - [FAIT] Fichier `api.d.ts` dans le frontend (`enjoyWebApp/src/types/api.d.ts`) avec les types TypeScript alignés sur les DTOs Java.
-- Types disponibles : `SejourDTO`, `ProfilUtilisateurDTO`, `EnfantDto`, `DossierEnfantDto`, `GroupeDto`, `CreateGroupeRequest`, `AjouterReferentRequest`, **`MomentDto`** (incl. **`ordre`**), **`SaveMomentRequest`**, **`ReorderMomentsRequest`**, **`HoraireDto`**, **`SaveHoraireRequest`**, `ActiviteDto` (**`moment`** avec **`ordre`**, **`lieu`**, **`typeActivite`** avec **`sejourId`** (obligatoire côté domaine), **`avertissementLieu`** optionnel surtout après POST/PUT, **`groupeIds`**) / `CreateActiviteRequest` / `UpdateActiviteRequest` (`lieuId?`, **`momentId`**, **`typeActiviteId`** obligatoire, `groupeIds`), **`TypeActiviteDto`** (**`sejourId`**, **`predefini`**), **`SaveTypeActiviteRequest`**, **`LieuDto`** (**`partageableEntreAnimateurs`**, **`nombreMaxActivitesSimultanees`**) / **`SaveLieuRequest`** (mêmes champs partage), `EmplacementLieu`, `CreateSejourRequest`, `CreateEnfantRequest`, `UpdateDossierEnfantRequest`, `MembreEquipeRequest`, `RegisterRequest`, `UpdateUserRequest`, `AuthenticationRequest`, `AuthenticationResponse`, `RefreshTokenResponse`, `ErrorResponse`, `ExcelImportResponse`, `ExcelImportSpecResponse`, `ExcelImportColumnSpec`. **À jour côté enjoyApi** : vérifier que le frontend **`api.d.ts`** inclut bien **`moment` / `momentId`**, **`moment.ordre`**, **`PUT .../moments/reorder`** avec **`momentIds`**, **`HoraireDto` / `SaveHoraireRequest`** + CRUD **`/sejours/{sejourId}/horaires`**, et **`typeActivite` / `typeActiviteId`** (**obligatoire** en création / édition d’activité) + CRUD sous **`/sejours/{sejourId}/types-activite`**.
+- Types disponibles : `SejourDTO`, `ProfilUtilisateurDTO`, `EnfantDto`, `DossierEnfantDto`, `GroupeDto`, `CreateGroupeRequest`, `AjouterReferentRequest`, **`MomentDto`** (incl. **`ordre`**), **`SaveMomentRequest`**, **`ReorderMomentsRequest`**, **`HoraireDto`**, **`SaveHoraireRequest`**, `ActiviteDto` (**`moment`** avec **`ordre`**, **`lieu`**, **`typeActivite`** avec **`sejourId`** (obligatoire côté domaine), **`avertissementLieu`** optionnel surtout après POST/PUT, **`groupeIds`**) / `CreateActiviteRequest` / `UpdateActiviteRequest` (`lieuId?`, **`momentId`**, **`typeActiviteId`** obligatoire, `groupeIds`), **`TypeActiviteDto`** (**`sejourId`**, **`predefini`**), **`SaveTypeActiviteRequest`**, **`LieuDto`** (**`partageableEntreAnimateurs`**, **`nombreMaxActivitesSimultanees`**) / **`SaveLieuRequest`** (mêmes champs partage), `EmplacementLieu`, `CreateSejourRequest`, `CreateEnfantRequest`, `UpdateDossierEnfantRequest`, `MembreEquipeRequest`, **`UpdateMembreEquipeRoleRequest`**, `RegisterRequest`, `UpdateUserRequest`, `AuthenticationRequest`, `AuthenticationResponse`, `RefreshTokenResponse`, `ErrorResponse`, `ExcelImportResponse`, `ExcelImportSpecResponse`, `ExcelImportColumnSpec`. **À jour côté enjoyApi** : vérifier que le frontend **`api.d.ts`** inclut bien **`moment` / `momentId`**, **`moment.ordre`**, **`PUT .../moments/reorder`** avec **`momentIds`**, **`HoraireDto` / `SaveHoraireRequest`** + CRUD **`/sejours/{sejourId}/horaires`**, et **`typeActivite` / `typeActiviteId`** (**obligatoire** en création / édition d’activité) + CRUD sous **`/sejours/{sejourId}/types-activite`**, et pour l’équipe séjour **`UpdateMembreEquipeRoleRequest`** (body du **`PUT .../equipe/{membreTokenId}`**).
 - Les dates Java (`Date`, `Instant`) sont typées comme `string` en TypeScript car sérialisées en ISO 8601 par Jackson.
 - [FAIT] Migration des types locaux vers `api.d.ts` effectuée :
   - `sejour.service.ts` : `SejourInfos` → `CreateSejourRequest`, retours typés avec `SejourDTO`
@@ -481,7 +481,7 @@
   - `ListeSejoursAdmin.tsx` : interface locale `Sejour` → `SejourDTO`
   - `ListeSejoursDirecteur.tsx` : interface locale `Sejour` → `SejourDTO`
   - `SejourForm.tsx` : `SejourInfos` → `CreateSejourRequest`
-  - `UserForm.tsx` : `AddMembreRequest` → `MembreEquipeRequest`
+  - `UserForm.tsx` : `AddMembreRequest` → `MembreEquipeRequest` (POST **membre existant**). **Changement de rôle** : **`PUT /sejours/{id}/equipe/{membreTokenId}`** avec body **`UpdateMembreEquipeRoleRequest`** (`roleSejour` seul) — ne pas dupliquer `tokenId` dans le JSON.
 - Tous les services et composants liés aux séjours utilisent maintenant les types centralisés de `api.d.ts`.
 - [FAIT] Implémentation frontend complète de la gestion des enfants :
   - `AddEnfantForm.tsx` : Formulaire générique pour créer/modifier un enfant (utilise le composant `Form.tsx`)
@@ -593,7 +593,7 @@
 - **Description** : Ajouter un membre existant à l'équipe d'un séjour
 - **Autorisation** : `ROLE_DIRECTION`
 - **Path Variable** : `id` (int)
-- **Body** : `MembreEquipeRequest` (`tokenId`, `roleSejour`)
+- **Body** : `MembreEquipeRequest` — **`tokenId`** (obligatoire, référence utilisateur côté API) et **`roleSejour`**
 - **Réponse** : `201 Created`
 - **Codes d'erreur** :
   - `400` : Validation échouée
@@ -614,8 +614,8 @@
 #### PUT `/api/v1/sejours/{id}/equipe/{membreTokenId}`
 - **Description** : Modifier le rôle d'un membre dans l'équipe d'un séjour
 - **Autorisation** : `ROLE_DIRECTION`
-- **Path Variables** : `id` (int), `membreTokenId` (string)
-- **Body** : `MembreEquipeRequest` (`roleSejour`)
+- **Path Variables** : `id` (int), `membreTokenId` (string) — identifiant **seul** du membre côté API (pas de `tokenId` redondant dans le body)
+- **Body** : `UpdateMembreEquipeRoleRequest` — **`roleSejour`** uniquement
 - **Réponse** : `204 No Content`
 - **Codes d'erreur** :
   - `400` : Validation échouée
@@ -1079,7 +1079,8 @@ Tous les types TypeScript sont définis dans `enjoyWebApp/src/types/api.d.ts` :
 - `CreateSejourRequest`
 - `CreateEnfantRequest`
 - `UpdateDossierEnfantRequest`
-- `MembreEquipeRequest`
+- `MembreEquipeRequest` (POST `.../equipe/existant`)
+- `UpdateMembreEquipeRoleRequest` (PUT `.../equipe/{membreTokenId}`)
 - `RegisterRequest`
 - `UpdateUserRequest`
 - `AuthenticationRequest`
