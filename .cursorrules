@@ -113,13 +113,14 @@ This refactoring improves code maintainability and component reusability while r
 
 ## 6. AI MEMORY BANK PROTOCOL
 
-1.  **Lecture** : Au début de chaque session ou nouvelle tâche majeure, lis le fichier `AI_MEMORY.md` pour comprendre le contexte actif et architectural.
-2.  **Mise à jour** : Si une décision architecturale change ou qu'une tâche de la roadmap est complétée, propose une mise à jour de `AI_MEMORY.md` à la fin de ta réponse.
-3.  **Réflexivité** : Vérifie que tout code généré respecte les "Décisions Architecturales" listées dans la Memory Bank (ex: vérifier l'injection par constructeur).
+1.  **Lecture** : Au début de chaque session ou nouvelle tâche majeure, lis d’abord `AI_MEMORY.md` (pivot : liens uniquement). Ensuite, pour disposer d’un contexte métier minimal et à jour, lis **systématiquement** `docs/ai/contexte-actif.md` et `docs/ai/decisions-architecturales.md`. Puis ouvre les autres fiches `docs/ai/` (et si besoin `docs/*.md` hors `ai/`) selon la tâche : ex. `documentation-api-rest.md` pour un endpoint, `etat-projet.md` pour les tests ou le modèle, `roadmap.md` pour le suivi.
+2.  **Mise à jour** : Si une décision architecturale change ou qu’une tâche de la roadmap est complétée, propose une mise à jour : **résumé / liens / « contexte actif »** dans `AI_MEMORY.md`, et le **détail** dans la fiche thématique concernée si elle existe ; sinon tout peut rester dans le pivot jusqu’à ce qu’une fiche soit créée.
+    - **Demande explicite** : lorsque l’utilisateur demande de mettre à jour `AI_MEMORY.md`, traiter cela comme une mise à jour de **toute la Memory Bank** : adapter le **pivot** si besoin (liens, table des matières) **et** modifier ou compléter les **fiches `docs/ai/`** concernées par le changement. Si aucune fiche existante ne convient, **créer** une nouvelle fiche dans `docs/ai/` (nom clair en `kebab-case.md`), y placer le détail, puis **référencer** cette fiche depuis `AI_MEMORY.md` et depuis `docs/ai/README.md`. Ne pas se limiter au seul fichier pivot si le contenu nouveau appartient au domaine d’une fiche ou justifie une nouvelle fiche.
+3.  **Réflexivité** : Vérifie que tout code généré respecte les « Décisions architecturales » et conventions listées dans la Memory Bank (pivot + fiches lues) et dans les présentes règles (ex. injection par constructeur).
 
 ## 7. Post-Commit & Post-Push
 
-Quand un **commit** est fait **ET** qu'un **push** est effectué :
-1.  **AI_MEMORY.md** : Mettre à jour le fichier si des changements architecturaux, des décisions techniques ou des tâches complétées le justifient.
+Quand un **commit** est fait **ET** qu’un **push** est effectué :
+1.  **Memory Bank** : Mettre à jour `AI_MEMORY.md` **et** les **fiches `docs/ai/`** concernées (ou en **créer** de nouvelles + les référencer dans le pivot et `docs/ai/README.md`) si des changements architecturaux, des décisions techniques ou des tâches complétées le justifient — même logique que la « demande explicite » du §6.2.
 2.  **.cursorrules** : Mettre à jour si de nouvelles conventions, règles ou patterns ont été introduits par les changements poussés.
 

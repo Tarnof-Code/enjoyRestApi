@@ -38,9 +38,10 @@ build/
 ### Stack Dump Files ###
 *.stackdump
 
-# Fichiers Markdown (tous les fichiers .md), sauf la memory bank versionnée
+# Fichiers Markdown (tous les fichiers .md), sauf Memory Bank + fiches IA versionnées
 *.md
 !AI_MEMORY.md
+!docs/ai/*.md
 
 # Fichiers SQL
 *.sql
