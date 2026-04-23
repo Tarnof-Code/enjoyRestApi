@@ -7,5 +7,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SejourEquipeRepository extends JpaRepository<SejourEquipe, SejourEquipeId> {
+
+    boolean existsBySejour_IdAndUtilisateur_Id(int sejourId, int utilisateurId);
 }
 

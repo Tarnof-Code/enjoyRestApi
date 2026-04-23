@@ -25,6 +25,10 @@
 - Les entités JPA restent des classes classiques avec `@Entity`.
 - **Synchronisation Frontend** : Les types sont synchronisés avec le frontend via `api.d.ts`. Vérifier la cohérence des noms (ex: `EnfantDto`, `GroupeDto` en Java correspondent aux types TypeScript).
 
+### Utilisateurs : identifiant côté API (back ↔ front)
+- **OBLIGATOIRE** : Tous les **échanges JSON** entre le backend et le frontend qui **référencent un utilisateur** (requêtes et réponses) doivent utiliser le **`tokenId`** (chaîne, `Utilisateur.getTokenId()` / colonne `token_id`), **jamais** l’`id` entier (clé primaire SQL).
+- Préférer des noms de champs explicites dans les DTOs / payloads (ex. `utilisateurTokenId`, `libelleUtilisateurTokenId`, `membreTokenIds`, `...TokenId`). Côté persistance interne (JPA, jointures) l’`id` reste valide pour le moteur SQL ; le contrat **visible au front** reste le `tokenId`.
+
 ### Logique et Flux
 - **Contrôleurs (`@RestController`)** :
   - Doivent être "stupides". Aucune logique métier.

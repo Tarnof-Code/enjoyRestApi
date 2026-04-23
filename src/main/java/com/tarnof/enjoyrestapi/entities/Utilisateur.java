@@ -18,7 +18,7 @@ public class Utilisateur implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-    @Column(unique = true)
+    @Column(name = "token_id", unique = true)
     private String tokenId;
     @Enumerated(EnumType.STRING)
     private Role role;
