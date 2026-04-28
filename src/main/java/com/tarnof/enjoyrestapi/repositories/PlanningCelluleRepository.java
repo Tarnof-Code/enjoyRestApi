@@ -11,7 +11,7 @@ import java.util.Optional;
 
 public interface PlanningCelluleRepository extends JpaRepository<PlanningCellule, Integer> {
 
-    @EntityGraph(attributePaths = {"animateursAssignes", "horaire"})
+    @EntityGraph(attributePaths = {"animateursAssignes", "horaires", "moments", "groupes", "lieux"})
     List<PlanningCellule> findByLigne_IdIn(Collection<Integer> ligneIds);
 
     Optional<PlanningCellule> findByLigne_IdAndJour(int ligneId, LocalDate jour);

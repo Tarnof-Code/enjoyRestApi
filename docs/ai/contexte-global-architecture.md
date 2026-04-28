@@ -18,5 +18,6 @@
   - `Controller` reçoit `RequestPayload` / renvoie `DTO` ou `ResponseEntity`
   - `Service` manipule `Entity` et convertit en `DTO`
   - `Repository` (JPA) gère la persistance
+- **Plannings (direction)** : grilles par séjour (`PlanningGrille` / lignes / cellules) — endpoints et payloads dans [documentation-api-rest.md](./documentation-api-rest.md) (*Plannings — grilles*).
 - **Gestion des Erreurs** : Centralisée via `@ControllerAdvice` (`GlobalExceptionHandler` dans `handlers/`)
 - **Structure des packages** : `exceptions/` = classes d'exception lancées (`throw`), `handlers/` = handlers qui attrapent et formatent les réponses d'erreur HTTP

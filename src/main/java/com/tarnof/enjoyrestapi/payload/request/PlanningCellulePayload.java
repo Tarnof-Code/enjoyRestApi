@@ -9,8 +9,8 @@ public record PlanningCellulePayload(
         @NotNull(message = "La date de la cellule est obligatoire") LocalDate jour,
         /** {@link com.tarnof.enjoyrestapi.entities.Utilisateur#getTokenId() tokenId} des membres (comme pour l’équipe du séjour côté API). */
         List<String> membreTokenIds,
-        Integer horaireId,
+        List<Integer> horaireIds,
         String texteLibre,
-        Integer momentId,
-        Integer groupeId,
-        Integer lieuId) {}
+        List<Integer> momentIds,
+        List<Integer> groupeIds,
+        List<Integer> lieuIds) {}

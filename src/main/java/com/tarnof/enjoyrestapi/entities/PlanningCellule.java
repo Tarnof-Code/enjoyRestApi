@@ -24,21 +24,33 @@ public class PlanningCellule {
     @Column(nullable = false)
     private LocalDate jour;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "horaire_id")
-    private Horaire horaire;
+    @ManyToMany
+    @JoinTable(
+            name = "planning_cellule_horaire",
+            joinColumns = @JoinColumn(name = "planning_cellule_id"),
+            inverseJoinColumns = @JoinColumn(name = "horaire_id"))
+    private Set<Horaire> horaires = new HashSet<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "moment_id")
-    private Moment moment;
+    @ManyToMany
+    @JoinTable(
+            name = "planning_cellule_moment",
+            joinColumns = @JoinColumn(name = "planning_cellule_id"),
+            inverseJoinColumns = @JoinColumn(name = "moment_id"))
+    private Set<Moment> moments = new HashSet<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "groupe_id")
-    private Groupe groupe;
+    @ManyToMany
+    @JoinTable(
+            name = "planning_cellule_groupe",
+            joinColumns = @JoinColumn(name = "planning_cellule_id"),
+            inverseJoinColumns = @JoinColumn(name = "groupe_id"))
+    private Set<Groupe> groupes = new HashSet<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lieu_id")
-    private Lieu lieu;
+    @ManyToMany
+    @JoinTable(
+            name = "planning_cellule_lieu",
+            joinColumns = @JoinColumn(name = "planning_cellule_id"),
+            inverseJoinColumns = @JoinColumn(name = "lieu_id"))
+    private Set<Lieu> lieux = new HashSet<>();
 
     @Column(name = "texte_libre", length = 1024)
     private String texteLibre;
@@ -77,36 +89,36 @@ public class PlanningCellule {
         this.jour = jour;
     }
 
-    public Horaire getHoraire() {
-        return horaire;
+    public Set<Horaire> getHoraires() {
+        return horaires;
     }
 
-    public void setHoraire(Horaire horaire) {
-        this.horaire = horaire;
+    public void setHoraires(Set<Horaire> horaires) {
+        this.horaires = horaires;
     }
 
-    public Moment getMoment() {
-        return moment;
+    public Set<Moment> getMoments() {
+        return moments;
     }
 
-    public void setMoment(Moment moment) {
-        this.moment = moment;
+    public void setMoments(Set<Moment> moments) {
+        this.moments = moments;
     }
 
-    public Groupe getGroupe() {
-        return groupe;
+    public Set<Groupe> getGroupes() {
+        return groupes;
     }
 
-    public void setGroupe(Groupe groupe) {
-        this.groupe = groupe;
+    public void setGroupes(Set<Groupe> groupes) {
+        this.groupes = groupes;
     }
 
-    public Lieu getLieu() {
-        return lieu;
+    public Set<Lieu> getLieux() {
+        return lieux;
     }
 
-    public void setLieu(Lieu lieu) {
-        this.lieu = lieu;
+    public void setLieux(Set<Lieu> lieux) {
+        this.lieux = lieux;
     }
 
     public String getTexteLibre() {

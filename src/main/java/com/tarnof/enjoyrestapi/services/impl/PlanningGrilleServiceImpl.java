@@ -23,16 +23,6 @@ import java.util.stream.Collectors;
 @SuppressWarnings("null")
 public class PlanningGrilleServiceImpl implements PlanningGrilleService {
 
-    /** Libellés d'erreur : {@code libelleHoraireId} (lignes) vs {@code horaireId} (cellules). */
-    private enum ReferencesMetierContext {
-        LIGNE,
-        CELLULE;
-
-        String nomChampHoraire() {
-            return this == CELLULE ? "horaireId" : "libelleHoraireId";
-        }
-    }
-
     private final PlanningGrilleRepository planningGrilleRepository;
     private final PlanningLigneRepository planningLigneRepository;
     private final PlanningCelluleRepository planningCelluleRepository;
@@ -269,18 +259,16 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
             PlanningCellule cellule,
             PlanningLigneLibelleSource type,
             PlanningCellulePayload payload) {
-        cellule.setMoment(null);
-        cellule.setHoraire(null);
-        cellule.setGroupe(null);
-        cellule.setLieu(null);
-        verifierIdsCoherentsAvecSource(
+        cellule.getMoments().clear();
+        cellule.getHoraires().clear();
+        cellule.getGroupes().clear();
+        cellule.getLieux().clear();
+        verifierIdsCoherentsAvecSourceCellule(
                 type,
-                payload.momentId(),
-                payload.horaireId(),
-                payload.groupeId(),
-                payload.lieuId(),
-                null,
-                ReferencesMetierContext.CELLULE);
+                payload.momentIds(),
+                payload.horaireIds(),
+                payload.groupeIds(),
+                payload.lieuIds());
         if (type == PlanningLigneLibelleSource.MEMBRE_EQUIPE) {
             if (payload.membreTokenIds() == null
                     || payload.membreTokenIds().isEmpty()
@@ -292,14 +280,108 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
         switch (type) {
             case SAISIE_LIBRE, MEMBRE_EQUIPE -> {
             }
-            case GROUPE ->
-                    cellule.setGroupe(resoudreGroupe(Objects.requireNonNull(payload.groupeId()), sejourId));
-            case LIEU -> cellule.setLieu(resoudreLieu(Objects.requireNonNull(payload.lieuId()), sejourId));
-            case HORAIRE ->
-                    cellule.setHoraire(
-                            resoudreHoraireNullable(Objects.requireNonNull(payload.horaireId()), sejourId));
-            case MOMENT ->
-                    cellule.setMoment(resoudreMoment(Objects.requireNonNull(payload.momentId()), sejourId));
+            case GROUPE -> {
+                for (Integer id : idsUniquesOrdre(payload.groupeIds())) {
+                    cellule.getGroupes().add(resoudreGroupe(id, sejourId));
+                }
+            }
+            case LIEU -> {
+                for (Integer id : idsUniquesOrdre(payload.lieuIds())) {
+                    cellule.getLieux().add(resoudreLieu(id, sejourId));
+                }
+            }
+            case HORAIRE -> {
+                for (Integer id : idsUniquesOrdre(payload.horaireIds())) {
+                    cellule.getHoraires().add(resoudreHoraireNullable(id, sejourId));
+                }
+            }
+            case MOMENT -> {
+                for (Integer id : idsUniquesOrdre(payload.momentIds())) {
+                    cellule.getMoments().add(resoudreMoment(id, sejourId));
+                }
+            }
+        }
+    }
+
+    private static LinkedHashSet<Integer> idsUniquesOrdre(List<Integer> raw) {
+        LinkedHashSet<Integer> out = new LinkedHashSet<>();
+        if (raw == null) {
+            return out;
+        }
+        for (Integer id : raw) {
+            if (id != null) {
+                out.add(id);
+            }
+        }
+        return out;
+    }
+
+    private static boolean aDesIds(List<Integer> raw) {
+        if (raw == null || raw.isEmpty()) {
+            return false;
+        }
+        return raw.stream().anyMatch(Objects::nonNull);
+    }
+
+    private static void verifierIdsCoherentsAvecSourceCellule(
+            PlanningLigneLibelleSource source,
+            List<Integer> momentIds,
+            List<Integer> horaireIds,
+            List<Integer> groupeIds,
+            List<Integer> lieuIds) {
+        switch (source) {
+            case SAISIE_LIBRE -> {
+                if (aDesIds(momentIds) || aDesIds(horaireIds) || aDesIds(groupeIds) || aDesIds(lieuIds)) {
+                    throw new IllegalArgumentException(
+                            "Pour SAISIE_LIBRE, ne renseignez pas momentIds, horaireIds, groupeIds ni lieuIds");
+                }
+            }
+            case GROUPE -> {
+                if (!aDesIds(groupeIds)) {
+                    throw new IllegalArgumentException(
+                            "groupeIds est obligatoire (au moins un identifiant) lorsque le contenu des cellules est GROUPE");
+                }
+                if (aDesIds(momentIds) || aDesIds(horaireIds) || aDesIds(lieuIds)) {
+                    throw new IllegalArgumentException(
+                            "Pour GROUPE, seuls groupeIds doivent être renseignés parmi les références métier des cellules");
+                }
+            }
+            case LIEU -> {
+                if (!aDesIds(lieuIds)) {
+                    throw new IllegalArgumentException(
+                            "lieuIds est obligatoire (au moins un identifiant) lorsque le contenu des cellules est LIEU");
+                }
+                if (aDesIds(momentIds) || aDesIds(horaireIds) || aDesIds(groupeIds)) {
+                    throw new IllegalArgumentException(
+                            "Pour LIEU, seuls lieuIds doivent être renseignés parmi les références métier des cellules");
+                }
+            }
+            case HORAIRE -> {
+                if (!aDesIds(horaireIds)) {
+                    throw new IllegalArgumentException(
+                            "horaireIds est obligatoire (au moins un identifiant) lorsque le contenu des cellules est HORAIRE");
+                }
+                if (aDesIds(momentIds) || aDesIds(groupeIds) || aDesIds(lieuIds)) {
+                    throw new IllegalArgumentException(
+                            "Pour HORAIRE, seuls horaireIds doivent être renseignés parmi les références métier des cellules");
+                }
+            }
+            case MOMENT -> {
+                if (!aDesIds(momentIds)) {
+                    throw new IllegalArgumentException(
+                            "momentIds est obligatoire (au moins un identifiant) lorsque le contenu des cellules est MOMENT");
+                }
+                if (aDesIds(horaireIds) || aDesIds(groupeIds) || aDesIds(lieuIds)) {
+                    throw new IllegalArgumentException(
+                            "Pour MOMENT, seuls momentIds doivent être renseignés parmi les références métier des cellules");
+                }
+            }
+            case MEMBRE_EQUIPE -> {
+                if (aDesIds(momentIds) || aDesIds(horaireIds) || aDesIds(groupeIds) || aDesIds(lieuIds)) {
+                    throw new IllegalArgumentException(
+                            "Pour MEMBRE_EQUIPE sur les cellules, n'utilisez pas momentIds, horaireIds, groupeIds ni lieuIds (utilisez membreTokenIds).");
+                }
+            }
         }
     }
 
@@ -402,8 +484,7 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
                 libelleHoraireId,
                 libelleGroupeId,
                 libelleLieuId,
-                libelleUtilisateurTokenId,
-                ReferencesMetierContext.LIGNE);
+                libelleUtilisateurTokenId);
 
         switch (source) {
             case SAISIE_LIBRE -> ligne.setLibelleSaisieLibre(trimToNull(libelleSaisieLibreBrut));
@@ -442,9 +523,7 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
             Integer libelleHoraireId,
             Integer libelleGroupeId,
             Integer libelleLieuId,
-            String libelleUtilisateurTokenId,
-            ReferencesMetierContext ctx) {
-        String h = ctx.nomChampHoraire();
+            String libelleUtilisateurTokenId) {
         String tokenMembreLigne = trimToNull(libelleUtilisateurTokenId);
         switch (source) {
             case SAISIE_LIBRE -> {
@@ -454,9 +533,7 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
                         || libelleLieuId != null
                         || tokenMembreLigne != null) {
                     throw new IllegalArgumentException(
-                            "Pour SAISIE_LIBRE, ne renseignez pas libelleMomentId, "
-                                    + h
-                                    + ", libelleGroupeId, libelleLieuId ni libelleUtilisateurTokenId");
+                            "Pour SAISIE_LIBRE, ne renseignez pas libelleMomentId, libelleHoraireId, libelleGroupeId, libelleLieuId ni libelleUtilisateurTokenId");
                 }
             }
             case GROUPE -> {
@@ -485,14 +562,15 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
             }
             case HORAIRE -> {
                 if (libelleHoraireId == null) {
-                    throw new IllegalArgumentException(h + " est obligatoire lorsque la source est HORAIRE");
+                    throw new IllegalArgumentException(
+                            "libelleHoraireId est obligatoire lorsque la source est HORAIRE");
                 }
                 if (libelleMomentId != null
                         || libelleGroupeId != null
                         || libelleLieuId != null
                         || tokenMembreLigne != null) {
                     throw new IllegalArgumentException(
-                            "Pour HORAIRE, seul " + h + " doit être renseigné parmi les références métier");
+                            "Pour HORAIRE, seul libelleHoraireId doit être renseigné parmi les références métier");
                 }
             }
             case MOMENT -> {
@@ -508,32 +586,16 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
                 }
             }
             case MEMBRE_EQUIPE -> {
-                if (ctx == ReferencesMetierContext.CELLULE) {
-                    if (tokenMembreLigne != null) {
-                        throw new IllegalArgumentException(
-                                "Pour MEMBRE_EQUIPE sur les cellules, n'utilisez pas libelleUtilisateurTokenId (utilisez membreTokenIds).");
-                    }
-                    if (libelleMomentId != null
-                            || libelleHoraireId != null
-                            || libelleGroupeId != null
-                            || libelleLieuId != null) {
-                        throw new IllegalArgumentException(
-                                "Pour MEMBRE_EQUIPE, ne renseignez pas libelleMomentId, "
-                                        + h
-                                        + ", libelleGroupeId ni libelleLieuId (utilisez membreTokenIds).");
-                    }
-                } else {
-                    if (tokenMembreLigne == null) {
-                        throw new IllegalArgumentException(
-                                "libelleUtilisateurTokenId est obligatoire lorsque la source de libellé de ligne est MEMBRE_EQUIPE");
-                    }
-                    if (libelleMomentId != null
-                            || libelleHoraireId != null
-                            || libelleGroupeId != null
-                            || libelleLieuId != null) {
-                        throw new IllegalArgumentException(
-                                "Pour MEMBRE_EQUIPE, seul libelleUtilisateurTokenId doit être renseigné parmi les références métier des lignes");
-                    }
+                if (tokenMembreLigne == null) {
+                    throw new IllegalArgumentException(
+                            "libelleUtilisateurTokenId est obligatoire lorsque la source de libellé de ligne est MEMBRE_EQUIPE");
+                }
+                if (libelleMomentId != null
+                        || libelleHoraireId != null
+                        || libelleGroupeId != null
+                        || libelleLieuId != null) {
+                    throw new IllegalArgumentException(
+                            "Pour MEMBRE_EQUIPE, seul libelleUtilisateurTokenId doit être renseigné parmi les références métier des lignes");
                 }
             }
         }
@@ -637,11 +699,11 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
                         || payload.membreTokenIds().isEmpty()
                         || payload.membreTokenIds().stream()
                                 .allMatch(s -> s == null || s.isBlank());
-        boolean pasHoraire = payload.horaireId() == null;
+        boolean pasHoraire = !aDesIds(payload.horaireIds());
         boolean pasTexte = payload.texteLibre() == null || payload.texteLibre().isBlank();
-        boolean pasMoment = payload.momentId() == null;
-        boolean pasGroupe = payload.groupeId() == null;
-        boolean pasLieu = payload.lieuId() == null;
+        boolean pasMoment = !aDesIds(payload.momentIds());
+        boolean pasGroupe = !aDesIds(payload.groupeIds());
+        boolean pasLieu = !aDesIds(payload.lieuIds());
         return pasMembres && pasHoraire && pasTexte && pasMoment && pasGroupe && pasLieu;
     }
 
@@ -681,16 +743,41 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
                         .filter(Objects::nonNull)
                         .sorted()
                         .toList();
-        Horaire h = cellule.getHoraire();
+        List<Horaire> horairesTries =
+                cellule.getHoraires().stream()
+                        .sorted(Comparator.comparing(Horaire::getId, Comparator.nullsLast(Integer::compareTo)))
+                        .toList();
+        List<Integer> horaireIds =
+                horairesTries.stream().map(Horaire::getId).toList();
+        List<String> horaireLibelles =
+                horairesTries.stream().map(Horaire::getLibelle).toList();
+        List<Integer> momentIds =
+                cellule.getMoments().stream()
+                        .map(Moment::getId)
+                        .filter(Objects::nonNull)
+                        .sorted()
+                        .toList();
+        List<Integer> groupeIds =
+                cellule.getGroupes().stream()
+                        .map(Groupe::getId)
+                        .filter(Objects::nonNull)
+                        .sorted()
+                        .toList();
+        List<Integer> lieuIds =
+                cellule.getLieux().stream()
+                        .map(Lieu::getId)
+                        .filter(Objects::nonNull)
+                        .sorted()
+                        .toList();
         return new PlanningCelluleDto(
                 cellule.getId(),
                 cellule.getJour(),
                 membreTokenIds,
-                h == null ? null : h.getId(),
-                h == null ? null : h.getLibelle(),
-                cellule.getMoment() == null ? null : cellule.getMoment().getId(),
-                cellule.getGroupe() == null ? null : cellule.getGroupe().getId(),
-                cellule.getLieu() == null ? null : cellule.getLieu().getId(),
+                horaireIds,
+                horaireLibelles,
+                momentIds,
+                groupeIds,
+                lieuIds,
                 cellule.getTexteLibre());
     }
 

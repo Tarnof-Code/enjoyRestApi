@@ -471,6 +471,49 @@
 - **Réponse** : `204 No Content`
 - **Codes d'erreur** : `400` : type prédéfini ou encore utilisé ; `404` : séjour ou type
 
+### Plannings — grilles (`/api/v1/sejours/{sejourId}/planning-grilles`)
+
+**Rôle** : `ROLE_DIRECTION` pour toutes les opérations.
+
+Grille = **`PlanningGrille`** (titre, consigne, **`sourceLibelleLignes`**, **`sourceContenuCellules`**, **`miseAJour`**). Lignes = **`PlanningLigne`** (ordre, libellés / refs selon la source — **une seule** référence métier pour le libellé de ligne, ex. `libelleMomentId`). Cellules = **`PlanningCellule`** (jour, texte libre, **plusieurs** animateurs / horaires / moments / groupes / lieux via listes JSON — voir ci‑dessous).
+
+#### GET `/api/v1/sejours/{sejourId}/planning-grilles`
+- **Réponse** : `List<PlanningGrilleSummaryDto>` (200)
+
+#### GET `/api/v1/sejours/{sejourId}/planning-grilles/{grilleId}`
+- **Réponse** : `PlanningGrilleDetailDto` (200) — inclut les lignes et leurs cellules
+- **404** : séjour ou grille
+
+#### POST `/api/v1/sejours/{sejourId}/planning-grilles`
+- **Body** : `SavePlanningGrilleRequest` (titre, consigne, sources libellés / contenu cellules)
+- **Réponse** : `PlanningGrilleDetailDto` (201)
+
+#### PUT `/api/v1/sejours/{sejourId}/planning-grilles/{grilleId}`
+- **Body** : `UpdatePlanningGrilleRequest`
+- **Réponse** : `PlanningGrilleDetailDto` (200)
+
+#### DELETE `/api/v1/sejours/{sejourId}/planning-grilles/{grilleId}`
+- **Réponse** : `204`
+
+#### POST `/api/v1/sejours/{sejourId}/planning-grilles/{grilleId}/lignes`
+- **Body** : `SavePlanningLigneRequest`
+- **Réponse** : `PlanningLigneDto` (201)
+
+#### PUT `/api/v1/sejours/{sejourId}/planning-grilles/{grilleId}/lignes/{ligneId}`
+- **Body** : `UpdatePlanningLigneRequest`
+- **Réponse** : `PlanningLigneDto` (200)
+
+#### DELETE `/api/v1/sejours/{sejourId}/planning-grilles/{grilleId}/lignes/{ligneId}`
+- **Réponse** : `204`
+
+#### PUT `/api/v1/sejours/{sejourId}/planning-grilles/{grilleId}/lignes/{ligneId}/cellules`
+- **Body** : `UpsertPlanningCellulesRequest` — champ **`cellules`** : liste de **`PlanningCellulePayload`** (`jour` obligatoire ; **`membreTokenIds`**, **`horaireIds`**, **`momentIds`**, **`groupeIds`**, **`lieuIds`** en **tableaux** ; **`texteLibre`** ; plus de champs singuliers `horaireId` / … pour les cellules).
+- **Réponse** : `List<PlanningCelluleDto>` (200) — **`horaireIds`** + **`horaireLibelles`** (même ordre, tri par id horaire) ; autres ids / `membreTokenIds` en listes.
+- **Règle** : selon **`sourceContenuCellules`** de la grille, **une seule** « famille » de listes d’ids doit être renseignée par cellule (ex. `MOMENT` → au moins un **`momentIds`**, pas `groupeIds` en même temps). `MEMBRE_EQUIPE` → uniquement **`membreTokenIds`**. Incohérence → **400**.
+- **Guide front** (détail UX / exemples) : [`docs/frontend-planning-cellules-multiples.md`](../../frontend-planning-cellules-multiples.md).
+
+**Persistance (réf.)** : jointures `planning_cellule_utilisateur`, `planning_cellule_horaire`, `planning_cellule_moment`, `planning_cellule_groupe`, `planning_cellule_lieu`. Anciennes colonnes `horaire_id` / … sur `planning_cellule` : hors mapping ; migration manuelle possible (reprise puis `DROP FOREIGN KEY` + `DROP COLUMN`) — voir [etat-projet.md](./etat-projet.md) (entités).
+
 ### Endpoints des Utilisateurs (`/api/v1/utilisateurs`)
 
 #### GET `/api/v1/utilisateurs`
@@ -585,6 +628,7 @@ Tous les types TypeScript sont définis dans `enjoyWebApp/src/types/api.d.ts` :
 - `MomentDto` (**`ordre`**), `SaveMomentRequest`, `ReorderMomentsRequest` (**`momentIds`**)
 - `ActiviteDto` (**`moment`**, **`lieu`**, **`typeActivite`**, **`avertissementLieu`**, `groupeIds`), `CreateActiviteRequest`, `UpdateActiviteRequest` (**`typeActiviteId`** obligatoire)
 - `TypeActiviteDto` (**`sejourId`**, **`predefini`**), `SaveTypeActiviteRequest`
+- `PlanningGrilleSummaryDto`, `PlanningGrilleDetailDto`, `PlanningLigneDto`, **`PlanningCelluleDto`** (listes **`horaireIds`**, **`horaireLibelles`**, **`momentIds`**, **`groupeIds`**, **`lieuIds`**, **`membreTokenIds`**), `UpsertPlanningCellulesRequest`, **`PlanningCellulePayload`**
 - `CreateSejourRequest`
 - `CreateEnfantRequest`
 - `UpdateDossierEnfantRequest`

@@ -96,9 +96,10 @@ Point d’entrée racine : [`AI_MEMORY.md`](../../AI_MEMORY.md).
 Ajoutez une section du même esprit que le backend, par exemple :
 
 1. **Lecture** : début de session ou tâche majeure → lire `AI_MEMORY.md`, puis **systématiquement** `docs/ai/contexte-actif.md` et `docs/ai/decisions-architecturales.md`, puis les fiches pertinentes.
-2. **Mise à jour** : décision ou fin de tâche → mettre à jour le pivot (liens, résumé) et la **fiche** qui porte le détail.
-3. **Demande explicite** : « mets à jour `AI_MEMORY.md` » → mettre à jour **toute** la Memory Bank (pivot + fiches), **créer** une fiche si aucune n’existe, **référencer** dans `AI_MEMORY.md` et `docs/ai/README.md`.
-4. **Post-commit / post-push** : même discipline si des changements structurels le justifient.
+2. **Mise à jour** : décision ou fin de tâche → mettre à jour le pivot (liens, résumé) et la **fiche** qui porte le détail (API, architecture, état projet, etc.).
+3. **Granularité** : éviter une prolifération de micro-fiches `docs/ai/*.md` ; enrichir d’abord une fiche thématique existante ; nouvelle fiche seulement pour un domaine vraiment neuf (comme le §5 *Documentation* du backend).
+4. **Demande explicite** : « mets à jour `AI_MEMORY.md` » → mettre à jour **toute** la Memory Bank (pivot + fiches), **créer** une fiche seulement si aucune existante ne convient, **référencer** dans `AI_MEMORY.md` et `docs/ai/README.md`.
+5. **Post-commit / post-push** : même discipline si des changements structurels le justifient.
 
 Adaptez la langue (ex. réponses en français, commits en anglais) selon votre équipe.
 
