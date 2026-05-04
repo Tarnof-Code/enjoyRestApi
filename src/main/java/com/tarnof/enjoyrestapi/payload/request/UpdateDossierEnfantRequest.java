@@ -2,6 +2,8 @@ package com.tarnof.enjoyrestapi.payload.request;
 
 import jakarta.validation.constraints.Pattern;
 
+import java.util.List;
+
 public record UpdateDossierEnfantRequest(
     @Pattern(regexp = "^$|^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", message = "Email parent 1 non valide")
     String emailParent1,
@@ -13,6 +15,8 @@ public record UpdateDossierEnfantRequest(
     String telephoneParent2,
     String informationsMedicales,
     String pai,
+    List<Integer> allergeneIds,
+    List<Integer> regimePreferenceIds,
     String informationsAlimentaires,
     String traitementMatin,
     String traitementMidi,

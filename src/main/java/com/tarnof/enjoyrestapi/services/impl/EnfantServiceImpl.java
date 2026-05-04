@@ -3,10 +3,13 @@ package com.tarnof.enjoyrestapi.services.impl;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.poi.ss.usermodel.Row;
@@ -18,11 +21,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.NiveauScolaire;
+import com.tarnof.enjoyrestapi.enums.TypeReferenceAlimentaire;
 import com.tarnof.enjoyrestapi.payload.response.DossierEnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
+import com.tarnof.enjoyrestapi.payload.response.ReferenceAlimentaireDto;
 import com.tarnof.enjoyrestapi.entities.DossierEnfant;
 import com.tarnof.enjoyrestapi.entities.Enfant;
+import com.tarnof.enjoyrestapi.entities.ReferenceAlimentaire;
 import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEnfant;
@@ -34,6 +40,7 @@ import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateDossierEnfantRequest;
 import com.tarnof.enjoyrestapi.repositories.DossierEnfantRepository;
+import com.tarnof.enjoyrestapi.repositories.ReferenceAlimentaireRepository;
 import com.tarnof.enjoyrestapi.repositories.EnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
@@ -52,15 +59,18 @@ public class EnfantServiceImpl implements EnfantService {
     private final SejourEnfantRepository sejourEnfantRepository;
     private final GroupeRepository groupeRepository;
     private final DossierEnfantRepository dossierEnfantRepository;
+    private final ReferenceAlimentaireRepository referenceAlimentaireRepository;
 
     public EnfantServiceImpl(EnfantRepository enfantRepository, SejourRepository sejourRepository,
                              SejourEnfantRepository sejourEnfantRepository, GroupeRepository groupeRepository,
-                             DossierEnfantRepository dossierEnfantRepository) {
+                             DossierEnfantRepository dossierEnfantRepository,
+                             ReferenceAlimentaireRepository referenceAlimentaireRepository) {
         this.enfantRepository = enfantRepository;
         this.sejourRepository = sejourRepository;
         this.sejourEnfantRepository = sejourEnfantRepository;
         this.groupeRepository = groupeRepository;
         this.dossierEnfantRepository = dossierEnfantRepository;
+        this.referenceAlimentaireRepository = referenceAlimentaireRepository;
     }
 
     @Override
@@ -302,7 +312,7 @@ public class EnfantServiceImpl implements EnfantService {
             throw new AccessDeniedException("Vous ne participez pas à ce séjour");
         }
 
-        DossierEnfant dossier = dossierEnfantRepository.findByEnfantId(enfantId)
+        DossierEnfant dossier = dossierEnfantRepository.findByEnfantIdFetchingReferences(enfantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Dossier non trouvé pour cet enfant"));
 
         return mapToDossierEnfantDto(dossier);
@@ -323,7 +333,7 @@ public class EnfantServiceImpl implements EnfantService {
             throw new AccessDeniedException("Vous ne participez pas à ce séjour");
         }
 
-        DossierEnfant dossier = dossierEnfantRepository.findByEnfantId(enfantId)
+        DossierEnfant dossier = dossierEnfantRepository.findByEnfantIdFetchingReferences(enfantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Dossier non trouvé pour cet enfant"));
 
         dossier.setEmailParent1(emptyToNull(request.emailParent1()));
@@ -340,12 +350,51 @@ public class EnfantServiceImpl implements EnfantService {
         dossier.setAutresInformations(emptyToNull(request.autresInformations()));
         dossier.setAPrendreEnSortie(emptyToNull(request.aPrendreEnSortie()));
 
+        if (request.allergeneIds() != null) {
+            dossier.getAllergenes().clear();
+            dossier.getAllergenes().addAll(resoudreReferences(request.allergeneIds(), TypeReferenceAlimentaire.ALLERGENE));
+        }
+        if (request.regimePreferenceIds() != null) {
+            dossier.getRegimesEtPreferences().clear();
+            dossier.getRegimesEtPreferences()
+                    .addAll(resoudreReferences(request.regimePreferenceIds(), TypeReferenceAlimentaire.REGIME_PREFERENCE));
+        }
+
         DossierEnfant dossierModifie = dossierEnfantRepository.save(dossier);
         return mapToDossierEnfantDto(dossierModifie);
     }
 
     private static String emptyToNull(String value) {
         return value != null && value.isBlank() ? null : value;
+    }
+
+    private Set<ReferenceAlimentaire> resoudreReferences(List<Integer> ids, TypeReferenceAlimentaire typeAttendu) {
+        Set<ReferenceAlimentaire> ensemble = new HashSet<>();
+        if (ids == null) {
+            return ensemble;
+        }
+        for (Integer refId : ids) {
+            if (refId == null) {
+                throw new IllegalArgumentException("Identifiant de référence alimentaire invalide.");
+            }
+            ReferenceAlimentaire ref =
+                    referenceAlimentaireRepository
+                            .findById(refId)
+                            .orElseThrow(
+                                    () ->
+                                            new ResourceNotFoundException(
+                                                    "Référence alimentaire introuvable : " + refId));
+            if (ref.getType() != typeAttendu) {
+                throw new IllegalArgumentException(
+                        "La référence "
+                                + refId
+                                + " n'est pas du type attendu ("
+                                + typeAttendu
+                                + ").");
+            }
+            ensemble.add(ref);
+        }
+        return ensemble;
     }
 
     /** Retire un enfant de tous les groupes du séjour (règle métier : enfant supprimé du séjour = retiré de tous les groupes). */
@@ -573,6 +622,16 @@ public class EnfantServiceImpl implements EnfantService {
     }
 
     private DossierEnfantDto mapToDossierEnfantDto(DossierEnfant dossier) {
+        Comparator<ReferenceAlimentaire> ordre =
+                Comparator.comparing(ReferenceAlimentaire::getOrdre, Comparator.nullsLast(Integer::compareTo))
+                        .thenComparing(ReferenceAlimentaire::getId);
+        List<ReferenceAlimentaireDto> allergenes =
+                dossier.getAllergenes().stream().sorted(ordre).map(this::mapReferenceDto).collect(Collectors.toList());
+        List<ReferenceAlimentaireDto> regimes =
+                dossier.getRegimesEtPreferences().stream()
+                        .sorted(ordre)
+                        .map(this::mapReferenceDto)
+                        .collect(Collectors.toList());
         return new DossierEnfantDto(
             dossier.getId(),
             dossier.getEnfant().getId(),
@@ -582,6 +641,8 @@ public class EnfantServiceImpl implements EnfantService {
             dossier.getTelephoneParent2(),
             dossier.getInformationsMedicales(),
             dossier.getPai(),
+            allergenes,
+            regimes,
             dossier.getInformationsAlimentaires(),
             dossier.getTraitementMatin(),
             dossier.getTraitementMidi(),
@@ -590,5 +651,9 @@ public class EnfantServiceImpl implements EnfantService {
             dossier.getAutresInformations(),
             dossier.getAPrendreEnSortie()
         );
+    }
+
+    private ReferenceAlimentaireDto mapReferenceDto(ReferenceAlimentaire r) {
+        return new ReferenceAlimentaireDto(r.getId(), r.getType(), r.getLibelle(), r.getOrdre(), r.isActif());
     }
 }

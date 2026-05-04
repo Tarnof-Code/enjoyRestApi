@@ -12,6 +12,7 @@ import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
 import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
 import com.tarnof.enjoyrestapi.repositories.DossierEnfantRepository;
+import com.tarnof.enjoyrestapi.repositories.ReferenceAlimentaireRepository;
 import com.tarnof.enjoyrestapi.repositories.EnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEnfantRepository;
@@ -60,6 +61,9 @@ class EnfantServiceImplTest {
     @Mock
     private DossierEnfantRepository dossierEnfantRepository;
 
+    @Mock
+    private ReferenceAlimentaireRepository referenceAlimentaireRepository;
+
     private EnfantServiceImpl enfantService;
 
     private Sejour sejour;
@@ -75,7 +79,8 @@ class EnfantServiceImplTest {
                 sejourRepository,
                 sejourEnfantRepository,
                 groupeRepo,
-                dossierEnfantRepository
+                dossierEnfantRepository,
+                referenceAlimentaireRepository
         );
 
         dateNaissance = new Date(System.currentTimeMillis() - 86400000L * 365 * 10); // 10 ans

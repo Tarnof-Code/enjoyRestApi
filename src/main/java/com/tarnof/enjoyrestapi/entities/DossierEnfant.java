@@ -2,13 +2,19 @@ package com.tarnof.enjoyrestapi.entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.validation.constraints.Pattern;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 public class DossierEnfant {
@@ -32,6 +38,21 @@ public class DossierEnfant {
     @Lob
     @Column(columnDefinition = "TEXT")
     private String pai;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "dossier_enfant_allergene",
+            joinColumns = @JoinColumn(name = "dossier_enfant_id"),
+            inverseJoinColumns = @JoinColumn(name = "reference_alimentaire_id"))
+    private Set<ReferenceAlimentaire> allergenes = new HashSet<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "dossier_enfant_regime_preference",
+            joinColumns = @JoinColumn(name = "dossier_enfant_id"),
+            inverseJoinColumns = @JoinColumn(name = "reference_alimentaire_id"))
+    private Set<ReferenceAlimentaire> regimesEtPreferences = new HashSet<>();
+
     @Lob
     @Column(columnDefinition = "TEXT")
     private String informationsAlimentaires;
@@ -148,6 +169,22 @@ public class DossierEnfant {
 
     public void setInformationsAlimentaires(String informationsAlimentaires) {
         this.informationsAlimentaires = informationsAlimentaires;
+    }
+
+    public Set<ReferenceAlimentaire> getAllergenes() {
+        return allergenes;
+    }
+
+    public void setAllergenes(Set<ReferenceAlimentaire> allergenes) {
+        this.allergenes = allergenes;
+    }
+
+    public Set<ReferenceAlimentaire> getRegimesEtPreferences() {
+        return regimesEtPreferences;
+    }
+
+    public void setRegimesEtPreferences(Set<ReferenceAlimentaire> regimesEtPreferences) {
+        this.regimesEtPreferences = regimesEtPreferences;
     }
 
     public String getTraitementMatin() {

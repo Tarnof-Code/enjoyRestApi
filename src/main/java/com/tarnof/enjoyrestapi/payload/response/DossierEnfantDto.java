@@ -1,5 +1,7 @@
 package com.tarnof.enjoyrestapi.payload.response;
 
+import java.util.List;
+
 public record DossierEnfantDto(
     int id,
     int enfantId,
@@ -9,6 +11,8 @@ public record DossierEnfantDto(
     String telephoneParent2,
     String informationsMedicales,
     String pai,
+    List<ReferenceAlimentaireDto> allergenes,
+    List<ReferenceAlimentaireDto> regimesEtPreferences,
     String informationsAlimentaires,
     String traitementMatin,
     String traitementMidi,
