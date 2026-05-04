@@ -150,7 +150,7 @@
 - **Description** : Récupérer le dossier d'un enfant (contacts parents, infos médicales, traitements, etc.)
 - **Autorisation** : `ROLE_DIRECTION` (directeur du séjour ou membre de l'équipe)
 - **Path Variables** : `id` (int) - ID du séjour, `enfantId` (int) - ID de l'enfant
-- **Réponse** : `DossierEnfantDto` (200 OK)
+- **Réponse** : `DossierEnfantDto` (200 OK) — inclut **`allergenes`** et **`regimesEtPreferences`** (`List<ReferenceAlimentaireDto>`)
 - **Codes d'erreur** :
   - `403` : Utilisateur ne participant pas au séjour (`AccessDeniedException`)
   - `404` : Séjour non trouvé, enfant non inscrit au séjour, ou dossier non trouvé
@@ -159,7 +159,7 @@
 - **Description** : Modifier le dossier d'un enfant (contacts parents, infos médicales, traitements, etc.)
 - **Autorisation** : `ROLE_DIRECTION` (directeur du séjour ou membre de l'équipe)
 - **Path Variables** : `id` (int) - ID du séjour, `enfantId` (int) - ID de l'enfant
-- **Body** : `UpdateDossierEnfantRequest` (tous les champs optionnels : emailParent1/2, telephoneParent1/2, informationsMedicales, pai, informationsAlimentaires, traitements matin/midi/soir/si besoin, autresInformations, aPrendreEnSortie)
+- **Body** : `UpdateDossierEnfantRequest` (tous les champs optionnels : emailParent1/2, telephoneParent1/2, informationsMedicales, pai, **`allergeneIds`**, **`regimePreferenceIds`** (listes d’ids `ReferenceAlimentaire`), informationsAlimentaires, traitements matin/midi/soir/si besoin, autresInformations, aPrendreEnSortie)
 - **Réponse** : `DossierEnfantDto` (200 OK)
 - **Codes d'erreur** :
   - `400` : Validation échouée (email ou téléphone invalide)
@@ -253,6 +253,35 @@
   - La première ligne doit contenir les en-têtes
   - Les lignes de données commencent à la ligne 2
   - **Lignes vides** : Les lignes vides sont automatiquement ignorées (ne comptent pas dans `totalLignes`)
+
+### Menus et références alimentaires
+
+#### Référentiel global — `/api/v1/references-alimentaires`
+
+- **Autorisation** : `ROLE_ADMIN` ou `ROLE_DIRECTION` pour toutes les opérations ci-dessous.
+- **GET** `/api/v1/references-alimentaires` — Liste des références ; query optionnelle **`type`** (`TypeReferenceAlimentaire` : ex. allergène vs régime/préférence).
+- **GET** `/api/v1/references-alimentaires/{id}` — Détail.
+- **POST** `/api/v1/references-alimentaires` — Création ; body **`SaveReferenceAlimentaireRequest`** → **`201`**, **`ReferenceAlimentaireDto`**.
+- **PUT** `/api/v1/references-alimentaires/{id}` — Mise à jour ; body **`UpdateReferenceAlimentaireRequest`**.
+- **DELETE** `/api/v1/references-alimentaires/{id}` — **`204`**.
+
+Les lignes « catalogue » attendues au besoin sont aussi créées idempotent par **`ReferenceAlimentaireInitializer`** au démarrage de l’application.
+
+#### Menus par séjour — `/api/v1/sejours/{sejourId}/menus`
+
+- **Autorisation** : `ROLE_DIRECTION`.
+- **GET** `/api/v1/sejours/{sejourId}/menus` — Liste **`MenuRepasDto`** ; **obligatoire** : soit **`date`** (un jour, format ISO date), soit **`dateDebut` et `dateFin`** (période). Sinon **`400`** (`IllegalArgumentException` : message demandant l’un ou l’autre mode).
+- **GET** `/api/v1/sejours/{sejourId}/menus/{menuId}` — Détail.
+- **POST** `/api/v1/sejours/{sejourId}/menus` — Création ; body **`SaveMenuRepasRequest`** (`dateRepas`, **`typeRepas`** (`TypeRepas`), champs texte optionnels selon le type de repas, **`allergeneIds`**, **`regimePreferenceIds`**) → **`201`**, **`MenuRepasDto`**.
+- **PUT** `/api/v1/sejours/{sejourId}/menus/{menuId}` — Mise à jour ; même body que la création.
+- **DELETE** `/api/v1/sejours/{sejourId}/menus/{menuId}` — **`204`**.
+
+Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte d’unicité côté entité).
+
+#### Agrégation dossiers enfants du séjour — `/api/v1/sejours/{sejourId}/references-alimentaires-agregees-enfants`
+
+- **Autorisation** : `ROLE_DIRECTION`.
+- **GET** — **`ReferencesAlimentairesAgregeesEnfantsDto`** : union des **`ReferenceAlimentaireDto`** déclarés sur au moins un **`DossierEnfant`** d’un enfant **inscrit** au séjour, séparée en **`allergenes`** et **`regimesEtPreferences`** (sans doublon). Sert typiquement à proposer des tags cohérents lors de la composition des menus.
 
 ### Endpoints des Groupes (`/api/v1/sejours/{sejourId}/groupes`)
 
@@ -621,7 +650,11 @@ Tous les types TypeScript sont définis dans `enjoyWebApp/src/types/api.d.ts` :
 - `SejourDTO`
 - `ProfilUtilisateurDTO`
 - `EnfantDto` (note: 'd' minuscule pour correspondre au nom Java `EnfantDto`)
-- `DossierEnfantDto`
+- `DossierEnfantDto` (**`allergenes`**, **`regimesEtPreferences`** : `ReferenceAlimentaireDto[]`)
+- `ReferenceAlimentaireDto` (`id`, **`type`** (`TypeReferenceAlimentaire`), `libelle`, `ordre`, `actif`)
+- `MenuRepasDto`, `SaveMenuRepasRequest` (**`typeRepas`** : `TypeRepas`, **`allergeneIds`**, **`regimePreferenceIds`**)
+- `SaveReferenceAlimentaireRequest`, `UpdateReferenceAlimentaireRequest`
+- `ReferencesAlimentairesAgregeesEnfantsDto`
 - `GroupeDto`, `CreateGroupeRequest`, `AjouterReferentRequest`
 - `LieuDto`, `SaveLieuRequest`, `EmplacementLieu` (enum API — à ajouter dans `api.d.ts` si le frontend gère les lieux)
 - `HoraireDto`, `SaveHoraireRequest` (à ajouter dans `api.d.ts` si le frontend gère les horaires)
@@ -631,7 +664,7 @@ Tous les types TypeScript sont définis dans `enjoyWebApp/src/types/api.d.ts` :
 - `PlanningGrilleSummaryDto`, `PlanningGrilleDetailDto`, `PlanningLigneDto`, **`PlanningCelluleDto`** (listes **`horaireIds`**, **`horaireLibelles`**, **`momentIds`**, **`groupeIds`**, **`lieuIds`**, **`membreTokenIds`**), `UpsertPlanningCellulesRequest`, **`PlanningCellulePayload`**
 - `CreateSejourRequest`
 - `CreateEnfantRequest`
-- `UpdateDossierEnfantRequest`
+- `UpdateDossierEnfantRequest` (**`allergeneIds`**, **`regimePreferenceIds`** optionnels)
 - `MembreEquipeRequest` (POST `.../equipe/existant`)
 - `UpdateMembreEquipeRoleRequest` (PUT `.../equipe/{membreTokenId}`)
 - `RegisterRequest`

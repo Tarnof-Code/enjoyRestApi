@@ -25,6 +25,10 @@ Point d’entrée unique pour le **contexte projet** (assistants IA et humains).
 
 Les conventions **obligatoires** (langue, injection, `tokenId` côté API, structure des contrôleurs, granularité doc **§5**, etc.) sont dans [`.cursorrules`](.cursorrules). Ce pivot oriente vers les fiches métier (tests, API, journal).
 
+## Point saillant récent
+
+- **2026-05-04** — Menus par séjour (`MenuRepas`), référentiel **`ReferenceAlimentaire`** (allergènes / régimes-préférences), extension **`DossierEnfant`** et endpoint d’**agrégation** des tags enfants du séjour ; commit `feat: add menus CRUD, food references, and aggregated child tags`. Détail : journal [contexte-actif.md](docs/ai/contexte-actif.md), contrats [documentation-api-rest.md](docs/ai/documentation-api-rest.md), modèle [etat-projet.md](docs/ai/etat-projet.md).
+
 ## Fiches (`docs/ai/`)
 
 | Fichier | Rôle (aligné **§5**) |
