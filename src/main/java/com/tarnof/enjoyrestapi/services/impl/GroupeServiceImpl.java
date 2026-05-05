@@ -11,6 +11,7 @@ import com.tarnof.enjoyrestapi.payload.response.GroupeDto;
 import com.tarnof.enjoyrestapi.repositories.*;
 import com.tarnof.enjoyrestapi.services.GroupeService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,16 +46,33 @@ public class GroupeServiceImpl implements GroupeService {
     }
 
     @Override
-    public List<GroupeDto> getGroupesDuSejour(int sejourId) {
-        sejourVerificationService.verifierSejourExiste(sejourId);
+    public List<GroupeDto> getGroupesDuSejour(int sejourId, String utilisateurTokenId) {
+        Sejour sejour = sejourVerificationService.verifierSejourExiste(sejourId);
+        
+        boolean estDirecteur = sejour.getDirecteur() != null && sejour.getDirecteur().getTokenId().equals(utilisateurTokenId);
+        boolean estDansEquipe = sejour.getEquipeRoles() != null && sejour.getEquipeRoles().stream()
+                .anyMatch(se -> se.getUtilisateur() != null && se.getUtilisateur().getTokenId().equals(utilisateurTokenId));
+        if (!estDirecteur && !estDansEquipe) {
+            throw new AccessDeniedException("Vous ne participez pas à ce séjour");
+        }
+        
         return groupeRepository.findBySejourId(sejourId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public GroupeDto getGroupeById(int sejourId, int groupeId) {
+    public GroupeDto getGroupeById(int sejourId, int groupeId, String utilisateurTokenId) {
         Groupe groupe = getGroupeEtVerifierSejour(sejourId, groupeId);
+        Sejour sejour = groupe.getSejour();
+        
+        boolean estDirecteur = sejour.getDirecteur() != null && sejour.getDirecteur().getTokenId().equals(utilisateurTokenId);
+        boolean estDansEquipe = sejour.getEquipeRoles() != null && sejour.getEquipeRoles().stream()
+                .anyMatch(se -> se.getUtilisateur() != null && se.getUtilisateur().getTokenId().equals(utilisateurTokenId));
+        if (!estDirecteur && !estDansEquipe) {
+            throw new AccessDeniedException("Vous ne participez pas à ce séjour");
+        }
+        
         return mapToDto(groupe);
     }
 

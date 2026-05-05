@@ -55,6 +55,8 @@ class GroupeServiceImplTest {
     private GroupeServiceImpl groupeService;
 
     private Sejour sejour;
+    private Utilisateur directeur;
+    private Utilisateur membreEquipe;
 
     @BeforeEach
     void setUp() {
@@ -67,6 +69,20 @@ class GroupeServiceImplTest {
                 activiteRepository
         );
 
+        directeur = Utilisateur.builder()
+                .id(1)
+                .tokenId("dir-token")
+                .nom("Dupont")
+                .prenom("Jean")
+                .build();
+
+        membreEquipe = Utilisateur.builder()
+                .id(2)
+                .tokenId("membre-token")
+                .nom("Martin")
+                .prenom("Marie")
+                .build();
+
         sejour = Sejour.builder()
                 .id(1)
                 .nom("Colo été")
@@ -74,8 +90,17 @@ class GroupeServiceImplTest {
                 .dateDebut(Date.valueOf(LocalDate.of(2026, 3, 20)))
                 .dateFin(Date.valueOf(LocalDate.of(2026, 3, 27)))
                 .lieuDuSejour("Mer")
+                .directeur(directeur)
+                .equipeRoles(new ArrayList<>())
                 .enfants(new ArrayList<>())
                 .build();
+        
+        SejourEquipe sejourEquipe = SejourEquipe.builder()
+                .sejour(sejour)
+                .utilisateur(membreEquipe)
+                .roleSejour(com.tarnof.enjoyrestapi.enums.RoleSejour.ANIM)
+                .build();
+        sejour.getEquipeRoles().add(sejourEquipe);
     }
 
     private Groupe groupePersiste(int id, TypeGroupe type, Sejour s) {
@@ -103,7 +128,7 @@ class GroupeServiceImplTest {
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
         when(groupeRepository.findBySejourId(1)).thenReturn(List.of(g));
 
-        List<GroupeDto> result = groupeService.getGroupesDuSejour(1);
+        List<GroupeDto> result = groupeService.getGroupesDuSejour(1, "dir-token");
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().id()).isEqualTo(10);
@@ -115,7 +140,7 @@ class GroupeServiceImplTest {
     void getGroupesDuSejour_WhenSejourMissing_ShouldThrow404() {
         when(sejourRepository.findById(99)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> groupeService.getGroupesDuSejour(99))
+        assertThatThrownBy(() -> groupeService.getGroupesDuSejour(99, "dir-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Séjour non trouvé");
     }
@@ -128,7 +153,7 @@ class GroupeServiceImplTest {
         Groupe g = groupePersiste(5, TypeGroupe.THEMATIQUE, sejour);
         when(groupeRepository.findById(5)).thenReturn(Optional.of(g));
 
-        GroupeDto dto = groupeService.getGroupeById(1, 5);
+        GroupeDto dto = groupeService.getGroupeById(1, 5, "dir-token");
 
         assertThat(dto.id()).isEqualTo(5);
         assertThat(dto.sejourId()).isEqualTo(1);
@@ -140,7 +165,7 @@ class GroupeServiceImplTest {
         Groupe g = groupePersiste(5, TypeGroupe.THEMATIQUE, sejour);
         when(groupeRepository.findById(5)).thenReturn(Optional.of(g));
 
-        assertThatThrownBy(() -> groupeService.getGroupeById(999, 5))
+        assertThatThrownBy(() -> groupeService.getGroupeById(999, 5, "dir-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("n'appartient pas à ce séjour");
     }
@@ -150,7 +175,7 @@ class GroupeServiceImplTest {
     void getGroupeById_WhenGroupeMissing_ShouldThrow404() {
         when(groupeRepository.findById(5)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> groupeService.getGroupeById(1, 5))
+        assertThatThrownBy(() -> groupeService.getGroupeById(1, 5, "dir-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Groupe non trouvé");
     }

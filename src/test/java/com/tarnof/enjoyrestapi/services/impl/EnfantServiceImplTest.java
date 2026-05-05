@@ -71,6 +71,8 @@ class EnfantServiceImplTest {
     private SejourEnfant sejourEnfant;
     private CreateEnfantRequest createEnfantRequest;
     private Date dateNaissance;
+    private com.tarnof.enjoyrestapi.entities.Utilisateur directeur;
+    private com.tarnof.enjoyrestapi.entities.Utilisateur membreEquipe;
 
     @BeforeEach
     void setUp() {
@@ -85,6 +87,20 @@ class EnfantServiceImplTest {
 
         dateNaissance = new Date(System.currentTimeMillis() - 86400000L * 365 * 10); // 10 ans
 
+        directeur = com.tarnof.enjoyrestapi.entities.Utilisateur.builder()
+                .id(1)
+                .tokenId("dir-token")
+                .nom("Dupont")
+                .prenom("Jean")
+                .build();
+
+        membreEquipe = com.tarnof.enjoyrestapi.entities.Utilisateur.builder()
+                .id(2)
+                .tokenId("membre-token")
+                .nom("Martin")
+                .prenom("Marie")
+                .build();
+
         sejour = Sejour.builder()
                 .id(1)
                 .nom("Séjour Test")
@@ -92,8 +108,17 @@ class EnfantServiceImplTest {
                 .dateDebut(new Date())
                 .dateFin(new Date())
                 .lieuDuSejour("Lieu")
+                .directeur(directeur)
+                .equipeRoles(new ArrayList<>())
                 .enfants(new ArrayList<>())
                 .build();
+        
+        com.tarnof.enjoyrestapi.entities.SejourEquipe sejourEquipe = com.tarnof.enjoyrestapi.entities.SejourEquipe.builder()
+                .sejour(sejour)
+                .utilisateur(membreEquipe)
+                .roleSejour(com.tarnof.enjoyrestapi.enums.RoleSejour.ANIM)
+                .build();
+        sejour.getEquipeRoles().add(sejourEquipe);
 
         enfant = Enfant.builder()
                 .id(1)
@@ -465,7 +490,7 @@ class EnfantServiceImplTest {
         sejour.getEnfants().add(sejourEnfant);
         when(sejourRepository.findById(1)).thenReturn(Optional.of(Objects.requireNonNull(sejour)));
 
-        List<EnfantDto> result = enfantService.getEnfantsDuSejour(1);
+        List<EnfantDto> result = enfantService.getEnfantsDuSejour(1, "dir-token");
 
         assertThat(result).isNotNull();
         assertThat(result).hasSize(1);
@@ -479,7 +504,7 @@ class EnfantServiceImplTest {
     void getEnfantsDuSejour_WhenNoChildren_ShouldReturnEmptyList() {
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
 
-        List<EnfantDto> result = enfantService.getEnfantsDuSejour(1);
+        List<EnfantDto> result = enfantService.getEnfantsDuSejour(1, "dir-token");
 
         assertThat(result).isNotNull();
         assertThat(result).isEmpty();
@@ -491,7 +516,7 @@ class EnfantServiceImplTest {
     void getEnfantsDuSejour_WhenSejourNotFound_ShouldThrow404() {
         when(sejourRepository.findById(999)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> enfantService.getEnfantsDuSejour(999))
+        assertThatThrownBy(() -> enfantService.getEnfantsDuSejour(999, "dir-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Séjour non trouvé avec l'ID: 999");
 

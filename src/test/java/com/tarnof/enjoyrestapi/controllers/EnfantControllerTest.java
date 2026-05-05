@@ -108,7 +108,7 @@ class EnfantControllerTest {
     @DisplayName("getEnfantsDuSejour - Devrait retourner 200 OK avec la liste des enfants")
     void getEnfantsDuSejour_ShouldReturn200WithEnfantsList() throws Exception {
         List<EnfantDto> enfants = Arrays.asList(enfantDto);
-        when(enfantService.getEnfantsDuSejour(1)).thenReturn(enfants);
+        when(enfantService.getEnfantsDuSejour(eq(1), anyString())).thenReturn(enfants);
 
         mockMvc.perform(get("/api/v1/sejours/1/enfants"))
                 .andExpect(status().isOk())
@@ -120,33 +120,33 @@ class EnfantControllerTest {
                 .andExpect(jsonPath("$[0].genre").value("Féminin"))
                 .andExpect(jsonPath("$[0].niveauScolaire").value("CP"));
 
-        verify(enfantService).getEnfantsDuSejour(1);
+        verify(enfantService).getEnfantsDuSejour(eq(1), anyString());
     }
 
     @Test
     @DisplayName("getEnfantsDuSejour - Devrait retourner 200 OK avec une liste vide")
     void getEnfantsDuSejour_ShouldReturn200WithEmptyList() throws Exception {
-        when(enfantService.getEnfantsDuSejour(1)).thenReturn(Collections.emptyList());
+        when(enfantService.getEnfantsDuSejour(eq(1), anyString())).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/api/v1/sejours/1/enfants"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        verify(enfantService).getEnfantsDuSejour(1);
+        verify(enfantService).getEnfantsDuSejour(eq(1), anyString());
     }
 
     @Test
     @DisplayName("getEnfantsDuSejour - Devrait retourner 404 Not Found si le séjour n'existe pas")
     void getEnfantsDuSejour_ShouldReturn404WhenSejourNotFound() throws Exception {
-        when(enfantService.getEnfantsDuSejour(999))
+        when(enfantService.getEnfantsDuSejour(eq(999), anyString()))
                 .thenThrow(new ResourceNotFoundException("Séjour non trouvé avec l'ID: 999"));
 
         mockMvc.perform(get("/api/v1/sejours/999/enfants"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Séjour non trouvé avec l'ID: 999"));
 
-        verify(enfantService).getEnfantsDuSejour(999);
+        verify(enfantService).getEnfantsDuSejour(eq(999), anyString());
     }
 
     // ========== Tests pour creerEtAjouterEnfantAuSejour() ==========

@@ -15,7 +15,7 @@ public interface EnfantService {
     EnfantDto modifierEnfant(int sejourId, int enfantId, CreateEnfantRequest request);
     void supprimerEnfantDuSejour(int sejourId, int enfantId);
     void supprimerTousLesEnfantsDuSejour(int sejourId);
-    List<EnfantDto> getEnfantsDuSejour(int sejourId);
+    List<EnfantDto> getEnfantsDuSejour(int sejourId, String utilisateurTokenId);
     DossierEnfantDto getDossierEnfant(int sejourId, int enfantId, String utilisateurTokenId);
     DossierEnfantDto modifierDossierEnfant(int sejourId, int enfantId, UpdateDossierEnfantRequest request, String utilisateurTokenId);
     ExcelImportResponse importerEnfantsDepuisExcel(int sejourId, MultipartFile file);

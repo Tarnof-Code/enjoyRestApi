@@ -33,9 +33,10 @@ public class EnfantController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('DIRECTION')")
-    public List<EnfantDto> getEnfantsDuSejour(@PathVariable("sejourId") int sejourId) {
-        return enfantService.getEnfantsDuSejour(sejourId);
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public List<EnfantDto> getEnfantsDuSejour(@PathVariable("sejourId") int sejourId, Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return enfantService.getEnfantsDuSejour(sejourId, utilisateur.getTokenId());
     }
 
     @PostMapping
@@ -46,7 +47,7 @@ public class EnfantController {
     }
 
     @GetMapping("/{enfantId}/dossier")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
     public DossierEnfantDto getDossierEnfant(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("enfantId") int enfantId,
@@ -56,7 +57,7 @@ public class EnfantController {
     }
 
     @PutMapping("/{enfantId}/dossier")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasRole('DIRECTION') or hasAuthority('GESTION_SANITAIRE')")
     public DossierEnfantDto modifierDossierEnfant(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("enfantId") int enfantId,

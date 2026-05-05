@@ -3,22 +3,21 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import static com.tarnof.enjoyrestapi.enums.Privilege.*;
 
 public enum Role {
     ADMIN(
-            Set.of(GESTION_UTILISATEURS,
-                    GESTION_SEJOURS,
-                    GESTION_SANITAIRE,
-                    GESTION_PLANNINGS)
+            Set.of(Privilege.GESTION_UTILISATEURS,
+                    Privilege.GESTION_SEJOURS,
+                    Privilege.GESTION_SANITAIRE,
+                    Privilege.ACCES_SEJOUR)
     ),
     DIRECTION(
-            Set.of(GESTION_SEJOURS,
-                    GESTION_SANITAIRE,
-                    GESTION_PLANNINGS)
+            Set.of(Privilege.GESTION_SEJOURS,
+                    Privilege.GESTION_SANITAIRE,
+                    Privilege.ACCES_SEJOUR)
     ),
     BASIC_USER(
-            Set.of(GESTION_PLANNINGS)
+            Set.of(Privilege.ACCES_SEJOUR)
     );
 
     private final Set<Privilege> privileges;

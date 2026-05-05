@@ -284,9 +284,16 @@ public class EnfantServiceImpl implements EnfantService {
     }
 
     @Override
-    public List<EnfantDto> getEnfantsDuSejour(int sejourId) {
+    public List<EnfantDto> getEnfantsDuSejour(int sejourId, String utilisateurTokenId) {
         Sejour sejour = sejourRepository.findById(sejourId)
                 .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
+        
+        boolean estDirecteur = sejour.getDirecteur() != null && sejour.getDirecteur().getTokenId().equals(utilisateurTokenId);
+        boolean estDansEquipe = sejour.getEquipeRoles() != null && sejour.getEquipeRoles().stream()
+                .anyMatch(se -> se.getUtilisateur() != null && se.getUtilisateur().getTokenId().equals(utilisateurTokenId));
+        if (!estDirecteur && !estDansEquipe) {
+            throw new AccessDeniedException("Vous ne participez pas à ce séjour");
+        }
         
         if (sejour.getEnfants() == null || sejour.getEnfants().isEmpty()) {
             return new ArrayList<>();

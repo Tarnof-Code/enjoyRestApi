@@ -89,7 +89,7 @@ class GroupeControllerTest {
     @Test
     @DisplayName("getGroupesDuSejour - 200 avec liste")
     void getGroupesDuSejour_ShouldReturn200() throws Exception {
-        when(groupeService.getGroupesDuSejour(1)).thenReturn(List.of(groupeDto));
+        when(groupeService.getGroupesDuSejour(eq(1), anyString())).thenReturn(List.of(groupeDto));
 
         mockMvc.perform(get("/api/v1/sejours/1/groupes"))
                 .andExpect(status().isOk())
@@ -98,26 +98,26 @@ class GroupeControllerTest {
                 .andExpect(jsonPath("$[0].id").value(5))
                 .andExpect(jsonPath("$[0].nom").value("Groupe A"));
 
-        verify(groupeService).getGroupesDuSejour(1);
+        verify(groupeService).getGroupesDuSejour(eq(1), anyString());
     }
 
     @Test
     @DisplayName("getGroupeById - 200")
     void getGroupeById_ShouldReturn200() throws Exception {
-        when(groupeService.getGroupeById(1, 5)).thenReturn(groupeDto);
+        when(groupeService.getGroupeById(eq(1), eq(5), anyString())).thenReturn(groupeDto);
 
         mockMvc.perform(get("/api/v1/sejours/1/groupes/5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.sejourId").value(1));
 
-        verify(groupeService).getGroupeById(1, 5);
+        verify(groupeService).getGroupeById(eq(1), eq(5), anyString());
     }
 
     @Test
     @DisplayName("getGroupeById - 404 si service lève ResourceNotFoundException")
     void getGroupeById_WhenNotFound_ShouldReturn404() throws Exception {
-        when(groupeService.getGroupeById(1, 99))
+        when(groupeService.getGroupeById(eq(1), eq(99), anyString()))
                 .thenThrow(new ResourceNotFoundException("Groupe non trouvé"));
 
         mockMvc.perform(get("/api/v1/sejours/1/groupes/99"))

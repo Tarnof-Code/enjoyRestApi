@@ -1,7 +1,22 @@
 <!-- Fiche Memory Bank — point d'entrée : [AI_MEMORY.md](../../AI_MEMORY.md) -->
 
 ## Décisions Architecturales
-1. **Injection de Dépendances** :
+1. **Rôles et Privilèges** :
+   - [FAIT] **Hiérarchie des rôles globaux** : Les utilisateurs ont un **`Role`** global (enum : `ADMIN`, `DIRECTION`, `BASIC_USER`) qui détermine leurs **privilèges** dans l'application (enum `Privilege` : `GESTION_UTILISATEURS`, `GESTION_SEJOURS`, `GESTION_SANITAIRE`, `ACCES_SEJOUR`).
+   - **Mapping rôles globaux ↔ privilèges** :
+     - `ADMIN` : tous les privilèges (GESTION_UTILISATEURS, GESTION_SEJOURS, GESTION_SANITAIRE, ACCES_SEJOUR)
+     - `DIRECTION` : GESTION_SEJOURS, GESTION_SANITAIRE, ACCES_SEJOUR
+     - `BASIC_USER` : ACCES_SEJOUR uniquement
+   - **RoleSejour** (rôle dans un séjour spécifique) : Chaque membre d'équipe a un **`RoleSejour`** (enum : `ANIM`, `AS`, `ADJOINT`, `SB`, `AUTRE`) qui indique sa **fonction** dans ce séjour particulier et qui définit ses **privilèges dans le contexte du séjour**.
+   - **Privilèges `RoleSejour`** (indépendants du `Role` global) :
+     - `ANIM` (Animateur) → `ACCES_SEJOUR`
+     - `AS` (Assistant Sanitaire) → `ACCES_SEJOUR` + `GESTION_SANITAIRE`
+     - `ADJOINT` → `GESTION_SEJOURS` + `GESTION_SANITAIRE` + `ACCES_SEJOUR`
+     - `SB` (Surveillant de Baignade) → `ACCES_SEJOUR`
+     - `AUTRE` → `ACCES_SEJOUR`
+   - **Séparation des concepts** : Le `Role` global (stocké dans la table `utilisateur`) contrôle les **droits d'accès aux fonctionnalités globales** de l'application. Le `RoleSejour` (stocké dans la table `sejour_equipe`) définit la **fonction** d'une personne dans un séjour spécifique et ses **privilèges dans le contexte de ce séjour**. Les deux systèmes sont **indépendants** : modifier le `RoleSejour` d'un membre ne modifie **pas** son `Role` global.
+   - **Méthodes `RoleSejour`** : `getPrivileges()` retourne les privilèges du rôle séjour, `getAuthorities()` retourne les autorités Spring Security (privilèges + `ROLE_SEJOUR_<nom>`).
+2. **Injection de Dépendances** :
    - [FAIT] **Constructor Injection** partout — **constructeurs explicites** (pas de Lombok, pas de génération de constructeur par annotation) ✅
    - Exemples : `SecurityConfiguration`, `AuthenticationController`, `JwtAuthenticationFilter`, `ApplicationSecurityConfig`, `AuthenticationServiceImpl`, `RefreshTokenServiceImpl`, tous les `*Controller` et `*ServiceImpl` ci-dessous exposent un constructeur prenant leurs dépendances `final`.
    - `SejourServiceImpl` (8 deps : SejourRepository, UtilisateurRepository, AuthenticationService, RefreshTokenRepository, SejourEquipeRepository, GroupeRepository, ActiviteRepository, **TypeActiviteService**)
@@ -15,7 +30,7 @@
    - `LieuServiceImpl` (2 deps : LieuRepository, SejourRepository) ; `@SuppressWarnings("null")` au niveau classe
    - **`HoraireServiceImpl`** (2 deps : **`HoraireRepository`**, **`SejourVerificationService`**) ; `@SuppressWarnings("null")` au niveau classe
    - [CIBLE] Conserver **constructor injection** uniquement — STANDARD APPLIQUÉ ✅
-2. **Objets de Transfert de Données (DTOs)** :
+3. **Objets de Transfert de Données (DTOs)** :
    - [FAIT] Migration vers **Java Records** complétée ✅
    - Tous les DTOs et Payloads utilisent maintenant des Records Java :
     - `ProfilDto`, `SejourDto` (avec record imbriqué `DirecteurInfos`), `EnfantDto`, `DossierEnfantDto`, `GroupeDto` (avec record imbriqué `ReferentInfos`), **`MomentDto`** (**`ordre`** inclus), **`HoraireDto`** (`id`, `libelle`, `sejourId`), `ActiviteDto` (record imbriqué `MembreEquipeInfo`, **`MomentDto moment`** avec **`ordre`**, **`LieuDto lieu`** nullable, **`TypeActiviteDto typeActivite`** avec **`sejourId`** — **renseigné** pour toute activité persistée conforme, `groupeIds`, **`avertissementLieu`**), **`TypeActiviteDto`** (`id`, `libelle`, `predefini`, **`sejourId`**), `LieuDto` (**`partageableEntreAnimateurs`**, **`nombreMaxActivitesSimultanees`**)
@@ -24,12 +39,12 @@
      - `AuthenticationResponse`, `RefreshTokenResponse`
    - Les Records offrent l'immutabilité native et une syntaxe concise, idéale pour Java 21.
    - **Note** : `ErrorResponse` est une **classe Java** avec getters/setters et un **`ErrorResponseBuilder`** statique interne (`ErrorResponse.builder()` … `build()`) — pas de Lombok.
-3. **Services** :
+4. **Services** :
    - Utilisation d'interfaces pour les services (`SejourService`, `EnfantService`, `GroupeService`, `ActiviteService`, **`MomentService`**, **`TypeActiviteService`**, `LieuService`, **`HoraireService`**, **`PlanningGrilleService`**, `UtilisateurService`, `AuthenticationService`) et d'implémentations correspondantes (incl. **`MomentServiceImpl`**, **`TypeActiviteServiceImpl`**, **`HoraireServiceImpl`**, **`PlanningGrilleServiceImpl`**).
-4. **API Response** :
+5. **API Response** :
    - Standardiser les retours (éviter de renvoyer des entités brutes, toujours des DTOs).
    - **Références `Utilisateur` (JSON, front ↔ back)** : **toujours** le **`tokenId`** (chaîne), **jamais** l’`id` SQL — convention détaillée dans **`.cursorrules`** (*Utilisateurs : identifiant côté API*).
-5. **Gestion des Exceptions** :
+6. **Gestion des Exceptions** :
    - Exceptions personnalisées : `ResourceNotFoundException`, `ResourceAlreadyExistsException`, `EmailDejaUtiliseException`, `UtilisateurException`, `TokenException`, **`ConflitPlanningAnimateurException`** (planning activité : animateur déjà pris sur le même séjour / jour / moment ; corps JSON **400** avec **`code`** = **`ANIMATEUR_DEJA_AFFECTE_CRENEAU`**, **`message`** + **`error`**).
    - **Mécanisme de gestion globale** : Utilisation de `@ControllerAdvice` pour centraliser la gestion des exceptions.
    - **`GlobalExceptionHandler`** (`@ControllerAdvice`) gère automatiquement toutes les exceptions non gérées lancées dans les contrôleurs :
@@ -50,7 +65,7 @@
    - **`CustomAccessDeniedHandler`** (package `config/`, implémente `AccessDeniedHandler`) : géré par Spring Security pour les `AccessDeniedException` (ex. : accès refusé aux endpoints dossier enfant si l'utilisateur ne participe pas au séjour). Retourne HTTP 403 Forbidden avec `ErrorResponse` structuré (status, error, timestamp, message, path).
   - **Organisation des packages** : `handlers/` regroupe `GlobalExceptionHandler`, `TokenControllerHandler` et `ErrorResponse` ; `exceptions/` regroupe uniquement les classes d'exception métier ; `config/` contient `CustomAccessDeniedHandler` pour la sécurité.
    - **Règle importante** : Les contrôleurs ne doivent **jamais** avoir de `try-catch` qui masquent les exceptions. Toutes les exceptions doivent remonter vers les handlers globaux pour une gestion cohérente et centralisée.
-6. **Gestion des Warnings de Null-Safety** :
+7. **Gestion des Warnings de Null-Safety** :
    - [FAIT] Utilisation de `@SuppressWarnings("null")` pour les cas où le linter ne peut pas garantir la non-nullité à la compilation, mais où nous savons que la valeur ne sera jamais null à l'exécution ✅
    - **Exemple** : `JpaRepository.save()` ne retourne jamais `null` pour une nouvelle entité (retourne toujours l'entité sauvegardée avec son ID généré), mais le linter ne peut pas le garantir statiquement.
    - **Standard appliqué** : Utiliser `@SuppressWarnings("null")` avec un commentaire explicatif quand la garantie de non-nullité est documentée et vérifiée à l'exécution.

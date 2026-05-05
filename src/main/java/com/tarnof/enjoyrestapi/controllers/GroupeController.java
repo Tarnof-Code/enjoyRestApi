@@ -1,5 +1,6 @@
 package com.tarnof.enjoyrestapi.controllers;
 
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.payload.request.AjouterReferentRequest;
 import com.tarnof.enjoyrestapi.payload.request.CreateGroupeRequest;
 import com.tarnof.enjoyrestapi.payload.response.GroupeDto;
@@ -7,6 +8,7 @@ import com.tarnof.enjoyrestapi.services.GroupeService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,15 +24,17 @@ public class GroupeController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('DIRECTION')")
-    public List<GroupeDto> getGroupesDuSejour(@PathVariable("sejourId") int sejourId) {
-        return groupeService.getGroupesDuSejour(sejourId);
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public List<GroupeDto> getGroupesDuSejour(@PathVariable("sejourId") int sejourId, Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return groupeService.getGroupesDuSejour(sejourId, utilisateur.getTokenId());
     }
 
     @GetMapping("/{groupeId}")
-    @PreAuthorize("hasRole('DIRECTION')")
-    public GroupeDto getGroupeById(@PathVariable("sejourId") int sejourId, @PathVariable("groupeId") int groupeId) {
-        return groupeService.getGroupeById(sejourId, groupeId);
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public GroupeDto getGroupeById(@PathVariable("sejourId") int sejourId, @PathVariable("groupeId") int groupeId, Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return groupeService.getGroupeById(sejourId, groupeId, utilisateur.getTokenId());
     }
 
     @PostMapping

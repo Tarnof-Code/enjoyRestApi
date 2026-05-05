@@ -7,8 +7,8 @@ import com.tarnof.enjoyrestapi.payload.response.GroupeDto;
 import java.util.List;
 
 public interface GroupeService {
-    List<GroupeDto> getGroupesDuSejour(int sejourId);
-    GroupeDto getGroupeById(int sejourId, int groupeId);
+    List<GroupeDto> getGroupesDuSejour(int sejourId, String utilisateurTokenId);
+    GroupeDto getGroupeById(int sejourId, int groupeId, String utilisateurTokenId);
     GroupeDto creerGroupe(int sejourId, CreateGroupeRequest request);
     GroupeDto modifierGroupe(int sejourId, int groupeId, CreateGroupeRequest request);
     void supprimerGroupe(int sejourId, int groupeId);
