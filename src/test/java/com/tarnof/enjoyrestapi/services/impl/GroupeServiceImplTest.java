@@ -49,6 +49,9 @@ class GroupeServiceImplTest {
     @Mock
     private SejourEnfantRepository sejourEnfantRepository;
 
+    @Mock
+    private ActiviteRepository activiteRepository;
+
     private GroupeServiceImpl groupeService;
 
     private Sejour sejour;
@@ -60,7 +63,8 @@ class GroupeServiceImplTest {
                 new SejourVerificationService(sejourRepository),
                 enfantRepository,
                 utilisateurRepository,
-                sejourEnfantRepository
+                sejourEnfantRepository,
+                activiteRepository
         );
 
         sejour = Sejour.builder()
@@ -325,10 +329,27 @@ class GroupeServiceImplTest {
     void supprimerGroupe_ShouldCallDelete() {
         Groupe g = groupePersiste(8, TypeGroupe.THEMATIQUE, sejour);
         when(groupeRepository.findById(8)).thenReturn(Optional.of(g));
+        when(activiteRepository.countByGroupeId(8)).thenReturn(0L);
 
         groupeService.supprimerGroupe(1, 8);
 
         verify(groupeRepository).delete(g);
+    }
+
+    @Test
+    @DisplayName("supprimerGroupe - Lève une exception si des activités sont associées")
+    void supprimerGroupe_ShouldThrowWhenActivitiesExist() {
+        Groupe g = groupePersiste(8, TypeGroupe.THEMATIQUE, sejour);
+        when(groupeRepository.findById(8)).thenReturn(Optional.of(g));
+        when(activiteRepository.countByGroupeId(8)).thenReturn(3L);
+
+        assertThatThrownBy(() -> groupeService.supprimerGroupe(1, 8))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Impossible de supprimer le groupe")
+                .hasMessageContaining("3 activité(s)")
+                .hasMessageContaining("sont encore associée(s)");
+
+        verify(groupeRepository, never()).delete(any());
     }
 
     // ---------- ajouterEnfantAuGroupe ----------

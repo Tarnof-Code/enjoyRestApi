@@ -40,4 +40,7 @@ public interface ActiviteRepository extends JpaRepository<Activite, Integer> {
             @Param("momentId") int momentId,
             @Param("utilisateurId") int utilisateurId,
             @Param("excludeActiviteId") Integer excludeActiviteId);
+
+    @Query("SELECT COUNT(a) FROM Activite a JOIN a.groupes g WHERE g.id = :groupeId")
+    long countByGroupeId(@Param("groupeId") int groupeId);
 }

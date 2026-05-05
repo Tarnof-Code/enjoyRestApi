@@ -31,15 +31,17 @@ public class GroupeServiceImpl implements GroupeService {
     private final EnfantRepository enfantRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final SejourEnfantRepository sejourEnfantRepository;
+    private final ActiviteRepository activiteRepository;
 
     public GroupeServiceImpl(GroupeRepository groupeRepository, SejourVerificationService sejourVerificationService,
                              EnfantRepository enfantRepository, UtilisateurRepository utilisateurRepository,
-                             SejourEnfantRepository sejourEnfantRepository) {
+                             SejourEnfantRepository sejourEnfantRepository, ActiviteRepository activiteRepository) {
         this.groupeRepository = groupeRepository;
         this.sejourVerificationService = sejourVerificationService;
         this.enfantRepository = enfantRepository;
         this.utilisateurRepository = utilisateurRepository;
         this.sejourEnfantRepository = sejourEnfantRepository;
+        this.activiteRepository = activiteRepository;
     }
 
     @Override
@@ -99,6 +101,17 @@ public class GroupeServiceImpl implements GroupeService {
     @Transactional
     public void supprimerGroupe(int sejourId, int groupeId) {
         Groupe groupe = getGroupeEtVerifierSejour(sejourId, groupeId);
+        
+        long nombreActivites = activiteRepository.countByGroupeId(groupeId);
+        if (nombreActivites > 0) {
+            throw new IllegalStateException(
+                    String.format("Impossible de supprimer le groupe '%s' : %d activité(s) %s encore associée(s) à ce groupe. " +
+                            "Veuillez d'abord modifier ou supprimer ces activités.", 
+                            groupe.getNom(), 
+                            nombreActivites,
+                            nombreActivites > 1 ? "sont" : "est"));
+        }
+        
         groupeRepository.delete(groupe);
     }
 

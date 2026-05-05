@@ -27,6 +27,7 @@ Les conventions **obligatoires** (langue, injection, `tokenId` côté API, struc
 
 ## Point saillant récent
 
+- **2026-05-05** — Amélioration de la suppression de groupe : vérification des activités associées avant suppression avec message d'erreur explicite (HTTP 409). Détail : [contexte-actif.md](docs/ai/contexte-actif.md).
 - **2026-05-04** — Menus par séjour (`MenuRepas`), référentiel **`ReferenceAlimentaire`** (allergènes / régimes-préférences), extension **`DossierEnfant`** et endpoint d’**agrégation** des tags enfants du séjour ; commit `feat: add menus CRUD, food references, and aggregated child tags`. Détail : journal [contexte-actif.md](docs/ai/contexte-actif.md), contrats [documentation-api-rest.md](docs/ai/documentation-api-rest.md), modèle [etat-projet.md](docs/ai/etat-projet.md).
 
 ## Fiches (`docs/ai/`)
