@@ -2,11 +2,14 @@ package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.Horaire;
 import com.tarnof.enjoyrestapi.entities.Sejour;
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.SaveHoraireRequest;
 import com.tarnof.enjoyrestapi.repositories.HoraireRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
+import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,16 +37,26 @@ class HoraireServiceImplTest {
     private HoraireRepository horaireRepository;
     @Mock
     private SejourRepository sejourRepository;
+    @Mock
+    private UtilisateurRepository utilisateurRepository;
 
     private HoraireServiceImpl horaireService;
 
     private Sejour sejour;
+    private Utilisateur appelantAdmin;
 
     @BeforeEach
     void setUp() {
-        horaireService = new HoraireServiceImpl(horaireRepository, new SejourVerificationService(sejourRepository));
+        horaireService = new HoraireServiceImpl(
+                horaireRepository,
+                new SejourVerificationService(sejourRepository, utilisateurRepository));
         sejour = new Sejour();
         sejour.setId(1);
+        appelantAdmin = Utilisateur.builder()
+                .id(99)
+                .tokenId("appelant-token")
+                .role(Role.ADMIN)
+                .build();
     }
 
     @Test
@@ -113,27 +126,34 @@ class HoraireServiceImplTest {
     @Test
     @DisplayName("listerHorairesDuSejour - 404 si séjour absent")
     void lister_whenSejourMissing_shouldThrow404() {
+        Utilisateur appelantBasique = Utilisateur.builder()
+                .id(50)
+                .tokenId("user-token")
+                .role(Role.BASIC_USER)
+                .build();
+        when(utilisateurRepository.findByTokenId("user-token")).thenReturn(Optional.of(appelantBasique));
         when(sejourRepository.findById(99)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> horaireService.listerHorairesDuSejour(99))
+        assertThatThrownBy(() -> horaireService.listerHorairesDuSejour(99, "user-token"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
     @DisplayName("listerHorairesDuSejour - liste vide OK")
     void lister_whenEmpty_shouldReturnEmpty() {
-        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(utilisateurRepository.findByTokenId("appelant-token")).thenReturn(Optional.of(appelantAdmin));
         when(horaireRepository.findBySejourIdOrderByIdAsc(1)).thenReturn(List.of());
 
-        assertThat(horaireService.listerHorairesDuSejour(1)).isEmpty();
+        assertThat(horaireService.listerHorairesDuSejour(1, "appelant-token")).isEmpty();
     }
 
     @Test
     @DisplayName("getHoraire - 404 si mauvais séjour")
     void get_whenWrongSejour_shouldThrow404() {
+        when(utilisateurRepository.findByTokenId("appelant-token")).thenReturn(Optional.of(appelantAdmin));
         when(horaireRepository.findByIdAndSejourId(3, 1)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> horaireService.getHoraire(1, 3))
+        assertThatThrownBy(() -> horaireService.getHoraire(1, 3, "appelant-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Horaire non trouvé");
     }

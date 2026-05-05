@@ -1,11 +1,13 @@
 package com.tarnof.enjoyrestapi.controllers;
 
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.payload.request.SaveLieuRequest;
 import com.tarnof.enjoyrestapi.payload.response.LieuDto;
 import com.tarnof.enjoyrestapi.services.LieuService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,17 +23,20 @@ public class LieuController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('DIRECTION')")
-    public List<LieuDto> lister(@PathVariable("sejourId") int sejourId) {
-        return lieuService.listerLieuxDuSejour(sejourId);
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public List<LieuDto> lister(@PathVariable("sejourId") int sejourId, Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return lieuService.listerLieuxDuSejour(sejourId, utilisateur.getTokenId());
     }
 
     @GetMapping("/{lieuId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
     public LieuDto get(
             @PathVariable("sejourId") int sejourId,
-            @PathVariable("lieuId") int lieuId) {
-        return lieuService.getLieu(sejourId, lieuId);
+            @PathVariable("lieuId") int lieuId,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return lieuService.getLieu(sejourId, lieuId, utilisateur.getTokenId());
     }
 
     @PostMapping

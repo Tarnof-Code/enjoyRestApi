@@ -1,6 +1,7 @@
 package com.tarnof.enjoyrestapi.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
@@ -15,9 +16,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -47,6 +51,7 @@ class HoraireControllerTest {
 
     private HoraireDto horaireDto;
     private SaveHoraireRequest saveHoraireRequest;
+    private Authentication authentication;
 
     @BeforeEach
     void setUp() {
@@ -57,41 +62,46 @@ class HoraireControllerTest {
 
         horaireDto = new HoraireDto(3, "8h30", 1);
         saveHoraireRequest = new SaveHoraireRequest("8h30");
+
+        Utilisateur utilisateur = Utilisateur.builder().tokenId("user-token-123").build();
+        authentication = new UsernamePasswordAuthenticationToken(
+                utilisateur, null, Collections.emptyList());
     }
 
     @Test
     @DisplayName("lister - 200")
     void lister_ShouldReturn200() throws Exception {
-        when(horaireService.listerHorairesDuSejour(1)).thenReturn(List.of(horaireDto));
+        when(horaireService.listerHorairesDuSejour(1, "user-token-123")).thenReturn(List.of(horaireDto));
 
-        mockMvc.perform(get("/api/v1/sejours/1/horaires"))
+        mockMvc.perform(get("/api/v1/sejours/1/horaires").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(3))
                 .andExpect(jsonPath("$[0].libelle").value("8h30"));
 
-        verify(horaireService).listerHorairesDuSejour(1);
+        verify(horaireService).listerHorairesDuSejour(1, "user-token-123");
     }
 
     @Test
     @DisplayName("get - 200")
     void get_ShouldReturn200() throws Exception {
-        when(horaireService.getHoraire(1, 3)).thenReturn(horaireDto);
+        when(horaireService.getHoraire(1, 3, "user-token-123")).thenReturn(horaireDto);
 
-        mockMvc.perform(get("/api/v1/sejours/1/horaires/3"))
+        mockMvc.perform(get("/api/v1/sejours/1/horaires/3").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sejourId").value(1))
                 .andExpect(jsonPath("$.libelle").value("8h30"));
 
-        verify(horaireService).getHoraire(1, 3);
+        verify(horaireService).getHoraire(1, 3, "user-token-123");
     }
 
     @Test
     @DisplayName("get - 404")
     void get_WhenNotFound_ShouldReturn404() throws Exception {
-        when(horaireService.getHoraire(1, 99)).thenThrow(new ResourceNotFoundException("Horaire non trouvé"));
+        when(horaireService.getHoraire(1, 99, "user-token-123"))
+                .thenThrow(new ResourceNotFoundException("Horaire non trouvé"));
 
-        mockMvc.perform(get("/api/v1/sejours/1/horaires/99"))
+        mockMvc.perform(get("/api/v1/sejours/1/horaires/99").principal(authentication))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Horaire non trouvé"));
     }

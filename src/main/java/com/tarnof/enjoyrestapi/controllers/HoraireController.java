@@ -1,11 +1,13 @@
 package com.tarnof.enjoyrestapi.controllers;
 
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.payload.request.SaveHoraireRequest;
 import com.tarnof.enjoyrestapi.payload.response.HoraireDto;
 import com.tarnof.enjoyrestapi.services.HoraireService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,16 +23,18 @@ public class HoraireController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('DIRECTION')")
-    public List<HoraireDto> lister(@PathVariable("sejourId") int sejourId) {
-        return horaireService.listerHorairesDuSejour(sejourId);
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public List<HoraireDto> lister(@PathVariable("sejourId") int sejourId, Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return horaireService.listerHorairesDuSejour(sejourId, utilisateur.getTokenId());
     }
 
     @GetMapping("/{horaireId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
     public HoraireDto get(
-            @PathVariable("sejourId") int sejourId, @PathVariable("horaireId") int horaireId) {
-        return horaireService.getHoraire(sejourId, horaireId);
+            @PathVariable("sejourId") int sejourId, @PathVariable("horaireId") int horaireId, Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return horaireService.getHoraire(sejourId, horaireId, utilisateur.getTokenId());
     }
 
     @PostMapping

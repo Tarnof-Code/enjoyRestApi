@@ -30,8 +30,8 @@ public class HoraireServiceImpl implements HoraireService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<HoraireDto> listerHorairesDuSejour(int sejourId) {
-        sejourVerificationService.verifierSejourExiste(sejourId);
+    public List<HoraireDto> listerHorairesDuSejour(int sejourId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         return horaireRepository.findBySejourIdOrderByIdAsc(sejourId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -39,7 +39,8 @@ public class HoraireServiceImpl implements HoraireService {
 
     @Override
     @Transactional(readOnly = true)
-    public HoraireDto getHoraire(int sejourId, int horaireId) {
+    public HoraireDto getHoraire(int sejourId, int horaireId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         return mapToDto(getHoraireEtVerifierSejour(sejourId, horaireId));
     }
 

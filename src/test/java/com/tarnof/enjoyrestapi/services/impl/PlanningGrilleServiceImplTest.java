@@ -58,7 +58,7 @@ class PlanningGrilleServiceImplTest {
                 planningGrilleRepository,
                 planningLigneRepository,
                 planningCelluleRepository,
-                new SejourVerificationService(sejourRepository),
+                new SejourVerificationService(sejourRepository, utilisateurRepository),
                 momentRepository,
                 horaireRepository,
                 groupeRepository,

@@ -38,8 +38,8 @@ public class MomentServiceImpl implements MomentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<MomentDto> listerMomentsDuSejour(int sejourId) {
-        sejourVerificationService.verifierSejourExiste(sejourId);
+    public List<MomentDto> listerMomentsDuSejour(int sejourId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         return momentRepository.findBySejourIdOrderChronologique(sejourId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -47,7 +47,8 @@ public class MomentServiceImpl implements MomentService {
 
     @Override
     @Transactional(readOnly = true)
-    public MomentDto getMoment(int sejourId, int momentId) {
+    public MomentDto getMoment(int sejourId, int momentId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         return mapToDto(getMomentEtVerifierSejour(sejourId, momentId));
     }
 
@@ -98,7 +99,9 @@ public class MomentServiceImpl implements MomentService {
             parId.get(demandes.get(i)).setOrdre(i);
         }
         momentRepository.saveAll(existants);
-        return listerMomentsDuSejour(sejourId);
+        return momentRepository.findBySejourIdOrderChronologique(sejourId).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 
     @Override

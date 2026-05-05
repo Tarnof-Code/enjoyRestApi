@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.NiveauScolaire;
 import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
@@ -25,6 +26,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -38,6 +41,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -61,6 +65,7 @@ class EnfantControllerTest {
     private CreateEnfantRequest createEnfantRequest;
     private ExcelImportResponse excelImportResponse;
     private Date dateNaissance;
+    private Authentication authentication;
 
     @BeforeEach
     void setUp() {
@@ -73,6 +78,10 @@ class EnfantControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(enfantController)
                 .setControllerAdvice(globalExceptionHandler)
                 .build();
+
+        Utilisateur utilisateur = Utilisateur.builder().tokenId("user-token-123").build();
+        authentication = new UsernamePasswordAuthenticationToken(
+                utilisateur, null, Collections.emptyList());
 
         dateNaissance = new Date(System.currentTimeMillis() - 86400000L * 365 * 10);
 
@@ -110,7 +119,7 @@ class EnfantControllerTest {
         List<EnfantDto> enfants = Arrays.asList(enfantDto);
         when(enfantService.getEnfantsDuSejour(eq(1), anyString())).thenReturn(enfants);
 
-        mockMvc.perform(get("/api/v1/sejours/1/enfants"))
+        mockMvc.perform(get("/api/v1/sejours/1/enfants").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(1))
@@ -128,7 +137,7 @@ class EnfantControllerTest {
     void getEnfantsDuSejour_ShouldReturn200WithEmptyList() throws Exception {
         when(enfantService.getEnfantsDuSejour(eq(1), anyString())).thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/api/v1/sejours/1/enfants"))
+        mockMvc.perform(get("/api/v1/sejours/1/enfants").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(0));
@@ -142,7 +151,7 @@ class EnfantControllerTest {
         when(enfantService.getEnfantsDuSejour(eq(999), anyString()))
                 .thenThrow(new ResourceNotFoundException("Séjour non trouvé avec l'ID: 999"));
 
-        mockMvc.perform(get("/api/v1/sejours/999/enfants"))
+        mockMvc.perform(get("/api/v1/sejours/999/enfants").principal(authentication))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Séjour non trouvé avec l'ID: 999"));
 

@@ -6,9 +6,9 @@ import com.tarnof.enjoyrestapi.payload.response.HoraireDto;
 import java.util.List;
 
 public interface HoraireService {
-    List<HoraireDto> listerHorairesDuSejour(int sejourId);
+    List<HoraireDto> listerHorairesDuSejour(int sejourId, String utilisateurTokenId);
 
-    HoraireDto getHoraire(int sejourId, int horaireId);
+    HoraireDto getHoraire(int sejourId, int horaireId, String utilisateurTokenId);
 
     HoraireDto creerHoraire(int sejourId, SaveHoraireRequest request);
 

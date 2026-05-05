@@ -8,9 +8,9 @@ import java.util.List;
 
 public interface MomentService {
 
-    List<MomentDto> listerMomentsDuSejour(int sejourId);
+    List<MomentDto> listerMomentsDuSejour(int sejourId, String utilisateurTokenId);
 
-    MomentDto getMoment(int sejourId, int momentId);
+    MomentDto getMoment(int sejourId, int momentId, String utilisateurTokenId);
 
     MomentDto creerMoment(int sejourId, SaveMomentRequest request);
 

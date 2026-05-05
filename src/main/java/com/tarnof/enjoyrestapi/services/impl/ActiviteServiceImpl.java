@@ -67,8 +67,8 @@ public class ActiviteServiceImpl implements ActiviteService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ActiviteDto> listerActivitesDuSejour(int sejourId) {
-        sejourVerificationService.verifierSejourExiste(sejourId);
+    public List<ActiviteDto> listerActivitesDuSejour(int sejourId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         return activiteRepository.findBySejourIdOrderByDateAscIdAsc(sejourId).stream()
                 .map(a -> toDto(a, null))
                 .collect(Collectors.toList());
@@ -76,7 +76,8 @@ public class ActiviteServiceImpl implements ActiviteService {
 
     @Override
     @Transactional(readOnly = true)
-    public ActiviteDto getActivite(int sejourId, int activiteId) {
+    public ActiviteDto getActivite(int sejourId, int activiteId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         Activite activite = activiteRepository.findByIdAndSejourId(activiteId, sejourId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Activité non trouvée pour ce séjour (id: " + activiteId + ")"));

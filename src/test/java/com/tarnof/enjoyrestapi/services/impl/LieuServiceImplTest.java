@@ -2,12 +2,15 @@ package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.Lieu;
 import com.tarnof.enjoyrestapi.entities.Sejour;
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
+import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.SaveLieuRequest;
 import com.tarnof.enjoyrestapi.repositories.LieuRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
+import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,16 +38,26 @@ class LieuServiceImplTest {
     private LieuRepository lieuRepository;
     @Mock
     private SejourRepository sejourRepository;
+    @Mock
+    private UtilisateurRepository utilisateurRepository;
 
     private LieuServiceImpl lieuService;
 
     private Sejour sejour;
+    private Utilisateur appelantAdmin;
 
     @BeforeEach
     void setUp() {
-        lieuService = new LieuServiceImpl(lieuRepository, new SejourVerificationService(sejourRepository));
+        lieuService = new LieuServiceImpl(
+                lieuRepository,
+                new SejourVerificationService(sejourRepository, utilisateurRepository));
         sejour = new Sejour();
         sejour.setId(1);
+        appelantAdmin = Utilisateur.builder()
+                .id(99)
+                .tokenId("appelant-token")
+                .role(Role.ADMIN)
+                .build();
     }
 
     @Test
@@ -122,9 +135,15 @@ class LieuServiceImplTest {
     @Test
     @DisplayName("listerLieuxDuSejour - 404 si séjour absent")
     void lister_whenSejourMissing_shouldThrow404() {
+        Utilisateur appelantBasique = Utilisateur.builder()
+                .id(50)
+                .tokenId("user-token")
+                .role(Role.BASIC_USER)
+                .build();
+        when(utilisateurRepository.findByTokenId("user-token")).thenReturn(Optional.of(appelantBasique));
         when(sejourRepository.findById(99)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> lieuService.listerLieuxDuSejour(99))
+        assertThatThrownBy(() -> lieuService.listerLieuxDuSejour(99, "user-token"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -162,9 +181,9 @@ class LieuServiceImplTest {
     @Test
     @DisplayName("listerLieuxDuSejour - liste vide OK")
     void lister_whenEmpty_shouldReturnEmpty() {
-        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(utilisateurRepository.findByTokenId("appelant-token")).thenReturn(Optional.of(appelantAdmin));
         when(lieuRepository.findBySejourId(1)).thenReturn(List.of());
 
-        assertThat(lieuService.listerLieuxDuSejour(1)).isEmpty();
+        assertThat(lieuService.listerLieuxDuSejour(1, "appelant-token")).isEmpty();
     }
 }

@@ -18,7 +18,7 @@
   - `modifierRoleMembreEquipe()` : modification réussie, membre non dans l'équipe, séjour inexistant
   - `supprimerMembreEquipe()` : suppression réussie, membre non dans l'équipe, membre inexistant
   - `supprimerSejour()` : suppression réussie, séjour inexistant
-  - `getSejoursByDirecteur()` : récupération réussie, directeur inexistant
+  - `getSejoursByUtilisateur()` : récupération par utilisateur non-admin, utilisateur inexistant, comportement ADMIN (récupère tous les séjours)
 - Utilisation de `@ExtendWith(MockitoExtension.class)` et `@InjectMocks` pour l'injection des mocks.
 - [FAIT] Les tests utilisent maintenant `ResourceNotFoundException` dans toutes les assertions `assertThatThrownBy()` pour une meilleure précision des tests ✅
 
@@ -140,7 +140,7 @@
   - `creerSejour()` : 200 OK, 404 Not Found (directeur inexistant) (2 tests)
   - `modifierSejour()` : 200 OK, 404 Not Found (2 tests)
   - `supprimerSejour()` : 204 No Content, 404 Not Found (2 tests)
-  - `getSejoursByDirecteur()` : 200 OK avec liste, 404 Not Found (directeur inexistant) (2 tests)
+  - `getSejoursByUtilisateur()` : 200 OK avec liste, 404 Not Found (utilisateur inexistant) (2 tests)
   - `ajouterMembreExistant()` : 201 Created, 400 Bad Request (validation), 404 Not Found (séjour inexistant), 409 Conflict (membre déjà dans l'équipe) (4 tests)
   - `ajouterNouveauMembre()` : 201 Created, 400 Bad Request (validation), 404 Not Found (séjour inexistant), 409 Conflict (membre déjà dans l'équipe) (4 tests)
   - `modifierRoleMembreEquipe()` : 204 No Content, 400 Bad Request (validation), 404 Not Found (séjour inexistant) (3 tests)
@@ -359,7 +359,7 @@
   - `sejour.service.ts` : `SejourInfos` → `CreateSejourRequest`, retours typés avec `SejourDTO`
   - `DetailsSejour.tsx` : interface locale `Sejour` → `SejourDTO`
   - `ListeSejoursAdmin.tsx` : interface locale `Sejour` → `SejourDTO`
-  - `ListeSejoursDirecteur.tsx` : interface locale `Sejour` → `SejourDTO`
+  - `ListeSejoursDirecteur.tsx` : interface locale `Sejour` → `SejourDTO` (**Note** : doit être mis à jour pour utiliser le nouvel endpoint `/sejours/utilisateur/{tokenId}` au lieu de `/sejours/directeur/{tokenId}`)
   - `SejourForm.tsx` : `SejourInfos` → `CreateSejourRequest`
   - `UserForm.tsx` : `AddMembreRequest` → `MembreEquipeRequest` (POST **membre existant**). **Changement de rôle** : **`PUT /sejours/{id}/equipe/{membreTokenId}`** avec body **`UpdateMembreEquipeRoleRequest`** (`roleSejour` seul) — ne pas dupliquer `tokenId` dans le JSON.
 - Tous les services et composants liés aux séjours utilisent maintenant les types centralisés de `api.d.ts`.

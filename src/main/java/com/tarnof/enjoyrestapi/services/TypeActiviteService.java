@@ -10,9 +10,9 @@ public interface TypeActiviteService {
     /** Crée les types par défaut pour ce séjour s'ils manquent ; marque {@code predefini} pour les libellés connus. */
     void assurerTypesParDefautPourSejour(int sejourId);
 
-    List<TypeActiviteDto> listerTypesActivite(int sejourId);
+    List<TypeActiviteDto> listerTypesActivite(int sejourId, String utilisateurTokenId);
 
-    TypeActiviteDto getTypeActivite(int sejourId, int id);
+    TypeActiviteDto getTypeActivite(int sejourId, int id, String utilisateurTokenId);
 
     TypeActiviteDto creerTypeActivite(int sejourId, SaveTypeActiviteRequest request);
 

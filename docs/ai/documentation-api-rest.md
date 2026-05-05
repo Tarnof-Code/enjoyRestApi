@@ -90,13 +90,16 @@
 - **Codes d'erreur** :
   - `404` : Séjour non trouvé
 
-#### GET `/api/v1/sejours/directeur/{directeurTokenId}`
-- **Description** : Récupérer tous les séjours d'un directeur
-- **Autorisation** : `ROLE_DIRECTION`
-- **Path Variable** : `directeurTokenId` (string)
+#### GET `/api/v1/sejours/utilisateur/{utilisateurTokenId}`
+- **Description** : Récupérer tous les séjours d'un utilisateur selon son rôle
+  - **ADMIN** : récupère tous les séjours du système
+  - **DIRECTION / BASIC_USER** : récupère uniquement les séjours où l'utilisateur est directeur ou membre de l'équipe
+- **Autorisation** : `ROLE_ADMIN` ou `ROLE_DIRECTION` ou `ROLE_BASIC_USER`
+- **Path Variable** : `utilisateurTokenId` (string)
 - **Réponse** : `List<SejourDTO>` (200 OK)
 - **Codes d'erreur** :
-  - `404` : Directeur non trouvé
+  - `404` : Utilisateur non trouvé
+- **Note** : Remplace l'ancien endpoint `/api/v1/sejours/directeur/{directeurTokenId}` (déprécié)
 
 #### POST `/api/v1/sejours/{id}/equipe/existant`
 - **Description** : Ajouter un membre existant à l'équipe d'un séjour

@@ -28,15 +28,16 @@ public class LieuServiceImpl implements LieuService {
     }
 
     @Override
-    public List<LieuDto> listerLieuxDuSejour(int sejourId) {
-        sejourVerificationService.verifierSejourExiste(sejourId);
+    public List<LieuDto> listerLieuxDuSejour(int sejourId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         return lieuRepository.findBySejourId(sejourId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public LieuDto getLieu(int sejourId, int lieuId) {
+    public LieuDto getLieu(int sejourId, int lieuId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         return mapToDto(getLieuEtVerifierSejour(sejourId, lieuId));
     }
 

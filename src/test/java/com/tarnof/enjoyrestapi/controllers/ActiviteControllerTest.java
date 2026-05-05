@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
 import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
@@ -19,6 +20,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -69,9 +72,14 @@ class ActiviteControllerTest {
                 List.of(new ActiviteDto.MembreEquipeInfo("t1", "N", "P"));
         List<Integer> groupeIds = List.of(2, 4);
         ActiviteDto dto = new ActiviteDto(1, date, "Kayak", "Desc", 3, moment, lieu, typeActivite, membres, groupeIds, null);
-        when(activiteService.listerActivitesDuSejour(3)).thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/api/v1/sejours/3/activites"))
+        Utilisateur utilisateur = Utilisateur.builder().tokenId("user-token-123").build();
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                utilisateur, null, Collections.emptyList());
+
+        when(activiteService.listerActivitesDuSejour(3, "user-token-123")).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/v1/sejours/3/activites").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nom").value("Kayak"))
                 .andExpect(jsonPath("$[0].membres[0].tokenId").value("t1"));

@@ -9,6 +9,7 @@ import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
 import com.tarnof.enjoyrestapi.entities.TypeActivite;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
+import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.enums.TypeGroupe;
 import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningAnimateurException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
@@ -73,6 +74,7 @@ class ActiviteServiceImplTest {
     private ActiviteServiceImpl activiteService;
     private Sejour sejour;
     private Utilisateur membre;
+    private Utilisateur appelantAdmin;
     private Moment momentMatin;
     private TypeActivite typeActiviteSport;
 
@@ -80,7 +82,7 @@ class ActiviteServiceImplTest {
     void setUp() {
         activiteService = new ActiviteServiceImpl(
                 activiteRepository,
-                new SejourVerificationService(sejourRepository),
+                new SejourVerificationService(sejourRepository, utilisateurRepository),
                 utilisateurRepository,
                 sejourEquipeRepository,
                 groupeRepository,
@@ -98,6 +100,13 @@ class ActiviteServiceImplTest {
                 .tokenId("mem-1")
                 .nom("Dupont")
                 .prenom("Jean")
+                .build();
+        appelantAdmin = Utilisateur.builder()
+                .id(99)
+                .tokenId("appelant-token")
+                .nom("Admin")
+                .prenom("Super")
+                .role(Role.ADMIN)
                 .build();
         momentMatin = new Moment();
         momentMatin.setId(MOMENT_ID);
@@ -123,10 +132,10 @@ class ActiviteServiceImplTest {
     @DisplayName("listerActivitesDuSejour - succès")
     void lister_ShouldReturnDtos() {
         Activite a = activitePersistee(3, List.of(membre));
-        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(utilisateurRepository.findByTokenId("appelant-token")).thenReturn(Optional.of(appelantAdmin));
         when(activiteRepository.findBySejourIdOrderByDateAscIdAsc(1)).thenReturn(List.of(a));
 
-        List<ActiviteDto> result = activiteService.listerActivitesDuSejour(1);
+        List<ActiviteDto> result = activiteService.listerActivitesDuSejour(1, "appelant-token");
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().id()).isEqualTo(3);
@@ -137,8 +146,15 @@ class ActiviteServiceImplTest {
     @Test
     @DisplayName("listerActivitesDuSejour - séjour absent")
     void lister_whenSejourMissing_shouldThrow() {
+        // Pour déclencher la vérification du séjour, l'appelant doit être non-ADMIN
+        Utilisateur appelantBasique = Utilisateur.builder()
+                .id(50)
+                .tokenId("user-token")
+                .role(Role.BASIC_USER)
+                .build();
+        when(utilisateurRepository.findByTokenId("user-token")).thenReturn(Optional.of(appelantBasique));
         when(sejourRepository.findById(99)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> activiteService.listerActivitesDuSejour(99))
+        assertThatThrownBy(() -> activiteService.listerActivitesDuSejour(99, "user-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Séjour non trouvé");
     }
@@ -648,8 +664,9 @@ class ActiviteServiceImplTest {
     @DisplayName("getActivite - succès")
     void get_shouldReturnDto() {
         Activite a = activitePersistee(4, List.of(membre));
+        when(utilisateurRepository.findByTokenId("appelant-token")).thenReturn(Optional.of(appelantAdmin));
         when(activiteRepository.findByIdAndSejourId(4, 1)).thenReturn(Optional.of(a));
-        ActiviteDto dto = activiteService.getActivite(1, 4);
+        ActiviteDto dto = activiteService.getActivite(1, 4, "appelant-token");
         assertThat(dto.id()).isEqualTo(4);
         assertThat(dto.avertissementLieu()).isNull();
     }

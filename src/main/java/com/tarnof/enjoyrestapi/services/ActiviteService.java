@@ -8,9 +8,9 @@ import java.util.List;
 
 public interface ActiviteService {
 
-    List<ActiviteDto> listerActivitesDuSejour(int sejourId);
+    List<ActiviteDto> listerActivitesDuSejour(int sejourId, String utilisateurTokenId);
 
-    ActiviteDto getActivite(int sejourId, int activiteId);
+    ActiviteDto getActivite(int sejourId, int activiteId, String utilisateurTokenId);
 
     ActiviteDto creerActivite(int sejourId, CreateActiviteRequest request);
 

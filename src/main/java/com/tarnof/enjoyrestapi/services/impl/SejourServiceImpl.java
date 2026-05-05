@@ -74,9 +74,23 @@ public class SejourServiceImpl implements SejourService {
     }
 
     @Override
-    public SejourDto getSejourById(int id) {
+    public SejourDto getSejourById(int id, String utilisateurTokenId) {
+        Utilisateur utilisateur = utilisateurRepository.findByTokenId(utilisateurTokenId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec le token ID: " + utilisateurTokenId));
+        
         Sejour sejour = sejourRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + id));
+        
+        if (utilisateur.getRole() != Role.ADMIN) {
+            boolean estDirecteur = sejour.getDirecteur() != null && sejour.getDirecteur().getTokenId().equals(utilisateurTokenId);
+            boolean estDansEquipe = sejour.getEquipeRoles() != null && sejour.getEquipeRoles().stream()
+                    .anyMatch(se -> se.getUtilisateur() != null && se.getUtilisateur().getTokenId().equals(utilisateurTokenId));
+            
+            if (!estDirecteur && !estDansEquipe) {
+                throw new org.springframework.security.access.AccessDeniedException("Vous n'avez pas accès à ce séjour");
+            }
+        }
+        
         return mapToDTO(sejour,true);
     }
 
@@ -287,11 +301,18 @@ public class SejourServiceImpl implements SejourService {
     }
 
     @Override
-    public List<SejourDto> getSejoursByDirecteur(String directeurTokenId) {
-        Utilisateur directeur = utilisateurRepository.findByTokenId(directeurTokenId)
-                .orElseThrow(() -> new ResourceNotFoundException("Directeur non trouvé avec le token ID: " + directeurTokenId));
-        return sejourRepository.findByDirecteur(directeur).stream()
-                .map(sejour -> mapToDTO(sejour,false))
+    public List<SejourDto> getSejoursByUtilisateur(String utilisateurTokenId) {
+        Utilisateur utilisateur = utilisateurRepository.findByTokenId(utilisateurTokenId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec le token ID: " + utilisateurTokenId));
+        
+        if (utilisateur.getRole() == Role.ADMIN) {
+            return sejourRepository.findAll().stream()
+                    .map(sejour -> mapToDTO(sejour, false))
+                    .collect(Collectors.toList());
+        }
+        
+        return sejourRepository.findSejoursByUtilisateur(utilisateur).stream()
+                .map(sejour -> mapToDTO(sejour, false))
                 .collect(Collectors.toList());
     }
 

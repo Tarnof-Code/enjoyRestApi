@@ -1,6 +1,7 @@
 package com.tarnof.enjoyrestapi.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
@@ -16,9 +17,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -48,6 +52,7 @@ class LieuControllerTest {
 
     private LieuDto lieuDto;
     private SaveLieuRequest saveLieuRequest;
+    private Authentication authentication;
 
     @BeforeEach
     void setUp() {
@@ -58,41 +63,46 @@ class LieuControllerTest {
 
         lieuDto = new LieuDto(3, "Salle polyvalente", EmplacementLieu.INTERIEUR, 40, false, null, 1);
         saveLieuRequest = new SaveLieuRequest("Salle polyvalente", EmplacementLieu.INTERIEUR, 40, false, null);
+
+        Utilisateur utilisateur = Utilisateur.builder().tokenId("user-token-123").build();
+        authentication = new UsernamePasswordAuthenticationToken(
+                utilisateur, null, Collections.emptyList());
     }
 
     @Test
     @DisplayName("lister - 200")
     void lister_ShouldReturn200() throws Exception {
-        when(lieuService.listerLieuxDuSejour(1)).thenReturn(List.of(lieuDto));
+        when(lieuService.listerLieuxDuSejour(1, "user-token-123")).thenReturn(List.of(lieuDto));
 
-        mockMvc.perform(get("/api/v1/sejours/1/lieux"))
+        mockMvc.perform(get("/api/v1/sejours/1/lieux").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(3))
                 .andExpect(jsonPath("$[0].emplacement").value("INTERIEUR"));
 
-        verify(lieuService).listerLieuxDuSejour(1);
+        verify(lieuService).listerLieuxDuSejour(1, "user-token-123");
     }
 
     @Test
     @DisplayName("get - 200")
     void get_ShouldReturn200() throws Exception {
-        when(lieuService.getLieu(1, 3)).thenReturn(lieuDto);
+        when(lieuService.getLieu(1, 3, "user-token-123")).thenReturn(lieuDto);
 
-        mockMvc.perform(get("/api/v1/sejours/1/lieux/3"))
+        mockMvc.perform(get("/api/v1/sejours/1/lieux/3").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sejourId").value(1))
                 .andExpect(jsonPath("$.nombreMax").value(40));
 
-        verify(lieuService).getLieu(1, 3);
+        verify(lieuService).getLieu(1, 3, "user-token-123");
     }
 
     @Test
     @DisplayName("get - 404")
     void get_WhenNotFound_ShouldReturn404() throws Exception {
-        when(lieuService.getLieu(1, 99)).thenThrow(new ResourceNotFoundException("Lieu non trouvé"));
+        when(lieuService.getLieu(1, 99, "user-token-123"))
+                .thenThrow(new ResourceNotFoundException("Lieu non trouvé"));
 
-        mockMvc.perform(get("/api/v1/sejours/1/lieux/99"))
+        mockMvc.perform(get("/api/v1/sejours/1/lieux/99").principal(authentication))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Lieu non trouvé"));
     }

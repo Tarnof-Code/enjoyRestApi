@@ -1,11 +1,13 @@
 package com.tarnof.enjoyrestapi.controllers;
 
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.payload.request.SaveTypeActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.TypeActiviteDto;
 import com.tarnof.enjoyrestapi.services.TypeActiviteService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,15 +23,17 @@ public class TypeActiviteController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('DIRECTION')")
-    public List<TypeActiviteDto> lister(@PathVariable("sejourId") int sejourId) {
-        return typeActiviteService.listerTypesActivite(sejourId);
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public List<TypeActiviteDto> lister(@PathVariable("sejourId") int sejourId, Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return typeActiviteService.listerTypesActivite(sejourId, utilisateur.getTokenId());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('DIRECTION')")
-    public TypeActiviteDto get(@PathVariable("sejourId") int sejourId, @PathVariable("id") int id) {
-        return typeActiviteService.getTypeActivite(sejourId, id);
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public TypeActiviteDto get(@PathVariable("sejourId") int sejourId, @PathVariable("id") int id, Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return typeActiviteService.getTypeActivite(sejourId, id, utilisateur.getTokenId());
     }
 
     @PostMapping

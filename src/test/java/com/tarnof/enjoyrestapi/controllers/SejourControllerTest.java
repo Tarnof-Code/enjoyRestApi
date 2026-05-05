@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.enums.RoleSejour;
 import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
@@ -22,6 +23,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -181,10 +184,13 @@ class SejourControllerTest {
     @DisplayName("getSejourById - Devrait retourner 200 OK avec le séjour")
     void getSejourById_ShouldReturn200WithSejour() throws Exception {
         // Given
-        when(sejourService.getSejourById(1)).thenReturn(sejourDto);
+        Utilisateur utilisateur = Utilisateur.builder().tokenId("user-token-123").build();
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                utilisateur, null, Collections.emptyList());
+        when(sejourService.getSejourById(1, "user-token-123")).thenReturn(sejourDto);
 
         // When & Then
-        mockMvc.perform(get("/api/v1/sejours/1"))
+        mockMvc.perform(get("/api/v1/sejours/1").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.nom").value("Séjour Test"))
@@ -194,22 +200,25 @@ class SejourControllerTest {
                 .andExpect(jsonPath("$.directeur.nom").value("Dupont"))
                 .andExpect(jsonPath("$.directeur.prenom").value("Jean"));
 
-        verify(sejourService).getSejourById(1);
+        verify(sejourService).getSejourById(1, "user-token-123");
     }
 
     @Test
     @DisplayName("getSejourById - Devrait retourner 404 Not Found si le séjour n'existe pas")
     void getSejourById_ShouldReturn404WhenSejourNotFound() throws Exception {
         // Given
-        when(sejourService.getSejourById(999))
+        Utilisateur utilisateur = Utilisateur.builder().tokenId("user-token-123").build();
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                utilisateur, null, Collections.emptyList());
+        when(sejourService.getSejourById(999, "user-token-123"))
                 .thenThrow(new ResourceNotFoundException("Séjour non trouvé avec l'ID: 999"));
 
         // When & Then
-        mockMvc.perform(get("/api/v1/sejours/999"))
+        mockMvc.perform(get("/api/v1/sejours/999").principal(authentication))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Séjour non trouvé avec l'ID: 999"));
 
-        verify(sejourService).getSejourById(999);
+        verify(sejourService).getSejourById(999, "user-token-123");
     }
 
     // ========== Tests pour creerSejour() ==========
@@ -376,39 +385,39 @@ class SejourControllerTest {
         verify(sejourService).supprimerSejour(999);
     }
 
-    // ========== Tests pour getSejoursByDirecteur() ==========
+    // ========== Tests pour getSejoursByUtilisateur() ==========
 
     @Test
-    @DisplayName("getSejoursByDirecteur - Devrait retourner 200 OK avec les séjours du directeur")
-    void getSejoursByDirecteur_ShouldReturn200WithSejours() throws Exception {
+    @DisplayName("getSejoursByUtilisateur - Devrait retourner 200 OK avec les séjours de l'utilisateur")
+    void getSejoursByUtilisateur_ShouldReturn200WithSejours() throws Exception {
         // Given
         List<SejourDto> sejours = Arrays.asList(sejourDto);
-        when(sejourService.getSejoursByDirecteur("directeur-token-123")).thenReturn(sejours);
+        when(sejourService.getSejoursByUtilisateur("utilisateur-token-123")).thenReturn(sejours);
 
         // When & Then
-        mockMvc.perform(get("/api/v1/sejours/directeur/directeur-token-123"))
+        mockMvc.perform(get("/api/v1/sejours/utilisateur/utilisateur-token-123"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(1))
                 .andExpect(jsonPath("$[0].nom").value("Séjour Test"));
 
-        verify(sejourService).getSejoursByDirecteur("directeur-token-123");
+        verify(sejourService).getSejoursByUtilisateur("utilisateur-token-123");
     }
 
     @Test
-    @DisplayName("getSejoursByDirecteur - Devrait retourner 404 Not Found si le directeur n'existe pas")
-    void getSejoursByDirecteur_ShouldReturn404WhenDirecteurNotFound() throws Exception {
+    @DisplayName("getSejoursByUtilisateur - Devrait retourner 404 Not Found si l'utilisateur n'existe pas")
+    void getSejoursByUtilisateur_ShouldReturn404WhenUtilisateurNotFound() throws Exception {
         // Given
-        when(sejourService.getSejoursByDirecteur("directeur-inexistant"))
-                .thenThrow(new ResourceNotFoundException("Directeur non trouvé avec le token ID: directeur-inexistant"));
+        when(sejourService.getSejoursByUtilisateur("utilisateur-inexistant"))
+                .thenThrow(new ResourceNotFoundException("Utilisateur non trouvé avec le token ID: utilisateur-inexistant"));
 
         // When & Then
-        mockMvc.perform(get("/api/v1/sejours/directeur/directeur-inexistant"))
+        mockMvc.perform(get("/api/v1/sejours/utilisateur/utilisateur-inexistant"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Directeur non trouvé avec le token ID: directeur-inexistant"));
+                .andExpect(jsonPath("$.error").value("Utilisateur non trouvé avec le token ID: utilisateur-inexistant"));
 
-        verify(sejourService).getSejoursByDirecteur("directeur-inexistant");
+        verify(sejourService).getSejoursByUtilisateur("utilisateur-inexistant");
     }
 
     // ========== Tests pour ajouterMembreExistant() ==========

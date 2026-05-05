@@ -10,12 +10,12 @@ import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 
 public interface SejourService {
     List<SejourDto> getAllSejours();
-    SejourDto getSejourById(int id);
+    SejourDto getSejourById(int id, String utilisateurTokenId);
     SejourDto creerSejour(CreateSejourRequest request);
     SejourDto modifierSejour(int id, CreateSejourRequest request);
     void ajouterMembreEquipe(int sejourId, RegisterRequest registerRequest, MembreEquipeRequest membreEquipeRequest);
     void modifierRoleMembreEquipe(int sejourId, String membreTokenId, RoleSejour nouveauRole);
     void supprimerMembreEquipe(int sejourId, String membreTokenId);
-    List<SejourDto> getSejoursByDirecteur(String directeurTokenId);
+    List<SejourDto> getSejoursByUtilisateur(String utilisateurTokenId);
     void supprimerSejour(int id);
 }

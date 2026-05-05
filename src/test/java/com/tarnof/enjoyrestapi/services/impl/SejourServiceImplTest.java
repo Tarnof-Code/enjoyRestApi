@@ -77,6 +77,7 @@ class SejourServiceImplTest {
 
     private Sejour sejour;
     private Utilisateur directeur;
+    private Utilisateur admin;
     private CreateSejourRequest createRequest;
     private Date dateDebut;
     private Date dateFin;
@@ -95,6 +96,17 @@ class SejourServiceImplTest {
                 .prenom("Jean")
                 .role(Role.DIRECTION)
                 .email("jean.dupont@test.fr")
+                .build();
+
+        // Utilisateur ADMIN utilisé comme appelant pour les tests de getSejourById
+        // afin de contourner le contrôle d'accès au séjour.
+        admin = Utilisateur.builder()
+                .id(99)
+                .tokenId("admin-token")
+                .nom("Admin")
+                .prenom("Super")
+                .role(Role.ADMIN)
+                .email("admin@test.fr")
                 .build();
 
         // Séjour de test
@@ -164,10 +176,11 @@ class SejourServiceImplTest {
     @DisplayName("getSejourById - Devrait retourner un séjour existant avec directeur")
     void getSejourById_WhenSejourExistsWithDirecteur_ShouldReturnSejourResponse() {
         // Given
+        when(utilisateurRepository.findByTokenId("admin-token")).thenReturn(Optional.of(admin));
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
 
         // When
-        SejourDto result = sejourService.getSejourById(1);
+        SejourDto result = sejourService.getSejourById(1, "admin-token");
 
         // Then
         assertThat(result).isNotNull();
@@ -194,10 +207,11 @@ class SejourServiceImplTest {
                 .equipeRoles(new ArrayList<>())
                 .build();
 
+        when(utilisateurRepository.findByTokenId("admin-token")).thenReturn(Optional.of(admin));
         when(sejourRepository.findById(2)).thenReturn(Optional.of(sejourSansDirecteur));
 
         // When
-        SejourDto result = sejourService.getSejourById(2);
+        SejourDto result = sejourService.getSejourById(2, "admin-token");
 
         // Then
         assertThat(result).isNotNull();
@@ -213,10 +227,11 @@ class SejourServiceImplTest {
     void getSejourById_WhenSejourNotFound_ShouldThrowException() {
         // Given
         int id = 999;
+        when(utilisateurRepository.findByTokenId("admin-token")).thenReturn(Optional.of(admin));
         when(sejourRepository.findById(id)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> sejourService.getSejourById(id))
+        assertThatThrownBy(() -> sejourService.getSejourById(id, "admin-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Séjour non trouvé avec l'ID: " + id);
         verify(sejourRepository).findById(id);
@@ -823,38 +838,67 @@ class SejourServiceImplTest {
     }
 
     @Test
-    @DisplayName("getSejoursByDirecteur - Devrait retourner les séjours d'un directeur")
-    void getSejoursByDirecteur_WithValidDirecteur_ShouldReturnSejours() {
+    @DisplayName("getSejoursByUtilisateur - Devrait retourner les séjours d'un utilisateur non-admin")
+    void getSejoursByUtilisateur_WithNonAdminUtilisateur_ShouldReturnSejours() {
         // Given
         List<Sejour> sejours = Arrays.asList(sejour);
-        when(utilisateurRepository.findByTokenId("directeur-token-123"))
+        when(utilisateurRepository.findByTokenId("utilisateur-token-123"))
                 .thenReturn(Optional.of(directeur));
-        when(sejourRepository.findByDirecteur(directeur)).thenReturn(sejours);
+        when(sejourRepository.findSejoursByUtilisateur(directeur)).thenReturn(sejours);
 
         // When
-        List<SejourDto> result = sejourService.getSejoursByDirecteur("directeur-token-123");
+        List<SejourDto> result = sejourService.getSejoursByUtilisateur("utilisateur-token-123");
 
         // Then
         assertThat(result).isNotNull();
         assertThat(result).hasSize(1);
         assertThat(result.get(0).nom()).isEqualTo("Séjour Test");
-        verify(utilisateurRepository).findByTokenId("directeur-token-123");
-        verify(sejourRepository).findByDirecteur(directeur);
+        verify(utilisateurRepository).findByTokenId("utilisateur-token-123");
+        verify(sejourRepository).findSejoursByUtilisateur(directeur);
     }
 
     @Test
-    @DisplayName("getSejoursByDirecteur - Devrait lancer une exception si le directeur n'existe pas")
-    void getSejoursByDirecteur_WhenDirecteurNotFound_ShouldThrowException() {
+    @DisplayName("getSejoursByUtilisateur - Devrait lancer une exception si l'utilisateur n'existe pas")
+    void getSejoursByUtilisateur_WhenUtilisateurNotFound_ShouldThrowException() {
         // Given
-        when(utilisateurRepository.findByTokenId("directeur-inexistant"))
+        when(utilisateurRepository.findByTokenId("utilisateur-inexistant"))
                 .thenReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> sejourService.getSejoursByDirecteur("directeur-inexistant"))
+        assertThatThrownBy(() -> sejourService.getSejoursByUtilisateur("utilisateur-inexistant"))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Directeur non trouvé avec le token ID: directeur-inexistant");
-        verify(utilisateurRepository).findByTokenId("directeur-inexistant");
-        verify(sejourRepository, never()).findByDirecteur(any(Utilisateur.class));
+                .hasMessageContaining("Utilisateur non trouvé avec le token ID: utilisateur-inexistant");
+        verify(utilisateurRepository).findByTokenId("utilisateur-inexistant");
+        verify(sejourRepository, never()).findSejoursByUtilisateur(any(Utilisateur.class));
+    }
+
+    @Test
+    @DisplayName("getSejoursByUtilisateur - Devrait retourner tous les séjours pour un utilisateur ADMIN")
+    void getSejoursByUtilisateur_WithAdminUtilisateur_ShouldReturnAllSejours() {
+        // Given
+        Utilisateur admin = Utilisateur.builder()
+                .id(2)
+                .tokenId("admin-token-456")
+                .nom("Admin")
+                .prenom("Super")
+                .role(Role.ADMIN)
+                .email("admin@test.fr")
+                .build();
+        
+        List<Sejour> allSejours = Arrays.asList(sejour);
+        when(utilisateurRepository.findByTokenId("admin-token-456"))
+                .thenReturn(Optional.of(admin));
+        when(sejourRepository.findAll()).thenReturn(allSejours);
+
+        // When
+        List<SejourDto> result = sejourService.getSejoursByUtilisateur("admin-token-456");
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        verify(utilisateurRepository).findByTokenId("admin-token-456");
+        verify(sejourRepository).findAll();
+        verify(sejourRepository, never()).findSejoursByUtilisateur(any(Utilisateur.class));
     }
 
     // ========== Tests de conversion DTO (mapToDTO) ==========
@@ -901,10 +945,11 @@ class SejourServiceImplTest {
 
         sejour.setEquipeRoles(Arrays.asList(sejourEquipe1, sejourEquipe2));
 
+        when(utilisateurRepository.findByTokenId("admin-token")).thenReturn(Optional.of(admin));
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
 
         // When - getSejourById utilise mapToDTO(sejour, true) pour inclure l'équipe
-        SejourDto result = sejourService.getSejourById(1);
+        SejourDto result = sejourService.getSejourById(1, "admin-token");
 
         // Then
         assertThat(result).isNotNull();
@@ -1000,10 +1045,11 @@ class SejourServiceImplTest {
 
         sejourSansDirecteur.setEquipeRoles(Collections.singletonList(sejourEquipe));
 
+        when(utilisateurRepository.findByTokenId("admin-token")).thenReturn(Optional.of(admin));
         when(sejourRepository.findById(2)).thenReturn(Optional.of(sejourSansDirecteur));
 
         // When - getSejourById utilise mapToDTO(sejour, true) pour inclure l'équipe
-        SejourDto result = sejourService.getSejourById(2);
+        SejourDto result = sejourService.getSejourById(2, "admin-token");
 
         // Then
         assertThat(result).isNotNull();
@@ -1086,10 +1132,11 @@ class SejourServiceImplTest {
 
         sejour.setEquipeRoles(Collections.singletonList(sejourEquipe));
 
+        when(utilisateurRepository.findByTokenId("admin-token")).thenReturn(Optional.of(admin));
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
 
         // When
-        SejourDto result = sejourService.getSejourById(1);
+        SejourDto result = sejourService.getSejourById(1, "admin-token");
 
         // Then
         assertThat(result.equipe()).isNotNull();

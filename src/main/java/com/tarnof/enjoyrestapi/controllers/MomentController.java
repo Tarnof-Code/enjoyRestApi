@@ -1,5 +1,6 @@
 package com.tarnof.enjoyrestapi.controllers;
 
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.payload.request.ReorderMomentsRequest;
 import com.tarnof.enjoyrestapi.payload.request.SaveMomentRequest;
 import com.tarnof.enjoyrestapi.payload.response.MomentDto;
@@ -7,6 +8,7 @@ import com.tarnof.enjoyrestapi.services.MomentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,17 +24,20 @@ public class MomentController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('DIRECTION')")
-    public List<MomentDto> lister(@PathVariable("sejourId") int sejourId) {
-        return momentService.listerMomentsDuSejour(sejourId);
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public List<MomentDto> lister(@PathVariable("sejourId") int sejourId, Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return momentService.listerMomentsDuSejour(sejourId, utilisateur.getTokenId());
     }
 
     @GetMapping("/{momentId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
     public MomentDto get(
             @PathVariable("sejourId") int sejourId,
-            @PathVariable("momentId") int momentId) {
-        return momentService.getMoment(sejourId, momentId);
+            @PathVariable("momentId") int momentId,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return momentService.getMoment(sejourId, momentId, utilisateur.getTokenId());
     }
 
     @PostMapping

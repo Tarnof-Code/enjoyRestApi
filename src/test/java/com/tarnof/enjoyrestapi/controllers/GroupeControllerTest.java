@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.TypeGroupe;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
@@ -19,6 +20,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -48,6 +51,7 @@ class GroupeControllerTest {
 
     private GroupeDto groupeDto;
     private CreateGroupeRequest createGroupeRequest;
+    private Authentication authentication;
 
     @BeforeEach
     void setUp() {
@@ -60,6 +64,10 @@ class GroupeControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(groupeController)
                 .setControllerAdvice(globalExceptionHandler)
                 .build();
+
+        Utilisateur utilisateur = Utilisateur.builder().tokenId("user-token-123").build();
+        authentication = new UsernamePasswordAuthenticationToken(
+                utilisateur, null, Collections.emptyList());
 
         groupeDto = new GroupeDto(
                 5,
@@ -91,7 +99,7 @@ class GroupeControllerTest {
     void getGroupesDuSejour_ShouldReturn200() throws Exception {
         when(groupeService.getGroupesDuSejour(eq(1), anyString())).thenReturn(List.of(groupeDto));
 
-        mockMvc.perform(get("/api/v1/sejours/1/groupes"))
+        mockMvc.perform(get("/api/v1/sejours/1/groupes").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(1))
@@ -106,7 +114,7 @@ class GroupeControllerTest {
     void getGroupeById_ShouldReturn200() throws Exception {
         when(groupeService.getGroupeById(eq(1), eq(5), anyString())).thenReturn(groupeDto);
 
-        mockMvc.perform(get("/api/v1/sejours/1/groupes/5"))
+        mockMvc.perform(get("/api/v1/sejours/1/groupes/5").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.sejourId").value(1));
@@ -120,7 +128,7 @@ class GroupeControllerTest {
         when(groupeService.getGroupeById(eq(1), eq(99), anyString()))
                 .thenThrow(new ResourceNotFoundException("Groupe non trouvé"));
 
-        mockMvc.perform(get("/api/v1/sejours/1/groupes/99"))
+        mockMvc.perform(get("/api/v1/sejours/1/groupes/99").principal(authentication))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Groupe non trouvé"));
     }

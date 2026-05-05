@@ -58,8 +58,8 @@ public class TypeActiviteServiceImpl implements TypeActiviteService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TypeActiviteDto> listerTypesActivite(int sejourId) {
-        sejourVerificationService.verifierSejourExiste(sejourId);
+    public List<TypeActiviteDto> listerTypesActivite(int sejourId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         return typeActiviteRepository.findBySejourIdOrderByLibelleAsc(sejourId).stream()
                 .map(TypeActiviteServiceImpl::toDto)
                 .toList();
@@ -67,7 +67,8 @@ public class TypeActiviteServiceImpl implements TypeActiviteService {
 
     @Override
     @Transactional(readOnly = true)
-    public TypeActiviteDto getTypeActivite(int sejourId, int id) {
+    public TypeActiviteDto getTypeActivite(int sejourId, int id, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         return toDto(typeActiviteParIdEtSejour(id, sejourId));
     }
 

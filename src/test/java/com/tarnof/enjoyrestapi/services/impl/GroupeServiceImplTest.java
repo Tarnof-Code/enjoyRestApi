@@ -62,7 +62,7 @@ class GroupeServiceImplTest {
     void setUp() {
         groupeService = new GroupeServiceImpl(
                 groupeRepository,
-                new SejourVerificationService(sejourRepository),
+                new SejourVerificationService(sejourRepository, utilisateurRepository),
                 enfantRepository,
                 utilisateurRepository,
                 sejourEnfantRepository,

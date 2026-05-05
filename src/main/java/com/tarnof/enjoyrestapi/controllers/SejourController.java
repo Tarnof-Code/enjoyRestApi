@@ -4,8 +4,10 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.payload.response.SejourDto;
 import com.tarnof.enjoyrestapi.payload.request.MembreEquipeRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateMembreEquipeRoleRequest;
@@ -32,9 +34,10 @@ public class SejourController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTION')")
-    public SejourDto getSejourById(@PathVariable int id) {
-        return sejourService.getSejourById(id);
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public SejourDto getSejourById(@PathVariable int id, Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return sejourService.getSejourById(id, utilisateur.getTokenId());
     }
 
     @PostMapping("/{id}/equipe/existant")
@@ -87,9 +90,9 @@ public class SejourController {
         sejourService.supprimerSejour(id);
     }
 
-    @GetMapping("/directeur/{directeurTokenId}")
-    @PreAuthorize("hasRole('DIRECTION')")
-    public List<SejourDto> getSejoursByDirecteur(@PathVariable String directeurTokenId) {
-        return sejourService.getSejoursByDirecteur(directeurTokenId);
+    @GetMapping("/utilisateur/{utilisateurTokenId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTION') or hasRole('BASIC_USER')")
+    public List<SejourDto> getSejoursByUtilisateur(@PathVariable String utilisateurTokenId) {
+        return sejourService.getSejoursByUtilisateur(utilisateurTokenId);
     }
 }
