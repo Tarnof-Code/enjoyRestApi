@@ -10,9 +10,9 @@ import java.util.List;
 
 public interface PlanningGrilleService {
 
-    List<PlanningGrilleSummaryDto> listerGrilles(int sejourId);
+    List<PlanningGrilleSummaryDto> listerGrilles(int sejourId, String utilisateurTokenId);
 
-    PlanningGrilleDetailDto getGrille(int sejourId, int grilleId);
+    PlanningGrilleDetailDto getGrille(int sejourId, int grilleId, String utilisateurTokenId);
 
     PlanningGrilleDetailDto creerGrille(int sejourId, SavePlanningGrilleRequest request);
 

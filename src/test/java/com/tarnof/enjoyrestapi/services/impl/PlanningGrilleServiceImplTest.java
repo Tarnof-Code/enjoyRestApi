@@ -2,10 +2,12 @@ package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.*;
 import com.tarnof.enjoyrestapi.enums.PlanningLigneLibelleSource;
+import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.*;
 import com.tarnof.enjoyrestapi.repositories.*;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
+import org.springframework.security.access.AccessDeniedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,6 +53,7 @@ class PlanningGrilleServiceImplTest {
     private PlanningGrilleServiceImpl service;
 
     private Sejour sejour;
+    private Utilisateur appelantAdmin;
 
     @BeforeEach
     void setUp() {
@@ -67,6 +70,11 @@ class PlanningGrilleServiceImplTest {
                 utilisateurRepository);
         sejour = new Sejour();
         sejour.setId(1);
+        appelantAdmin = Utilisateur.builder()
+                .id(99)
+                .tokenId("appelant-token")
+                .role(Role.ADMIN)
+                .build();
     }
 
     @Test
@@ -189,11 +197,53 @@ class PlanningGrilleServiceImplTest {
     @Test
     @DisplayName("getGrille - 404 si planning absent pour le séjour")
     void getGrille_notFound() {
+        when(utilisateurRepository.findByTokenId("appelant-token")).thenReturn(Optional.of(appelantAdmin));
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
         when(planningGrilleRepository.findByIdAndSejour_Id(99, 1)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.getGrille(1, 99))
+        assertThatThrownBy(() -> service.getGrille(1, 99, "appelant-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("99");
+    }
+
+    @Test
+    @DisplayName("listerGrilles - membre d'équipe : OK (lecture autorisée)")
+    void listerGrilles_membreEquipe_ok() {
+        Utilisateur membre = Utilisateur.builder()
+                .id(7)
+                .tokenId("membre-token")
+                .role(Role.BASIC_USER)
+                .build();
+        SejourEquipe equipeRole = new SejourEquipe();
+        equipeRole.setUtilisateur(membre);
+        sejour.setEquipeRoles(List.of(equipeRole));
+
+        when(utilisateurRepository.findByTokenId("membre-token")).thenReturn(Optional.of(membre));
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(planningGrilleRepository.findBySejour_IdOrderByMiseAJourDesc(1)).thenReturn(List.of());
+
+        var grilles = service.listerGrilles(1, "membre-token");
+
+        assertThat(grilles).isEmpty();
+        verify(planningGrilleRepository).findBySejour_IdOrderByMiseAJourDesc(1);
+    }
+
+    @Test
+    @DisplayName("listerGrilles - utilisateur hors séjour : AccessDeniedException")
+    void listerGrilles_horsSejour_accessDenied() {
+        Utilisateur intrus = Utilisateur.builder()
+                .id(42)
+                .tokenId("intrus-token")
+                .role(Role.BASIC_USER)
+                .build();
+        sejour.setEquipeRoles(List.of());
+
+        when(utilisateurRepository.findByTokenId("intrus-token")).thenReturn(Optional.of(intrus));
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+
+        assertThatThrownBy(() -> service.listerGrilles(1, "intrus-token"))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(planningGrilleRepository, never()).findBySejour_IdOrderByMiseAJourDesc(any(Integer.class));
     }
 }

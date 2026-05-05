@@ -1,5 +1,6 @@
 package com.tarnof.enjoyrestapi.controllers;
 
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.payload.request.*;
 import com.tarnof.enjoyrestapi.payload.response.PlanningCelluleDto;
 import com.tarnof.enjoyrestapi.payload.response.PlanningGrilleDetailDto;
@@ -9,6 +10,7 @@ import com.tarnof.enjoyrestapi.services.PlanningGrilleService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,16 +26,21 @@ public class PlanningGrilleController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('DIRECTION')")
-    public List<PlanningGrilleSummaryDto> lister(@PathVariable("sejourId") int sejourId) {
-        return planningGrilleService.listerGrilles(sejourId);
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public List<PlanningGrilleSummaryDto> lister(
+            @PathVariable("sejourId") int sejourId, Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return planningGrilleService.listerGrilles(sejourId, utilisateur.getTokenId());
     }
 
     @GetMapping("/{grilleId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
     public PlanningGrilleDetailDto get(
-            @PathVariable("sejourId") int sejourId, @PathVariable("grilleId") int grilleId) {
-        return planningGrilleService.getGrille(sejourId, grilleId);
+            @PathVariable("sejourId") int sejourId,
+            @PathVariable("grilleId") int grilleId,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return planningGrilleService.getGrille(sejourId, grilleId, utilisateur.getTokenId());
     }
 
     @PostMapping

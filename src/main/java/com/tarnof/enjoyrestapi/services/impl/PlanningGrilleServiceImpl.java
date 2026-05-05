@@ -59,8 +59,8 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PlanningGrilleSummaryDto> listerGrilles(int sejourId) {
-        sejourVerificationService.verifierSejourExiste(sejourId);
+    public List<PlanningGrilleSummaryDto> listerGrilles(int sejourId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         return planningGrilleRepository.findBySejour_IdOrderByMiseAJourDesc(sejourId).stream()
                 .map(this::toSummaryDto)
                 .toList();
@@ -68,7 +68,8 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
 
     @Override
     @Transactional(readOnly = true)
-    public PlanningGrilleDetailDto getGrille(int sejourId, int grilleId) {
+    public PlanningGrilleDetailDto getGrille(int sejourId, int grilleId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         PlanningGrille grille = getGrilleEtVerifierSejour(sejourId, grilleId);
         return construireDetail(sejourId, grille);
     }

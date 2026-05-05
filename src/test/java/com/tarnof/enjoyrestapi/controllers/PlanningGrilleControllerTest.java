@@ -2,6 +2,7 @@ package com.tarnof.enjoyrestapi.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.PlanningLigneLibelleSource;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
@@ -17,10 +18,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.eq;
@@ -38,6 +42,7 @@ class PlanningGrilleControllerTest {
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
+    private Authentication authentication;
 
     @Mock
     private PlanningGrilleService planningGrilleService;
@@ -51,32 +56,35 @@ class PlanningGrilleControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(planningGrilleController)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
+        Utilisateur utilisateur = Utilisateur.builder().tokenId("user-token-123").build();
+        authentication = new UsernamePasswordAuthenticationToken(utilisateur, null, Collections.emptyList());
     }
 
     @Test
     @DisplayName("lister - 200")
     void lister_ok() throws Exception {
-        when(planningGrilleService.listerGrilles(1))
+        when(planningGrilleService.listerGrilles(1, "user-token-123"))
                 .thenReturn(
                         List.of(
                                 new PlanningGrilleSummaryDto(
                                         2, 1, "Repas", Instant.parse("2026-07-01T10:00:00Z"))));
 
-        mockMvc.perform(get("/api/v1/sejours/1/planning-grilles"))
+        mockMvc.perform(get("/api/v1/sejours/1/planning-grilles").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(2))
                 .andExpect(jsonPath("$[0].titre").value("Repas"));
 
-        verify(planningGrilleService).listerGrilles(1);
+        verify(planningGrilleService).listerGrilles(1, "user-token-123");
     }
 
     @Test
     @DisplayName("get - 404")
     void get_notFound() throws Exception {
-        when(planningGrilleService.getGrille(1, 9)).thenThrow(new ResourceNotFoundException("Planning absent"));
+        when(planningGrilleService.getGrille(1, 9, "user-token-123"))
+                .thenThrow(new ResourceNotFoundException("Planning absent"));
 
-        mockMvc.perform(get("/api/v1/sejours/1/planning-grilles/9"))
+        mockMvc.perform(get("/api/v1/sejours/1/planning-grilles/9").principal(authentication))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Planning absent"));
     }

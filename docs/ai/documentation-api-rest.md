@@ -505,15 +505,21 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 ### Plannings — grilles (`/api/v1/sejours/{sejourId}/planning-grilles`)
 
-**Rôle** : `ROLE_DIRECTION` pour toutes les opérations.
+**Autorisation** :
+- **Lecture** (`GET`) : privilège **`ACCES_SEJOUR`** (directeur, équipe, ou ADMIN). Vérification d'**appartenance au séjour** côté service via **`SejourVerificationService.verifierAppartenanceAuSejour`** ; un appel hors séjour → **403** (`AccessDeniedException`).
+- **Écriture** (`POST` / `PUT` / `DELETE`) : `ROLE_DIRECTION`.
 
 Grille = **`PlanningGrille`** (titre, consigne, **`sourceLibelleLignes`**, **`sourceContenuCellules`**, **`miseAJour`**). Lignes = **`PlanningLigne`** (ordre, libellés / refs selon la source — **une seule** référence métier pour le libellé de ligne, ex. `libelleMomentId`). Cellules = **`PlanningCellule`** (jour, texte libre, **plusieurs** animateurs / horaires / moments / groupes / lieux via listes JSON — voir ci‑dessous).
 
 #### GET `/api/v1/sejours/{sejourId}/planning-grilles`
+- **Autorisation** : `ACCES_SEJOUR` (directeur / membre d'équipe / ADMIN)
 - **Réponse** : `List<PlanningGrilleSummaryDto>` (200)
+- **403** : utilisateur non rattaché au séjour
 
 #### GET `/api/v1/sejours/{sejourId}/planning-grilles/{grilleId}`
+- **Autorisation** : `ACCES_SEJOUR` (directeur / membre d'équipe / ADMIN)
 - **Réponse** : `PlanningGrilleDetailDto` (200) — inclut les lignes et leurs cellules
+- **403** : utilisateur non rattaché au séjour
 - **404** : séjour ou grille
 
 #### POST `/api/v1/sejours/{sejourId}/planning-grilles`
