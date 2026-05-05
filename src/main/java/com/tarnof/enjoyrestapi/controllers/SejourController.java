@@ -41,21 +41,21 @@ public class SejourController {
     }
 
     @PostMapping("/{id}/equipe/existant")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public void ajouterMembreExistant(@PathVariable("id") int sejourId, @Valid @RequestBody MembreEquipeRequest request) {
         sejourService.ajouterMembreEquipe(sejourId, null, request);
     }
 
     @PostMapping("/{id}/equipe/nouveau")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public void ajouterNouveauMembre(@PathVariable("id") int sejourId, @Valid @RequestBody RegisterRequest request) {
         sejourService.ajouterMembreEquipe(sejourId, request, null);
     }
 
     @PutMapping("/{id}/equipe/{membreTokenId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void modifierRoleMembreEquipe(
             @PathVariable("id") int sejourId, 
@@ -65,7 +65,7 @@ public class SejourController {
     }
 
     @DeleteMapping("/{id}/equipe/{membreTokenId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimerMembreEquipe(@PathVariable("id") int sejourId, @PathVariable("membreTokenId") String membreTokenId) {
         sejourService.supprimerMembreEquipe(sejourId, membreTokenId);

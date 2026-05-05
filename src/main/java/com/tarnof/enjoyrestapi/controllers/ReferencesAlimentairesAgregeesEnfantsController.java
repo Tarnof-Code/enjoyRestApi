@@ -24,7 +24,7 @@ public class ReferencesAlimentairesAgregeesEnfantsController {
      * Utile pour restreindre les tags proposés lors de la saisie des menus.
      */
     @GetMapping
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public ReferencesAlimentairesAgregeesEnfantsDto get(@PathVariable int sejourId) {
         return referencesAlimentairesAgregeesEnfantsService.agregerPourSejour(sejourId);
     }

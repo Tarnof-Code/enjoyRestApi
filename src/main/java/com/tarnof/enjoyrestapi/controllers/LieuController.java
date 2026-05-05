@@ -40,7 +40,7 @@ public class LieuController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public LieuDto creer(
             @PathVariable("sejourId") int sejourId,
@@ -49,7 +49,7 @@ public class LieuController {
     }
 
     @PutMapping("/{lieuId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public LieuDto modifier(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("lieuId") int lieuId,
@@ -58,7 +58,7 @@ public class LieuController {
     }
 
     @DeleteMapping("/{lieuId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(
             @PathVariable("sejourId") int sejourId,

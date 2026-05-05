@@ -2,6 +2,7 @@ package com.tarnof.enjoyrestapi.repositories;
 
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,6 +13,12 @@ import java.util.Optional;
 public interface UtilisateurRepository extends JpaRepository<Utilisateur, Integer> {
     Optional<Utilisateur> findByEmail(String email);
     Optional<Utilisateur> findByTokenId(String tokenId);
+
+    @EntityGraph(attributePaths = {"sejoursEquipe"})
+    Optional<Utilisateur> findWithSejoursEquipeByEmail(String email);
+
+    @EntityGraph(attributePaths = {"sejoursEquipe"})
+    Optional<Utilisateur> findWithSejoursEquipeByTokenId(String tokenId);
     List<Utilisateur> findByRole(Role role);
     void deleteByTokenId(String tokenId);
     boolean existsByEmail(String email);

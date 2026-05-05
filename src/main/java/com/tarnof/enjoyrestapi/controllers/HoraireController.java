@@ -38,7 +38,7 @@ public class HoraireController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public HoraireDto creer(
             @PathVariable("sejourId") int sejourId, @Valid @RequestBody SaveHoraireRequest request) {
@@ -46,7 +46,7 @@ public class HoraireController {
     }
 
     @PutMapping("/{horaireId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public HoraireDto modifier(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("horaireId") int horaireId,
@@ -55,7 +55,7 @@ public class HoraireController {
     }
 
     @DeleteMapping("/{horaireId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(
             @PathVariable("sejourId") int sejourId, @PathVariable("horaireId") int horaireId) {

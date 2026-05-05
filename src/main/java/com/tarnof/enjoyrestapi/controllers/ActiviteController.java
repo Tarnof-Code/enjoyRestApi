@@ -41,7 +41,7 @@ public class ActiviteController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public ActiviteDto creer(
             @PathVariable("sejourId") int sejourId,
@@ -50,7 +50,7 @@ public class ActiviteController {
     }
 
     @PutMapping("/{activiteId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public ActiviteDto modifier(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("activiteId") int activiteId,
@@ -59,7 +59,7 @@ public class ActiviteController {
     }
 
     @DeleteMapping("/{activiteId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(
             @PathVariable("sejourId") int sejourId,

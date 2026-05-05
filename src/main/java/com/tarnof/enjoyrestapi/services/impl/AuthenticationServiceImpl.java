@@ -79,7 +79,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(),request.motDePasse()));
-        var utilisateur = utilisateurRepository.findByEmail(request.email())
+        var utilisateur = utilisateurRepository.findWithSejoursEquipeByEmail(request.email())
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable."));
         var role = utilisateur.getRole();
         var jwt = jwtService.generateToken(utilisateur);

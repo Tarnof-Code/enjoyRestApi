@@ -44,7 +44,7 @@ public class PlanningGrilleController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public PlanningGrilleDetailDto creer(
             @PathVariable("sejourId") int sejourId, @Valid @RequestBody SavePlanningGrilleRequest request) {
@@ -52,7 +52,7 @@ public class PlanningGrilleController {
     }
 
     @PutMapping("/{grilleId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public PlanningGrilleDetailDto modifier(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("grilleId") int grilleId,
@@ -61,14 +61,14 @@ public class PlanningGrilleController {
     }
 
     @DeleteMapping("/{grilleId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(@PathVariable("sejourId") int sejourId, @PathVariable("grilleId") int grilleId) {
         planningGrilleService.supprimerGrille(sejourId, grilleId);
     }
 
     @PostMapping("/{grilleId}/lignes")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public PlanningLigneDto creerLigne(
             @PathVariable("sejourId") int sejourId,
@@ -78,7 +78,7 @@ public class PlanningGrilleController {
     }
 
     @PutMapping("/{grilleId}/lignes/{ligneId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public PlanningLigneDto modifierLigne(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("grilleId") int grilleId,
@@ -88,7 +88,7 @@ public class PlanningGrilleController {
     }
 
     @DeleteMapping("/{grilleId}/lignes/{ligneId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimerLigne(
             @PathVariable("sejourId") int sejourId,
@@ -98,7 +98,7 @@ public class PlanningGrilleController {
     }
 
     @PutMapping("/{grilleId}/lignes/{ligneId}/cellules")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public List<PlanningCelluleDto> remplacerCellules(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("grilleId") int grilleId,

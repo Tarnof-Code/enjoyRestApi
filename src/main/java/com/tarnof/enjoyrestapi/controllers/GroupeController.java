@@ -38,14 +38,14 @@ public class GroupeController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public GroupeDto creerGroupe(@PathVariable("sejourId") int sejourId, @Valid @RequestBody CreateGroupeRequest request) {
         return groupeService.creerGroupe(sejourId, request);
     }
 
     @PutMapping("/{groupeId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public GroupeDto modifierGroupe(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("groupeId") int groupeId,
@@ -54,14 +54,14 @@ public class GroupeController {
     }
 
     @DeleteMapping("/{groupeId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimerGroupe(@PathVariable("sejourId") int sejourId, @PathVariable("groupeId") int groupeId) {
         groupeService.supprimerGroupe(sejourId, groupeId);
     }
 
     @PostMapping("/{groupeId}/enfants/{enfantId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void ajouterEnfantAuGroupe(
             @PathVariable("sejourId") int sejourId,
@@ -71,7 +71,7 @@ public class GroupeController {
     }
 
     @DeleteMapping("/{groupeId}/enfants/{enfantId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void retirerEnfantDuGroupe(
             @PathVariable("sejourId") int sejourId,
@@ -81,7 +81,7 @@ public class GroupeController {
     }
 
     @PostMapping("/{groupeId}/referents")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public void ajouterReferent(
             @PathVariable("sejourId") int sejourId,
@@ -91,7 +91,7 @@ public class GroupeController {
     }
 
     @DeleteMapping("/{groupeId}/referents/{referentTokenId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void retirerReferent(
             @PathVariable("sejourId") int sejourId,

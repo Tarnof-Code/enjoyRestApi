@@ -11,12 +11,12 @@ import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateDossierEnfantRequest;
 
 public interface EnfantService {
-    void creerEtAjouterEnfantAuSejour(int sejourId, CreateEnfantRequest request);
-    EnfantDto modifierEnfant(int sejourId, int enfantId, CreateEnfantRequest request);
-    void supprimerEnfantDuSejour(int sejourId, int enfantId);
-    void supprimerTousLesEnfantsDuSejour(int sejourId);
+    void creerEtAjouterEnfantAuSejour(int sejourId, CreateEnfantRequest request, String utilisateurTokenId);
+    EnfantDto modifierEnfant(int sejourId, int enfantId, CreateEnfantRequest request, String utilisateurTokenId);
+    void supprimerEnfantDuSejour(int sejourId, int enfantId, String utilisateurTokenId);
+    void supprimerTousLesEnfantsDuSejour(int sejourId, String utilisateurTokenId);
     List<EnfantDto> getEnfantsDuSejour(int sejourId, String utilisateurTokenId);
     DossierEnfantDto getDossierEnfant(int sejourId, int enfantId, String utilisateurTokenId);
     DossierEnfantDto modifierDossierEnfant(int sejourId, int enfantId, UpdateDossierEnfantRequest request, String utilisateurTokenId);
-    ExcelImportResponse importerEnfantsDepuisExcel(int sejourId, MultipartFile file);
+    ExcelImportResponse importerEnfantsDepuisExcel(int sejourId, MultipartFile file, String utilisateurTokenId);
 }

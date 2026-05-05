@@ -17,6 +17,7 @@ import com.tarnof.enjoyrestapi.repositories.EnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
+import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -37,7 +38,7 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -64,6 +65,9 @@ class EnfantServiceImplTest {
     @Mock
     private ReferenceAlimentaireRepository referenceAlimentaireRepository;
 
+    @Mock
+    private SejourVerificationService sejourVerificationService;
+
     private EnfantServiceImpl enfantService;
 
     private Sejour sejour;
@@ -82,7 +86,8 @@ class EnfantServiceImplTest {
                 sejourEnfantRepository,
                 groupeRepo,
                 dossierEnfantRepository,
-                referenceAlimentaireRepository
+                referenceAlimentaireRepository,
+                sejourVerificationService
         );
 
         dateNaissance = new Date(System.currentTimeMillis() - 86400000L * 365 * 10); // 10 ans
@@ -140,6 +145,7 @@ class EnfantServiceImplTest {
         );
 
         lenient().when(groupeRepo.findBySejourId(anyInt())).thenReturn(Collections.emptyList());
+        lenient().doNothing().when(sejourVerificationService).verifierDroitGestionSejour(anyInt(), anyString());
     }
 
     // ==================== creerEtAjouterEnfantAuSejour ====================
@@ -168,7 +174,7 @@ class EnfantServiceImplTest {
         when(dossierEnfantRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        enfantService.creerEtAjouterEnfantAuSejour(1, createEnfantRequest);
+        enfantService.creerEtAjouterEnfantAuSejour(1, createEnfantRequest, "dir-token");
 
         // Then
         verify(sejourRepository).findById(1);
@@ -195,7 +201,7 @@ class EnfantServiceImplTest {
         when(sejourRepository.save(any(Sejour.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        enfantService.creerEtAjouterEnfantAuSejour(1, createEnfantRequest);
+        enfantService.creerEtAjouterEnfantAuSejour(1, createEnfantRequest, "dir-token");
 
         // Then
         verify(sejourRepository).findById(1);
@@ -231,7 +237,7 @@ class EnfantServiceImplTest {
                 enfant.getDateNaissance())).thenReturn(Optional.of(Objects.requireNonNull(enfant)));
 
         // When & Then
-        assertThatThrownBy(() -> enfantService.creerEtAjouterEnfantAuSejour(1, sameEnfantRequest))
+        assertThatThrownBy(() -> enfantService.creerEtAjouterEnfantAuSejour(1, sameEnfantRequest, "dir-token"))
                 .isInstanceOf(ResourceAlreadyExistsException.class)
                 .hasMessageContaining("existe déjà dans ce séjour");
 
@@ -247,7 +253,7 @@ class EnfantServiceImplTest {
     void creerEtAjouterEnfantAuSejour_WhenSejourNotFound_ShouldThrow404() {
         when(sejourRepository.findById(999)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> enfantService.creerEtAjouterEnfantAuSejour(999, createEnfantRequest))
+        assertThatThrownBy(() -> enfantService.creerEtAjouterEnfantAuSejour(999, createEnfantRequest, "dir-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Séjour non trouvé avec l'ID: 999");
 
@@ -281,7 +287,7 @@ class EnfantServiceImplTest {
         when(enfantRepository.save(any(Enfant.class))).thenReturn(enfantModifie);
 
         // When
-        EnfantDto result = enfantService.modifierEnfant(1, 1, createEnfantRequest);
+        EnfantDto result = enfantService.modifierEnfant(1, 1, createEnfantRequest, "dir-token");
 
         // Then
         assertThat(result).isNotNull();
@@ -319,7 +325,7 @@ class EnfantServiceImplTest {
         when(sejourRepository.save(any(Sejour.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        EnfantDto result = enfantService.modifierEnfant(1, 1, createEnfantRequest);
+        EnfantDto result = enfantService.modifierEnfant(1, 1, createEnfantRequest, "dir-token");
 
         // Then
         assertThat(result).isNotNull();
@@ -357,7 +363,7 @@ class EnfantServiceImplTest {
                 createEnfantRequest.dateNaissance())).thenReturn(Optional.of(autreEnfant));
 
         // When & Then
-        assertThatThrownBy(() -> enfantService.modifierEnfant(1, 1, createEnfantRequest))
+        assertThatThrownBy(() -> enfantService.modifierEnfant(1, 1, createEnfantRequest, "dir-token"))
                 .isInstanceOf(ResourceAlreadyExistsException.class)
                 .hasMessageContaining("existe déjà dans ce séjour");
 
@@ -372,7 +378,7 @@ class EnfantServiceImplTest {
         SejourEnfantId sejourEnfantId = new SejourEnfantId(1, 99);
         when(sejourEnfantRepository.findById(Objects.requireNonNull(sejourEnfantId))).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> enfantService.modifierEnfant(1, 99, createEnfantRequest))
+        assertThatThrownBy(() -> enfantService.modifierEnfant(1, 99, createEnfantRequest, "dir-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("L'enfant n'est pas inscrit à ce séjour");
 
@@ -390,7 +396,7 @@ class EnfantServiceImplTest {
         when(sejourEnfantRepository.findById(sejourEnfantId)).thenReturn(Optional.of(Objects.requireNonNull(sejourEnfant)));
         when(sejourEnfantRepository.countByEnfantId(1)).thenReturn(2L);
 
-        enfantService.supprimerEnfantDuSejour(1, 1);
+        enfantService.supprimerEnfantDuSejour(1, 1, "dir-token");
 
         verify(sejourEnfantRepository).deleteById(sejourEnfantId);
         verify(sejourEnfantRepository).flush();
@@ -404,7 +410,7 @@ class EnfantServiceImplTest {
         when(sejourEnfantRepository.findById(sejourEnfantId)).thenReturn(Optional.of(Objects.requireNonNull(sejourEnfant)));
         when(sejourEnfantRepository.countByEnfantId(1)).thenReturn(1L);
 
-        enfantService.supprimerEnfantDuSejour(1, 1);
+        enfantService.supprimerEnfantDuSejour(1, 1, "dir-token");
 
         verify(sejourEnfantRepository).deleteById(sejourEnfantId);
         verify(enfantRepository).delete(Objects.requireNonNull(enfant));
@@ -417,7 +423,7 @@ class EnfantServiceImplTest {
         SejourEnfantId sejourEnfantId = new SejourEnfantId(1, 99);
         when(sejourEnfantRepository.findById(sejourEnfantId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> enfantService.supprimerEnfantDuSejour(1, 99))
+        assertThatThrownBy(() -> enfantService.supprimerEnfantDuSejour(1, 99, "dir-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("L'enfant n'est pas inscrit à ce séjour");
 
@@ -435,7 +441,7 @@ class EnfantServiceImplTest {
         when(sejourEnfantRepository.countByEnfantId(1)).thenReturn(1L);
         when(sejourRepository.save(any(Sejour.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        enfantService.supprimerTousLesEnfantsDuSejour(1);
+        enfantService.supprimerTousLesEnfantsDuSejour(1, "dir-token");
 
         verify(sejourRepository).findById(1);
         verify(sejourRepository).save(any(Sejour.class));
@@ -448,7 +454,7 @@ class EnfantServiceImplTest {
     void supprimerTousLesEnfantsDuSejour_WhenNoChildren_ShouldReturnEarly() {
         when(sejourRepository.findById(1)).thenReturn(Optional.of(Objects.requireNonNull(sejour)));
 
-        enfantService.supprimerTousLesEnfantsDuSejour(1);
+        enfantService.supprimerTousLesEnfantsDuSejour(1, "dir-token");
 
         verify(sejourRepository).findById(1);
         verify(sejourRepository, never()).save(any(Sejour.class));
@@ -460,7 +466,7 @@ class EnfantServiceImplTest {
     void supprimerTousLesEnfantsDuSejour_WhenSejourNotFound_ShouldThrow404() {
         when(sejourRepository.findById(999)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> enfantService.supprimerTousLesEnfantsDuSejour(999))
+        assertThatThrownBy(() -> enfantService.supprimerTousLesEnfantsDuSejour(999, "dir-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Séjour non trouvé avec l'ID: 999");
 
@@ -476,7 +482,7 @@ class EnfantServiceImplTest {
         when(sejourEnfantRepository.countByEnfantId(1)).thenReturn(2L); // enfant dans 2 séjours
         when(sejourRepository.save(any(Sejour.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        enfantService.supprimerTousLesEnfantsDuSejour(1);
+        enfantService.supprimerTousLesEnfantsDuSejour(1, "dir-token");
 
         verify(sejourRepository).save(any(Sejour.class));
         verify(enfantRepository, never()).delete(any(Enfant.class));
@@ -540,7 +546,7 @@ class EnfantServiceImplTest {
         when(sejourRepository.save(any(Sejour.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(dossierEnfantRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ExcelImportResponse result = enfantService.importerEnfantsDepuisExcel(1, file);
+        ExcelImportResponse result = enfantService.importerEnfantsDepuisExcel(1, file, "dir-token");
 
         assertThat(result).isNotNull();
         assertThat(result.totalLignes()).isEqualTo(1);
@@ -555,7 +561,7 @@ class EnfantServiceImplTest {
     void importerEnfantsDepuisExcel_WhenColumnsMissing_ShouldReturnErrors() throws IOException {
         MockMultipartFile file = createExcelFileWithMissingColumns();
 
-        ExcelImportResponse result = enfantService.importerEnfantsDepuisExcel(1, file);
+        ExcelImportResponse result = enfantService.importerEnfantsDepuisExcel(1, file, "dir-token");
 
         assertThat(result).isNotNull();
         assertThat(result.totalLignes()).isEqualTo(0);
@@ -573,7 +579,7 @@ class EnfantServiceImplTest {
         when(enfantRepository.findByNomAndPrenomAndGenreAndDateNaissance(
                 eq("Martin"), eq("Emma"), eq(Genre.Féminin), any())).thenReturn(Optional.of(Objects.requireNonNull(enfant)));
 
-        ExcelImportResponse result = enfantService.importerEnfantsDepuisExcel(1, file);
+        ExcelImportResponse result = enfantService.importerEnfantsDepuisExcel(1, file, "dir-token");
 
         assertThat(result).isNotNull();
         assertThat(result.totalLignes()).isEqualTo(1);
@@ -588,7 +594,7 @@ class EnfantServiceImplTest {
         MockMultipartFile file = createValidExcelFile();
         when(sejourRepository.findById(999)).thenReturn(Optional.empty());
 
-        ExcelImportResponse result = enfantService.importerEnfantsDepuisExcel(999, file);
+        ExcelImportResponse result = enfantService.importerEnfantsDepuisExcel(999, file, "dir-token");
 
         assertThat(result).isNotNull();
         assertThat(result.totalLignes()).isEqualTo(1);
@@ -608,7 +614,7 @@ class EnfantServiceImplTest {
                 new byte[0]
         );
 
-        assertThatThrownBy(() -> enfantService.importerEnfantsDepuisExcel(1, file))
+        assertThatThrownBy(() -> enfantService.importerEnfantsDepuisExcel(1, file, "dir-token"))
                 .hasMessageContaining("empty");
     }
 

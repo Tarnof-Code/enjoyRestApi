@@ -47,6 +47,7 @@ import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEnfantRepository;
 import com.tarnof.enjoyrestapi.excel.ExcelImportSpec;
 import com.tarnof.enjoyrestapi.services.EnfantService;
+import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import com.tarnof.enjoyrestapi.utils.ExcelHelper;
 
 import jakarta.transaction.Transactional;
@@ -60,27 +61,31 @@ public class EnfantServiceImpl implements EnfantService {
     private final GroupeRepository groupeRepository;
     private final DossierEnfantRepository dossierEnfantRepository;
     private final ReferenceAlimentaireRepository referenceAlimentaireRepository;
+    private final SejourVerificationService sejourVerificationService;
 
     public EnfantServiceImpl(EnfantRepository enfantRepository, SejourRepository sejourRepository,
                              SejourEnfantRepository sejourEnfantRepository, GroupeRepository groupeRepository,
                              DossierEnfantRepository dossierEnfantRepository,
-                             ReferenceAlimentaireRepository referenceAlimentaireRepository) {
+                             ReferenceAlimentaireRepository referenceAlimentaireRepository,
+                             SejourVerificationService sejourVerificationService) {
         this.enfantRepository = enfantRepository;
         this.sejourRepository = sejourRepository;
         this.sejourEnfantRepository = sejourEnfantRepository;
         this.groupeRepository = groupeRepository;
         this.dossierEnfantRepository = dossierEnfantRepository;
         this.referenceAlimentaireRepository = referenceAlimentaireRepository;
+        this.sejourVerificationService = sejourVerificationService;
     }
 
     @Override
     @Transactional
-    public void creerEtAjouterEnfantAuSejour(int sejourId, CreateEnfantRequest request) {
-        creerEtAjouterEnfantAuSejour(sejourId, request, new DossierEnfant());
+    public void creerEtAjouterEnfantAuSejour(int sejourId, CreateEnfantRequest request, String utilisateurTokenId) {
+        creerEtAjouterEnfantAuSejour(sejourId, request, new DossierEnfant(), utilisateurTokenId);
     }
 
     @Transactional
-    public void creerEtAjouterEnfantAuSejour(int sejourId, CreateEnfantRequest request, DossierEnfant donneesDossier) {
+    public void creerEtAjouterEnfantAuSejour(int sejourId, CreateEnfantRequest request, DossierEnfant donneesDossier, String utilisateurTokenId) {
+        sejourVerificationService.verifierDroitGestionSejour(sejourId, utilisateurTokenId);
         Sejour sejour = sejourRepository.findById(sejourId)
                 .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
         
@@ -139,7 +144,8 @@ public class EnfantServiceImpl implements EnfantService {
 
     @Override
     @Transactional
-    public EnfantDto modifierEnfant(int sejourId, int enfantId, CreateEnfantRequest request) {
+    public EnfantDto modifierEnfant(int sejourId, int enfantId, CreateEnfantRequest request, String utilisateurTokenId) {
+        sejourVerificationService.verifierDroitGestionSejour(sejourId, utilisateurTokenId);
         SejourEnfantId sejourEnfantId = new SejourEnfantId(sejourId, enfantId);
         SejourEnfant sejourEnfant = sejourEnfantRepository.findById(sejourEnfantId)
                 .orElseThrow(() -> new ResourceNotFoundException("L'enfant n'est pas inscrit à ce séjour"));
@@ -214,7 +220,8 @@ public class EnfantServiceImpl implements EnfantService {
 
     @Override
     @Transactional
-    public void supprimerEnfantDuSejour(int sejourId, int enfantId) {
+    public void supprimerEnfantDuSejour(int sejourId, int enfantId, String utilisateurTokenId) {
+        sejourVerificationService.verifierDroitGestionSejour(sejourId, utilisateurTokenId);
         SejourEnfantId sejourEnfantId = new SejourEnfantId(sejourId, enfantId);
         SejourEnfant sejourEnfant = sejourEnfantRepository.findById(sejourEnfantId)
                 .orElseThrow(() -> new ResourceNotFoundException("L'enfant n'est pas inscrit à ce séjour"));
@@ -239,7 +246,8 @@ public class EnfantServiceImpl implements EnfantService {
 
     @Override
     @Transactional
-    public void supprimerTousLesEnfantsDuSejour(int sejourId) {
+    public void supprimerTousLesEnfantsDuSejour(int sejourId, String utilisateurTokenId) {
+        sejourVerificationService.verifierDroitGestionSejour(sejourId, utilisateurTokenId);
         Sejour sejour = sejourRepository.findById(sejourId)
                 .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
         
@@ -416,7 +424,8 @@ public class EnfantServiceImpl implements EnfantService {
 
     @Override
     @Transactional
-    public ExcelImportResponse importerEnfantsDepuisExcel(int sejourId, MultipartFile file) {
+    public ExcelImportResponse importerEnfantsDepuisExcel(int sejourId, MultipartFile file, String utilisateurTokenId) {
+        sejourVerificationService.verifierDroitGestionSejour(sejourId, utilisateurTokenId);
         List<String> messagesErreur = new ArrayList<>();
         int enfantsCrees = 0;
         int enfantsDejaExistants = 0;

@@ -208,7 +208,15 @@ public class Utilisateur implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return role.getAuthorities();
+        Set<GrantedAuthority> fusion = new LinkedHashSet<>(role.getAuthorities());
+        if (sejoursEquipe != null) {
+            for (SejourEquipe liaison : sejoursEquipe) {
+                if (liaison != null && liaison.getRoleSejour() != null) {
+                    fusion.addAll(liaison.getRoleSejour().getAuthorities());
+                }
+            }
+        }
+        return new ArrayList<>(fusion);
     }
 
     @Override

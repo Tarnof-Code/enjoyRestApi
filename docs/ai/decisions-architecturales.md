@@ -15,7 +15,10 @@
      - `SB` (Surveillant de Baignade) → `ACCES_SEJOUR`
      - `AUTRE` → `ACCES_SEJOUR`
    - **Séparation des concepts** : Le `Role` global (stocké dans la table `utilisateur`) contrôle les **droits d'accès aux fonctionnalités globales** de l'application. Le `RoleSejour` (stocké dans la table `sejour_equipe`) définit la **fonction** d'une personne dans un séjour spécifique et ses **privilèges dans le contexte de ce séjour**. Les deux systèmes sont **indépendants** : modifier le `RoleSejour` d'un membre ne modifie **pas** son `Role` global.
-   - **Méthodes `RoleSejour`** : `getPrivileges()` retourne les privilèges du rôle séjour, `getAuthorities()` retourne les autorités Spring Security (privilèges + `ROLE_SEJOUR_<nom>`).
+  - **Méthodes `RoleSejour`** : `getPrivileges()` retourne les privilèges du rôle séjour, `getAuthorities()` retourne les autorités Spring Security (privilèges + `ROLE_SEJOUR_<nom>`).
+  - **Application effective dans Spring Security** : `Utilisateur.getAuthorities()` fusionne les authorities du rôle global **et** celles des `RoleSejour` de `sejoursEquipe` ; les endpoints de gestion “direction de séjour” utilisent `hasAuthority('GESTION_SEJOURS')` (ADJOINT inclus).
+  - **Chargement auth** : pour exposer les authorities `RoleSejour` pendant l'authentification, `ApplicationSecurityConfig` charge l'utilisateur via `UtilisateurRepository.findWithSejoursEquipeByEmail/findWithSejoursEquipeByTokenId`.
+  - **Garde-fou métier par séjour** : malgré la fusion des authorities, les actions de gestion enfants valident le périmètre séjour via `SejourVerificationService.verifierDroitGestionSejour(sejourId, utilisateurTokenId)` (directeur du séjour, membre d'équipe avec `GESTION_SEJOURS`, ou ADMIN).
 2. **Injection de Dépendances** :
    - [FAIT] **Constructor Injection** partout — **constructeurs explicites** (pas de Lombok, pas de génération de constructeur par annotation) ✅
    - Exemples : `SecurityConfiguration`, `AuthenticationController`, `JwtAuthenticationFilter`, `ApplicationSecurityConfig`, `AuthenticationServiceImpl`, `RefreshTokenServiceImpl`, tous les `*Controller` et `*ServiceImpl` ci-dessous exposent un constructeur prenant leurs dépendances `final`.

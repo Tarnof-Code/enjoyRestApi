@@ -23,7 +23,7 @@ public class MenuRepasController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public List<MenuRepasDto> lister(
             @PathVariable int sejourId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
@@ -40,20 +40,20 @@ public class MenuRepasController {
     }
 
     @GetMapping("/{menuId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public MenuRepasDto get(@PathVariable int sejourId, @PathVariable int menuId) {
         return menuRepasService.get(sejourId, menuId);
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public MenuRepasDto creer(@PathVariable int sejourId, @Valid @RequestBody SaveMenuRepasRequest request) {
         return menuRepasService.creer(sejourId, request);
     }
 
     @PutMapping("/{menuId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public MenuRepasDto modifier(
             @PathVariable int sejourId,
             @PathVariable int menuId,
@@ -62,7 +62,7 @@ public class MenuRepasController {
     }
 
     @DeleteMapping("/{menuId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(@PathVariable int sejourId, @PathVariable int menuId) {
         menuRepasService.supprimer(sejourId, menuId);

@@ -28,6 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -81,7 +82,12 @@ class EnfantControllerTest {
 
         Utilisateur utilisateur = Utilisateur.builder().tokenId("user-token-123").build();
         authentication = new UsernamePasswordAuthenticationToken(
-                utilisateur, null, Collections.emptyList());
+                utilisateur,
+                null,
+                List.of(
+                        new SimpleGrantedAuthority("ACCES_SEJOUR"),
+                        new SimpleGrantedAuthority("GESTION_SEJOURS"),
+                        new SimpleGrantedAuthority("GESTION_SANITAIRE")));
 
         dateNaissance = new Date(System.currentTimeMillis() - 86400000L * 365 * 10);
 
@@ -163,44 +169,47 @@ class EnfantControllerTest {
     @Test
     @DisplayName("creerEtAjouterEnfantAuSejour - Devrait retourner 201 Created")
     void creerEtAjouterEnfantAuSejour_ShouldReturn201Created() throws Exception {
-        doNothing().when(enfantService).creerEtAjouterEnfantAuSejour(eq(1), any(CreateEnfantRequest.class));
+        doNothing().when(enfantService).creerEtAjouterEnfantAuSejour(eq(1), any(CreateEnfantRequest.class), anyString());
 
         mockMvc.perform(post("/api/v1/sejours/1/enfants")
+                        .principal(authentication)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createEnfantRequest)))
                 .andExpect(status().isCreated());
 
-        verify(enfantService).creerEtAjouterEnfantAuSejour(eq(1), any(CreateEnfantRequest.class));
+        verify(enfantService).creerEtAjouterEnfantAuSejour(eq(1), any(CreateEnfantRequest.class), eq("user-token-123"));
     }
 
     @Test
     @DisplayName("creerEtAjouterEnfantAuSejour - Devrait retourner 404 Not Found si le séjour n'existe pas")
     void creerEtAjouterEnfantAuSejour_ShouldReturn404WhenSejourNotFound() throws Exception {
         doThrow(new ResourceNotFoundException("Séjour non trouvé avec l'ID: 999"))
-                .when(enfantService).creerEtAjouterEnfantAuSejour(eq(999), any(CreateEnfantRequest.class));
+                .when(enfantService).creerEtAjouterEnfantAuSejour(eq(999), any(CreateEnfantRequest.class), anyString());
 
         mockMvc.perform(post("/api/v1/sejours/999/enfants")
+                        .principal(authentication)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createEnfantRequest)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Séjour non trouvé avec l'ID: 999"));
 
-        verify(enfantService).creerEtAjouterEnfantAuSejour(eq(999), any(CreateEnfantRequest.class));
+        verify(enfantService).creerEtAjouterEnfantAuSejour(eq(999), any(CreateEnfantRequest.class), eq("user-token-123"));
     }
 
     @Test
     @DisplayName("creerEtAjouterEnfantAuSejour - Devrait retourner 409 Conflict si l'enfant est déjà dans le séjour")
     void creerEtAjouterEnfantAuSejour_ShouldReturn409WhenChildAlreadyInSejour() throws Exception {
         doThrow(new ResourceAlreadyExistsException("Lucas Dupont né le 15/03/2014 existe déjà dans ce séjour"))
-                .when(enfantService).creerEtAjouterEnfantAuSejour(eq(1), any(CreateEnfantRequest.class));
+                .when(enfantService).creerEtAjouterEnfantAuSejour(eq(1), any(CreateEnfantRequest.class), anyString());
 
         mockMvc.perform(post("/api/v1/sejours/1/enfants")
+                        .principal(authentication)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createEnfantRequest)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("Lucas Dupont né le 15/03/2014 existe déjà dans ce séjour"));
 
-        verify(enfantService).creerEtAjouterEnfantAuSejour(eq(1), any(CreateEnfantRequest.class));
+        verify(enfantService).creerEtAjouterEnfantAuSejour(eq(1), any(CreateEnfantRequest.class), eq("user-token-123"));
     }
 
     // ========== Tests pour modifierEnfant() ==========
@@ -217,9 +226,9 @@ class EnfantControllerTest {
                 NiveauScolaire.MS
         );
 
-        when(enfantService.modifierEnfant(eq(1), eq(1), any(CreateEnfantRequest.class))).thenReturn(updatedEnfantDto);
+        when(enfantService.modifierEnfant(eq(1), eq(1), any(CreateEnfantRequest.class), anyString())).thenReturn(updatedEnfantDto);
 
-        mockMvc.perform(put("/api/v1/sejours/1/enfants/1")
+        mockMvc.perform(put("/api/v1/sejours/1/enfants/1").principal(authentication)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createEnfantRequest)))
                 .andExpect(status().isOk())
@@ -229,37 +238,37 @@ class EnfantControllerTest {
                 .andExpect(jsonPath("$.genre").value("Masculin"))
                 .andExpect(jsonPath("$.niveauScolaire").value("MS"));
 
-        verify(enfantService).modifierEnfant(eq(1), eq(1), any(CreateEnfantRequest.class));
+        verify(enfantService).modifierEnfant(eq(1), eq(1), any(CreateEnfantRequest.class), eq("user-token-123"));
     }
 
     @Test
     @DisplayName("modifierEnfant - Devrait retourner 404 Not Found si le séjour ou l'enfant n'existe pas")
     void modifierEnfant_ShouldReturn404WhenNotFound() throws Exception {
-        when(enfantService.modifierEnfant(eq(999), eq(1), any(CreateEnfantRequest.class)))
+        when(enfantService.modifierEnfant(eq(999), eq(1), any(CreateEnfantRequest.class), anyString()))
                 .thenThrow(new ResourceNotFoundException("Séjour non trouvé avec l'ID: 999"));
 
-        mockMvc.perform(put("/api/v1/sejours/999/enfants/1")
+        mockMvc.perform(put("/api/v1/sejours/999/enfants/1").principal(authentication)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createEnfantRequest)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Séjour non trouvé avec l'ID: 999"));
 
-        verify(enfantService).modifierEnfant(eq(999), eq(1), any(CreateEnfantRequest.class));
+        verify(enfantService).modifierEnfant(eq(999), eq(1), any(CreateEnfantRequest.class), eq("user-token-123"));
     }
 
     @Test
     @DisplayName("modifierEnfant - Devrait retourner 409 Conflict si l'enfant existant est déjà dans le séjour")
     void modifierEnfant_ShouldReturn409WhenChildAlreadyInSejour() throws Exception {
-        when(enfantService.modifierEnfant(eq(1), eq(1), any(CreateEnfantRequest.class)))
+        when(enfantService.modifierEnfant(eq(1), eq(1), any(CreateEnfantRequest.class), anyString()))
                 .thenThrow(new ResourceAlreadyExistsException("Un enfant avec ces informations existe déjà dans ce séjour"));
 
-        mockMvc.perform(put("/api/v1/sejours/1/enfants/1")
+        mockMvc.perform(put("/api/v1/sejours/1/enfants/1").principal(authentication)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createEnfantRequest)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("Un enfant avec ces informations existe déjà dans ce séjour"));
 
-        verify(enfantService).modifierEnfant(eq(1), eq(1), any(CreateEnfantRequest.class));
+        verify(enfantService).modifierEnfant(eq(1), eq(1), any(CreateEnfantRequest.class), eq("user-token-123"));
     }
 
     // ========== Tests pour supprimerEnfantDuSejour() ==========
@@ -267,25 +276,25 @@ class EnfantControllerTest {
     @Test
     @DisplayName("supprimerEnfantDuSejour - Devrait retourner 204 No Content")
     void supprimerEnfantDuSejour_ShouldReturn204NoContent() throws Exception {
-        doNothing().when(enfantService).supprimerEnfantDuSejour(1, 1);
+        doNothing().when(enfantService).supprimerEnfantDuSejour(eq(1), eq(1), anyString());
 
-        mockMvc.perform(delete("/api/v1/sejours/1/enfants/1"))
+        mockMvc.perform(delete("/api/v1/sejours/1/enfants/1").principal(authentication))
                 .andExpect(status().isNoContent());
 
-        verify(enfantService).supprimerEnfantDuSejour(1, 1);
+        verify(enfantService).supprimerEnfantDuSejour(eq(1), eq(1), eq("user-token-123"));
     }
 
     @Test
     @DisplayName("supprimerEnfantDuSejour - Devrait retourner 404 Not Found si le séjour ou l'enfant n'existe pas")
     void supprimerEnfantDuSejour_ShouldReturn404WhenNotFound() throws Exception {
         doThrow(new ResourceNotFoundException("L'enfant n'est pas inscrit à ce séjour"))
-                .when(enfantService).supprimerEnfantDuSejour(1, 999);
+                .when(enfantService).supprimerEnfantDuSejour(eq(1), eq(999), anyString());
 
-        mockMvc.perform(delete("/api/v1/sejours/1/enfants/999"))
+        mockMvc.perform(delete("/api/v1/sejours/1/enfants/999").principal(authentication))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("L'enfant n'est pas inscrit à ce séjour"));
 
-        verify(enfantService).supprimerEnfantDuSejour(1, 999);
+        verify(enfantService).supprimerEnfantDuSejour(eq(1), eq(999), eq("user-token-123"));
     }
 
     // ========== Tests pour supprimerTousLesEnfantsDuSejour() ==========
@@ -293,25 +302,25 @@ class EnfantControllerTest {
     @Test
     @DisplayName("supprimerTousLesEnfantsDuSejour - Devrait retourner 204 No Content")
     void supprimerTousLesEnfantsDuSejour_ShouldReturn204NoContent() throws Exception {
-        doNothing().when(enfantService).supprimerTousLesEnfantsDuSejour(1);
+        doNothing().when(enfantService).supprimerTousLesEnfantsDuSejour(eq(1), anyString());
 
-        mockMvc.perform(delete("/api/v1/sejours/1/enfants/all"))
+        mockMvc.perform(delete("/api/v1/sejours/1/enfants/all").principal(authentication))
                 .andExpect(status().isNoContent());
 
-        verify(enfantService).supprimerTousLesEnfantsDuSejour(1);
+        verify(enfantService).supprimerTousLesEnfantsDuSejour(eq(1), eq("user-token-123"));
     }
 
     @Test
     @DisplayName("supprimerTousLesEnfantsDuSejour - Devrait retourner 404 Not Found si le séjour n'existe pas")
     void supprimerTousLesEnfantsDuSejour_ShouldReturn404WhenSejourNotFound() throws Exception {
         doThrow(new ResourceNotFoundException("Séjour non trouvé avec l'ID: 999"))
-                .when(enfantService).supprimerTousLesEnfantsDuSejour(999);
+                .when(enfantService).supprimerTousLesEnfantsDuSejour(eq(999), anyString());
 
-        mockMvc.perform(delete("/api/v1/sejours/999/enfants/all"))
+        mockMvc.perform(delete("/api/v1/sejours/999/enfants/all").principal(authentication))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Séjour non trouvé avec l'ID: 999"));
 
-        verify(enfantService).supprimerTousLesEnfantsDuSejour(999);
+        verify(enfantService).supprimerTousLesEnfantsDuSejour(eq(999), eq("user-token-123"));
     }
 
     // ========== Tests pour getExcelImportSpec() ==========
@@ -319,7 +328,7 @@ class EnfantControllerTest {
     @Test
     @DisplayName("getExcelImportSpec - Devrait retourner la spécification d'import Excel")
     void getExcelImportSpec_ShouldReturnImportSpec() throws Exception {
-        mockMvc.perform(get("/api/v1/sejours/1/enfants/import/spec"))
+        mockMvc.perform(get("/api/v1/sejours/1/enfants/import/spec").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.colonnesObligatoires").isArray())
                 .andExpect(jsonPath("$.colonnesObligatoires.length()").value(5))
@@ -336,9 +345,9 @@ class EnfantControllerTest {
     @DisplayName("importerEnfantsDepuisExcel - Devrait retourner 200 OK avec la réponse complète")
     void importerEnfantsDepuisExcel_ShouldReturn200WithFullResponse() throws Exception {
         MockMultipartFile file = createValidExcelFile();
-        when(enfantService.importerEnfantsDepuisExcel(eq(1), any())).thenReturn(excelImportResponse);
+        when(enfantService.importerEnfantsDepuisExcel(eq(1), any(), anyString())).thenReturn(excelImportResponse);
 
-        mockMvc.perform(multipart("/api/v1/sejours/1/enfants/import").file(file))
+        mockMvc.perform(multipart("/api/v1/sejours/1/enfants/import").file(file).principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalLignes").value(1))
                 .andExpect(jsonPath("$.enfantsCrees").value(1))
@@ -346,7 +355,7 @@ class EnfantControllerTest {
                 .andExpect(jsonPath("$.erreurs").value(0))
                 .andExpect(jsonPath("$.messagesErreur").isArray());
 
-        verify(enfantService).importerEnfantsDepuisExcel(eq(1), any());
+        verify(enfantService).importerEnfantsDepuisExcel(eq(1), any(), eq("user-token-123"));
     }
 
     @Test
@@ -359,11 +368,11 @@ class EnfantControllerTest {
                 new byte[0]
         );
 
-        mockMvc.perform(multipart("/api/v1/sejours/1/enfants/import").file(emptyFile))
+        mockMvc.perform(multipart("/api/v1/sejours/1/enfants/import").file(emptyFile).principal(authentication))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Le fichier Excel est vide"));
 
-        verify(enfantService, never()).importerEnfantsDepuisExcel(anyInt(), any());
+        verify(enfantService, never()).importerEnfantsDepuisExcel(anyInt(), any(), anyString());
     }
 
     @Test
@@ -376,11 +385,11 @@ class EnfantControllerTest {
                 "contenu texte".getBytes()
         );
 
-        mockMvc.perform(multipart("/api/v1/sejours/1/enfants/import").file(invalidFile))
+        mockMvc.perform(multipart("/api/v1/sejours/1/enfants/import").file(invalidFile).principal(authentication))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Le fichier doit être un fichier Excel (.xlsx ou .xls)"));
 
-        verify(enfantService, never()).importerEnfantsDepuisExcel(anyInt(), any());
+        verify(enfantService, never()).importerEnfantsDepuisExcel(anyInt(), any(), anyString());
     }
 
     @Test
@@ -395,30 +404,30 @@ class EnfantControllerTest {
                 List.of("Colonne contenant 'nom' introuvable.")
         );
 
-        when(enfantService.importerEnfantsDepuisExcel(eq(1), any())).thenReturn(responseWithErrors);
+        when(enfantService.importerEnfantsDepuisExcel(eq(1), any(), anyString())).thenReturn(responseWithErrors);
 
-        mockMvc.perform(multipart("/api/v1/sejours/1/enfants/import").file(file))
+        mockMvc.perform(multipart("/api/v1/sejours/1/enfants/import").file(file).principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalLignes").value(0))
                 .andExpect(jsonPath("$.erreurs").value(1))
                 .andExpect(jsonPath("$.messagesErreur").isArray())
                 .andExpect(jsonPath("$.messagesErreur.length()").value(1));
 
-        verify(enfantService).importerEnfantsDepuisExcel(eq(1), any());
+        verify(enfantService).importerEnfantsDepuisExcel(eq(1), any(), eq("user-token-123"));
     }
 
     @Test
     @DisplayName("importerEnfantsDepuisExcel - Devrait retourner 404 Not Found si le séjour n'existe pas")
     void importerEnfantsDepuisExcel_ShouldReturn404WhenSejourNotFound() throws Exception {
         MockMultipartFile file = createValidExcelFile();
-        when(enfantService.importerEnfantsDepuisExcel(eq(999), any()))
+        when(enfantService.importerEnfantsDepuisExcel(eq(999), any(), anyString()))
                 .thenThrow(new ResourceNotFoundException("Séjour non trouvé avec l'ID: 999"));
 
-        mockMvc.perform(multipart("/api/v1/sejours/999/enfants/import").file(file))
+        mockMvc.perform(multipart("/api/v1/sejours/999/enfants/import").file(file).principal(authentication))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Séjour non trouvé avec l'ID: 999"));
 
-        verify(enfantService).importerEnfantsDepuisExcel(eq(999), any());
+        verify(enfantService).importerEnfantsDepuisExcel(eq(999), any(), eq("user-token-123"));
     }
 
     // ========== Helpers ==========

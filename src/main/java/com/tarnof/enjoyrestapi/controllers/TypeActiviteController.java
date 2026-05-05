@@ -37,7 +37,7 @@ public class TypeActiviteController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public TypeActiviteDto creer(
             @PathVariable("sejourId") int sejourId, @Valid @RequestBody SaveTypeActiviteRequest request) {
@@ -45,7 +45,7 @@ public class TypeActiviteController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public TypeActiviteDto modifier(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("id") int id,
@@ -54,7 +54,7 @@ public class TypeActiviteController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(@PathVariable("sejourId") int sejourId, @PathVariable("id") int id) {
         typeActiviteService.supprimerTypeActivite(sejourId, id);

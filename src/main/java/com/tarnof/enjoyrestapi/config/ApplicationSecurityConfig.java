@@ -29,10 +29,10 @@ public class ApplicationSecurityConfig {
     public UserDetailsService userDetailsService() {
         return identifier -> {
             if(isEmail(identifier)){
-                return utilisateurRepository.findByEmail(identifier)
+                return utilisateurRepository.findWithSejoursEquipeByEmail(identifier)
                         .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé avec l'email"));
             } else {
-                return utilisateurRepository.findByTokenId(identifier)
+                return utilisateurRepository.findWithSejoursEquipeByTokenId(identifier)
                         .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé avec le tokenId"));
             }
         };

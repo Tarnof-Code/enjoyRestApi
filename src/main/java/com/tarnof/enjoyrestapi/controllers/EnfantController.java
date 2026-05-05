@@ -40,10 +40,14 @@ public class EnfantController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
-    public void creerEtAjouterEnfantAuSejour(@PathVariable("sejourId") int sejourId, @Valid @RequestBody CreateEnfantRequest request) {
-        enfantService.creerEtAjouterEnfantAuSejour(sejourId, request);
+    public void creerEtAjouterEnfantAuSejour(
+            @PathVariable("sejourId") int sejourId,
+            @Valid @RequestBody CreateEnfantRequest request,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        enfantService.creerEtAjouterEnfantAuSejour(sejourId, request, utilisateur.getTokenId());
     }
 
     @GetMapping("/{enfantId}/dossier")
@@ -57,7 +61,7 @@ public class EnfantController {
     }
 
     @PutMapping("/{enfantId}/dossier")
-    @PreAuthorize("hasRole('DIRECTION') or hasAuthority('GESTION_SANITAIRE')")
+    @PreAuthorize("hasAuthority('GESTION_SANITAIRE')")
     public DossierEnfantDto modifierDossierEnfant(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("enfantId") int enfantId,
@@ -68,36 +72,49 @@ public class EnfantController {
     }
 
     @PutMapping("/{enfantId}")
-    @PreAuthorize("hasRole('DIRECTION')")
-    public EnfantDto modifierEnfant(@PathVariable("sejourId") int sejourId, @PathVariable("enfantId") int enfantId, @Valid @RequestBody CreateEnfantRequest request) {
-        return enfantService.modifierEnfant(sejourId, enfantId, request);
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
+    public EnfantDto modifierEnfant(
+            @PathVariable("sejourId") int sejourId,
+            @PathVariable("enfantId") int enfantId,
+            @Valid @RequestBody CreateEnfantRequest request,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return enfantService.modifierEnfant(sejourId, enfantId, request, utilisateur.getTokenId());
     }
 
     @DeleteMapping("/{enfantId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void supprimerEnfantDuSejour(@PathVariable("sejourId") int sejourId, @PathVariable("enfantId") int enfantId) {
-        enfantService.supprimerEnfantDuSejour(sejourId, enfantId);
+    public void supprimerEnfantDuSejour(
+            @PathVariable("sejourId") int sejourId,
+            @PathVariable("enfantId") int enfantId,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        enfantService.supprimerEnfantDuSejour(sejourId, enfantId, utilisateur.getTokenId());
     }
 
     @DeleteMapping("/all")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void supprimerTousLesEnfantsDuSejour(@PathVariable("sejourId") int sejourId) {
-        enfantService.supprimerTousLesEnfantsDuSejour(sejourId);
+    public void supprimerTousLesEnfantsDuSejour(
+            @PathVariable("sejourId") int sejourId,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        enfantService.supprimerTousLesEnfantsDuSejour(sejourId, utilisateur.getTokenId());
     }
 
     @GetMapping("/import/spec")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public ExcelImportSpecResponse getExcelImportSpec() {
         return ExcelImportSpec.getInstance().getSpecForApi();
     }
 
     @PostMapping("/import")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public ExcelImportResponse importerEnfantsDepuisExcel(
             @PathVariable("sejourId") int sejourId,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Le fichier Excel est vide");
         }
@@ -109,6 +126,7 @@ public class EnfantController {
             throw new IllegalArgumentException("Le fichier doit être un fichier Excel (.xlsx ou .xls)");
         }
         
-        return enfantService.importerEnfantsDepuisExcel(sejourId, file);
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return enfantService.importerEnfantsDepuisExcel(sejourId, file, utilisateur.getTokenId());
     }
 }

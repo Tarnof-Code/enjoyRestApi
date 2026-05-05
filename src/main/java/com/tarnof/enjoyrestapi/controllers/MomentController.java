@@ -41,7 +41,7 @@ public class MomentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public MomentDto creer(
             @PathVariable("sejourId") int sejourId,
@@ -50,7 +50,7 @@ public class MomentController {
     }
 
     @PutMapping("/reorder")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public List<MomentDto> reorder(
             @PathVariable("sejourId") int sejourId,
             @Valid @RequestBody ReorderMomentsRequest request) {
@@ -58,7 +58,7 @@ public class MomentController {
     }
 
     @PutMapping("/{momentId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public MomentDto modifier(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("momentId") int momentId,
@@ -67,7 +67,7 @@ public class MomentController {
     }
 
     @DeleteMapping("/{momentId}")
-    @PreAuthorize("hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(
             @PathVariable("sejourId") int sejourId,

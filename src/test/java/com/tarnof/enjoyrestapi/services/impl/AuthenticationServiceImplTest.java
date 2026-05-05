@@ -189,7 +189,7 @@ public class AuthenticationServiceImplTest {
             authenticationRequest.motDePasse()
         );
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authToken);
-        when(utilisateurRepository.findByEmail(authenticationRequest.email())).thenReturn(Optional.of(utilisateur));
+        when(utilisateurRepository.findWithSejoursEquipeByEmail(authenticationRequest.email())).thenReturn(Optional.of(utilisateur));
         when(jwtService.generateToken(utilisateur)).thenReturn("jwt-token-123");
         when(refreshTokenService.findByUtilisateur(utilisateur)).thenReturn(Optional.of(refreshToken));      
         // When
@@ -201,7 +201,7 @@ public class AuthenticationServiceImplTest {
         assertThat(result.role()).isEqualTo(Role.BASIC_USER);
         assertThat(result.tokenId()).isEqualTo("user-token-123");
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(utilisateurRepository).findByEmail(authenticationRequest.email());
+        verify(utilisateurRepository).findWithSejoursEquipeByEmail(authenticationRequest.email());
         verify(jwtService).generateToken(utilisateur);
         verify(refreshTokenService).findByUtilisateur(utilisateur);
     }
@@ -217,7 +217,7 @@ public class AuthenticationServiceImplTest {
     .isInstanceOf(BadCredentialsException.class)
     .hasMessageContaining("Identifiants invalides");
     verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-    verify(utilisateurRepository, never()).findByEmail(anyString());
+    verify(utilisateurRepository, never()).findWithSejoursEquipeByEmail(anyString());
     verify(jwtService, never()).generateToken(any(Utilisateur.class));
     verify(refreshTokenService, never()).findByUtilisateur(any(Utilisateur.class));
     }
@@ -232,7 +232,7 @@ public class AuthenticationServiceImplTest {
         );
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
             .thenReturn(authToken);
-        when(utilisateurRepository.findByEmail(authenticationRequest.email()))
+        when(utilisateurRepository.findWithSejoursEquipeByEmail(authenticationRequest.email()))
             .thenReturn(Optional.empty());
         
         // When & Then
@@ -240,7 +240,7 @@ public class AuthenticationServiceImplTest {
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessageContaining("Utilisateur introuvable");       
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(utilisateurRepository).findByEmail(authenticationRequest.email());
+        verify(utilisateurRepository).findWithSejoursEquipeByEmail(authenticationRequest.email());
         verify(jwtService, never()).generateToken(any(Utilisateur.class));
         verify(refreshTokenService, never()).findByUtilisateur(any(Utilisateur.class));
     }
@@ -255,7 +255,7 @@ public class AuthenticationServiceImplTest {
         );
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
             .thenReturn(authToken);
-        when(utilisateurRepository.findByEmail(authenticationRequest.email())).thenReturn(Optional.of(utilisateur));
+        when(utilisateurRepository.findWithSejoursEquipeByEmail(authenticationRequest.email())).thenReturn(Optional.of(utilisateur));
         when(jwtService.generateToken(utilisateur)).thenReturn("jwt-token-123");
         when(refreshTokenService.findByUtilisateur(utilisateur)).thenReturn(Optional.empty());
         // When & Then
@@ -263,7 +263,7 @@ public class AuthenticationServiceImplTest {
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessageContaining("Refresh token introuvable");
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(utilisateurRepository).findByEmail(authenticationRequest.email());
+        verify(utilisateurRepository).findWithSejoursEquipeByEmail(authenticationRequest.email());
         verify(jwtService).generateToken(utilisateur);
         verify(refreshTokenService).findByUtilisateur(utilisateur);
     }
