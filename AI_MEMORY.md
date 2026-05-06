@@ -2,10 +2,22 @@
 
 Point d’entrée unique pour le **contexte projet** (assistants IA et humains). Le détail volumineux est découpé en fiches dans [`docs/ai/`](docs/ai/) — fichiers **versionnés** avec le dépôt, prêts à être commités et poussés.
 
+## Protocole frontend (à lire **après** ce fichier, **systématiquement**)
+
+Après **`AI_MEMORY.md`**, le dépôt **enjoyApi** attend que le frontend (équipe ou assistant IA) enchaîne **sans s’arrêter** sur les fiches pivot ci-dessous — pas seulement la section *Point saillant récent* ci-dessous.
+
+1. **[`docs/ai/contexte-actif.md`](docs/ai/contexte-actif.md)** — Journal des changements récents (quoi a bougé côté API, droits, comportements).
+2. **[`docs/ai/documentation-api-rest.md`](docs/ai/documentation-api-rest.md)** — Contrat HTTP : endpoints, payloads, codes d’erreur, format **`ErrorResponse`** (dont **403** contextualisés).
+3. **[`docs/ai/decisions-architecturales.md`](docs/ai/decisions-architecturales.md)** — Règles transverses **obligatoires** pour intégrer l’API : références utilisateur via **`tokenId`** (jamais l’`id` SQL), rôles / privilèges, erreurs centralisées.
+4. **[`docs/ai/etat-projet.md`](docs/ai/etat-projet.md)** — Périmètre **sync types** avec le frontend (`api.d.ts`, naming DTO).
+
+Ensuite uniquement : parcourir les **guides** dans [`docs/`](docs/) (hors `ai/`) lorsqu’ils sont cités depuis *contexte-actif*, *Point saillant récent* ou *documentation-api-rest* (migration, UX). Index du dossier `docs/ai/` : [`docs/ai/README.md`](docs/ai/README.md).
+
 ## Protocole IA (voir [`.cursorrules`](.cursorrules))
 
 - **Lecture minimale** : ce pivot, puis **systématiquement** [`docs/ai/contexte-actif.md`](docs/ai/contexte-actif.md) et [`docs/ai/decisions-architecturales.md`](docs/ai/decisions-architecturales.md) ; ensuite les autres fiches selon la tâche (**§7.1**).
 - **Mise à jour / demande « mets à jour `AI_MEMORY.md` »** : traiter comme **toute** la Memory Bank (pivot + fiches `docs/ai/`) ; **avant** toute **nouvelle** fiche dans `docs/ai/`, appliquer **§5** (placement par défaut, pas de micro-fiches) — détail **§7.2**.
+- **Commande `#MAJ`** (message exact, **§7.4**) : synthèse depuis le **code** (git + sources) puis **écriture** du pivot et des fiches — pas une simple relecture des markdowns.
 - **Après commit + push** significatif : aligner Memory Bank et éventuellement `.cursorrules` — **§8**.
 
 ## Carte des sections `.cursorrules`
@@ -18,7 +30,7 @@ Point d’entrée unique pour le **contexte projet** (assistants IA et humains).
 | **4** | Qualité : nommage, imports, erreurs, Excel/locale, tests |
 | **5** | **Documentation Markdown** : où ranger quoi dans `docs/ai/`, éviter fiches trop spécifiques |
 | **6** | Messages de commit (format, types) |
-| **7** | **AI Memory Bank** (lecture, mise à jour, réflexivité) |
+| **7** | **AI Memory Bank** (lecture, mise à jour, réflexivité, commande **`#MAJ`**) |
 | **8** | Post-commit / post-push |
 
 ## Invariants et règles d’exécution
@@ -27,6 +39,8 @@ Les conventions **obligatoires** (langue, injection, `tokenId` côté API, struc
 
 ## Point saillant récent
 
+- **2026-05-06** — **403 Forbidden : messages métier pour l’utilisateur** : Lorsque Spring Security lève une erreur « Access is denied » (peu exploitable côté UI), le corps JSON **`ErrorResponse`** expose désormais un **`message`** résolu selon l’**URI** et la **méthode** (`CustomAccessDeniedHandler.resolveMessageForClient`) : séjours admin global, référentiel **`/references-alimentaires`** hors séjour, **`/utilisateurs`** (dont recherche équipe), **`/sejours/utilisateur/{tokenId}`**, **`PUT …/enfants/…/dossier`** (droit sanitaire), autres chemins sous **`/sejours/…`** (gestion réservée directeur / adjoint avec droits), ou message générique. Les refus issus de **`@PreAuthorize`** (après les filtres) sont pris en charge par **`GlobalExceptionHandler`** via le même résolveur (`@ExceptionHandler(AccessDeniedException.class)`). Détail : [contexte-actif.md](docs/ai/contexte-actif.md), [decisions-architecturales.md](docs/ai/decisions-architecturales.md), format API : [documentation-api-rest.md](docs/ai/documentation-api-rest.md).
+- **2026-05-06** — **Protocole `#MAJ`** : commande documentée dans **`.cursorrules` §7.4** pour mettre à jour la Memory Bank à partir de l’état réel du dépôt (voir tableau §7 ci-dessus).
 - **2026-05-05** — **Extension `GESTION_SEJOURS` à tous les services “direction de séjour”** : Après l’alignement enfants, les endpoints de gestion séjour (équipe, groupes, activités, lieux, horaires, moments, types d’activité, plannings, menus, agrégations enfants) utilisent désormais `hasAuthority('GESTION_SEJOURS')` à la place de `hasRole('DIRECTION')` ; les endpoints globaux (ADMIN / référentiels globaux) restent inchangés. Détail consolidé dans [contexte-actif.md](docs/ai/contexte-actif.md) et [decisions-architecturales.md](docs/ai/decisions-architecturales.md).
 - **2026-05-05** — **Droits ADJOINT alignés sur `GESTION_SEJOURS` (enfants)** : activation effective des privilèges de `RoleSejour` dans Spring Security en fusionnant les autorités de l'équipe séjour dans `Utilisateur.getAuthorities()` ; chargement auth via `UtilisateurRepository.findWithSejoursEquipeByEmail/findWithSejoursEquipeByTokenId` (utilisés par `ApplicationSecurityConfig` et `AuthenticationServiceImpl`). Les endpoints de gestion enfants (`POST/PUT/DELETE`, import, spec) passent en `@PreAuthorize("hasAuthority('GESTION_SEJOURS')")` au lieu de `hasRole('DIRECTION')`. Les méthodes `EnfantService` de gestion prennent `utilisateurTokenId` et appliquent un contrôle métier **par séjour** via `SejourVerificationService.verifierDroitGestionSejour` (évite qu'un adjoint d'un séjour agisse sur un autre). **365 tests OK** après mise à jour des tests contrôleurs/services/auth.
 - **2026-05-05** — **Lecture des plannings ouverte aux membres d'équipe** : Les endpoints **`GET /api/v1/sejours/{sejourId}/planning-grilles`** et **`GET .../planning-grilles/{grilleId}`** passent de **`hasRole('DIRECTION')`** à **`hasAuthority('ACCES_SEJOUR')`**. Vérification systématique d'appartenance au séjour côté service via **`SejourVerificationService.verifierAppartenanceAuSejour`** (directeur ou membre d'équipe ; ADMIN court-circuite). Signatures **`PlanningGrilleService.listerGrilles(sejourId, utilisateurTokenId)`** et **`getGrille(sejourId, grilleId, utilisateurTokenId)`**. Écritures (POST / PUT / DELETE) toujours réservées à **DIRECTION**. **365 tests OK** (+2 nouveaux : `listerGrilles_membreEquipe_ok`, `listerGrilles_horsSejour_accessDenied`). Détail : [contexte-actif.md](docs/ai/contexte-actif.md), contrats : [documentation-api-rest.md](docs/ai/documentation-api-rest.md).

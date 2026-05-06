@@ -642,6 +642,8 @@ Grille = **`PlanningGrille`** (titre, consigne, **`sourceLibelleLignes`**, **`so
 }
 ```
 
+**403 Autorisation Spring Security (`ErrorResponse`)** — refus JWT / rôles / privilèges (hors flux token ci-dessus) : même enveloppe **`ErrorResponse`** (`status`, `error` = `Forbidden`, `timestamp`, `message`, `path`). Lorsque la cause est une **`AccessDeniedException`** avec un message technique peu utile (*Access is denied*, etc.), le backend substitue un **`message` en français** selon la ressource appelée (ex. gestion globale des séjours réservée aux **admins plateforme**, référentiel **`references-alimentaires`** global, **`/utilisateurs`** et recherche pour l’équipe, consultation des séjours d’un autre utilisateur, modification du **dossier santé** sans droit sanitaire/direction, autres opérations sous **`/sejours/...`** réservées au **directeur** ou **adjoint** avec droits de gestion). Les détails d’implémentation : `CustomAccessDeniedHandler` (filtre) + **`GlobalExceptionHandler`** pour les refus **`@PreAuthorize`**.
+
 #### Codes d'Erreur HTTP
 
 - **200 OK** : Requête réussie
@@ -649,7 +651,7 @@ Grille = **`PlanningGrille`** (titre, consigne, **`sourceLibelleLignes`**, **`so
 - **204 No Content** : Opération réussie sans contenu à retourner
 - **400 Bad Request** : Requête invalide (validation, argument illégal, exception utilisateur)
 - **401 Unauthorized** : Authentification requise (non authentifié)
-- **403 Forbidden** : Accès refusé (autorisation insuffisante) ou token invalide/expiré (`TokenException`)
+- **403 Forbidden** : Autorisation Spring insuffisante (corps **`ErrorResponse`** ; message parfois contextualisé — voir section *403 Autorisation Spring Security*) ; refresh token invalide (`TokenException`) ; autres cas 403 documentés par endpoint
 - **404 Not Found** : Ressource non trouvée
 - **409 Conflict** : Ressource déjà existante (email utilisé, membre déjà dans équipe, enfant déjà inscrit au séjour)
 

@@ -1,18 +1,23 @@
 package com.tarnof.enjoyrestapi.handlers;
 
+import com.tarnof.enjoyrestapi.config.CustomAccessDeniedHandler;
 import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningAnimateurException;
 import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.exceptions.UtilisateurException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -81,6 +86,25 @@ public class GlobalExceptionHandler {
         Map<String, String> error = new HashMap<>();
         error.put("error", ex.getMessage());
         return ResponseEntity.status(409).body(error);
+    }
+
+    /**
+     * Sécurité méthode ({@code @PreAuthorize}, etc.) : l'exception est levée après les filtres,
+     * donc pas prise en charge par {@link com.tarnof.enjoyrestapi.config.CustomAccessDeniedHandler}.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Access denied (@PreAuthorize / invocation contrôleur): {}", ex.getMessage());
+        String message = CustomAccessDeniedHandler.resolveMessageForClient(request, ex);
+        ErrorResponse body =
+                ErrorResponse.builder()
+                        .status(HttpStatus.FORBIDDEN.value())
+                        .error(HttpStatus.FORBIDDEN.getReasonPhrase())
+                        .timestamp(Instant.now())
+                        .message(message)
+                        .path(request.getServletPath())
+                        .build();
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
     }
 
     @ExceptionHandler(RuntimeException.class)
