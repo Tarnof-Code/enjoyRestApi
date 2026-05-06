@@ -12,9 +12,10 @@ public interface ActiviteService {
 
     ActiviteDto getActivite(int sejourId, int activiteId, String utilisateurTokenId);
 
-    ActiviteDto creerActivite(int sejourId, CreateActiviteRequest request);
+    ActiviteDto creerActivite(int sejourId, CreateActiviteRequest request, String utilisateurTokenId);
 
-    ActiviteDto modifierActivite(int sejourId, int activiteId, UpdateActiviteRequest request);
+    ActiviteDto modifierActivite(
+            int sejourId, int activiteId, UpdateActiviteRequest request, String utilisateurTokenId);
 
-    void supprimerActivite(int sejourId, int activiteId);
+    void supprimerActivite(int sejourId, int activiteId, String utilisateurTokenId);
 }

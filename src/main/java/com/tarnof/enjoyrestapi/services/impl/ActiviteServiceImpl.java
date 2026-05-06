@@ -86,7 +86,8 @@ public class ActiviteServiceImpl implements ActiviteService {
 
     @Override
     @Transactional
-    public ActiviteDto creerActivite(int sejourId, CreateActiviteRequest request) {
+    public ActiviteDto creerActivite(int sejourId, CreateActiviteRequest request, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         Sejour sejour = sejourVerificationService.verifierSejourExiste(sejourId);
         verifierMomentsEtResolution(sejourId, request.momentId());
         Moment moment = resoudreMomentPourSejour(sejourId, request.momentId());
@@ -115,10 +116,12 @@ public class ActiviteServiceImpl implements ActiviteService {
 
     @Override
     @Transactional
-    public ActiviteDto modifierActivite(int sejourId, int activiteId, UpdateActiviteRequest request) {
+    public ActiviteDto modifierActivite(
+            int sejourId, int activiteId, UpdateActiviteRequest request, String utilisateurTokenId) {
         Activite activite = activiteRepository.findByIdAndSejourId(activiteId, sejourId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Activité non trouvée pour ce séjour (id: " + activiteId + ")"));
+        sejourVerificationService.verifierDroitModificationOuSuppressionActivite(sejourId, activite, utilisateurTokenId);
 
         verifierMomentsEtResolution(sejourId, request.momentId());
         Moment moment = resoudreMomentPourSejour(sejourId, request.momentId());
@@ -147,10 +150,11 @@ public class ActiviteServiceImpl implements ActiviteService {
 
     @Override
     @Transactional
-    public void supprimerActivite(int sejourId, int activiteId) {
+    public void supprimerActivite(int sejourId, int activiteId, String utilisateurTokenId) {
         Activite activite = activiteRepository.findByIdAndSejourId(activiteId, sejourId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Activité non trouvée pour ce séjour (id: " + activiteId + ")"));
+        sejourVerificationService.verifierDroitModificationOuSuppressionActivite(sejourId, activite, utilisateurTokenId);
         activiteRepository.delete(activite);
     }
 

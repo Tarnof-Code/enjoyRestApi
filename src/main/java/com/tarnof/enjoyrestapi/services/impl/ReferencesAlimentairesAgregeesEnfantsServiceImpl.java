@@ -39,7 +39,8 @@ public class ReferencesAlimentairesAgregeesEnfantsServiceImpl implements Referen
 
     @Override
     @Transactional(readOnly = true)
-    public ReferencesAlimentairesAgregeesEnfantsDto agregerPourSejour(int sejourId) {
+    public ReferencesAlimentairesAgregeesEnfantsDto agregerPourSejour(int sejourId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         Sejour sejour = sejourVerificationService.verifierSejourExiste(sejourId);
         List<Integer> enfantIds =
                 Optional.ofNullable(sejour.getEnfants()).orElse(List.of()).stream()

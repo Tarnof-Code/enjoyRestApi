@@ -8,11 +8,12 @@ import java.util.List;
 
 public interface MenuRepasService {
 
-    List<MenuRepasDto> listerParJour(int sejourId, LocalDate date);
+    List<MenuRepasDto> listerParJour(int sejourId, LocalDate date, String utilisateurTokenId);
 
-    List<MenuRepasDto> listerParPeriode(int sejourId, LocalDate dateDebutInclusive, LocalDate dateFinInclusive);
+    List<MenuRepasDto> listerParPeriode(
+            int sejourId, LocalDate dateDebutInclusive, LocalDate dateFinInclusive, String utilisateurTokenId);
 
-    MenuRepasDto get(int sejourId, int menuId);
+    MenuRepasDto get(int sejourId, int menuId, String utilisateurTokenId);
 
     MenuRepasDto creer(int sejourId, SaveMenuRepasRequest request);
 

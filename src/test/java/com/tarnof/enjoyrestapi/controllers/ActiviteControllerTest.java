@@ -114,14 +114,19 @@ class ActiviteControllerTest {
                 membresResponse,
                 dtoGroupes,
                 null);
-        when(activiteService.creerActivite(eq(3), eq(req))).thenReturn(dto);
+        Utilisateur createur = Utilisateur.builder().tokenId("user-token-create").build();
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                createur, null, Collections.emptyList());
+
+        when(activiteService.creerActivite(eq(3), eq(req), eq("user-token-create"))).thenReturn(dto);
 
         mockMvc.perform(post("/api/v1/sejours/3/activites")
+                        .principal(authentication)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsBytes(req)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(9));
 
-        verify(activiteService).creerActivite(3, req);
+        verify(activiteService).creerActivite(3, req, "user-token-create");
     }
 }

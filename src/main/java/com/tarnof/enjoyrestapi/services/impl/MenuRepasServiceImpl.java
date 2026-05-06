@@ -44,8 +44,8 @@ public class MenuRepasServiceImpl implements MenuRepasService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<MenuRepasDto> listerParJour(int sejourId, LocalDate date) {
-        sejourVerificationService.verifierSejourExiste(sejourId);
+    public List<MenuRepasDto> listerParJour(int sejourId, LocalDate date, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         return menuRepasRepository.findBySejour_IdAndDateRepasOrderByTypeRepasAsc(sejourId, date).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -53,8 +53,9 @@ public class MenuRepasServiceImpl implements MenuRepasService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<MenuRepasDto> listerParPeriode(int sejourId, LocalDate dateDebutInclusive, LocalDate dateFinInclusive) {
-        sejourVerificationService.verifierSejourExiste(sejourId);
+    public List<MenuRepasDto> listerParPeriode(
+            int sejourId, LocalDate dateDebutInclusive, LocalDate dateFinInclusive, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         if (dateDebutInclusive.isAfter(dateFinInclusive)) {
             throw new IllegalArgumentException("La date de début doit être antérieure ou égale à la date de fin.");
         }
@@ -68,7 +69,8 @@ public class MenuRepasServiceImpl implements MenuRepasService {
 
     @Override
     @Transactional(readOnly = true)
-    public MenuRepasDto get(int sejourId, int menuId) {
+    public MenuRepasDto get(int sejourId, int menuId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         return mapToDto(getMenuDuSejour(sejourId, menuId));
     }
 

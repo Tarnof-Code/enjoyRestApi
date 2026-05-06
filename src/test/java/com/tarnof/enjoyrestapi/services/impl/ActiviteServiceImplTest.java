@@ -5,11 +5,13 @@ import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.Lieu;
 import com.tarnof.enjoyrestapi.entities.Moment;
 import com.tarnof.enjoyrestapi.entities.Sejour;
+import com.tarnof.enjoyrestapi.entities.SejourEquipe;
 import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
 import com.tarnof.enjoyrestapi.entities.TypeActivite;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
 import com.tarnof.enjoyrestapi.enums.Role;
+import com.tarnof.enjoyrestapi.enums.RoleSejour;
 import com.tarnof.enjoyrestapi.enums.TypeGroupe;
 import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningAnimateurException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
@@ -25,6 +27,7 @@ import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.TypeActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
+import org.springframework.security.access.AccessDeniedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,6 +47,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -117,6 +121,8 @@ class ActiviteServiceImplTest {
         typeActiviteSport.setLibelle("Sport");
         typeActiviteSport.setPredefini(false);
         typeActiviteSport.setSejour(sejour);
+        lenient().when(utilisateurRepository.findByTokenId("appelant-token"))
+                .thenReturn(Optional.of(appelantAdmin));
     }
 
     private void givenMomentsAuMoinsUnPourSejour1() {
@@ -187,7 +193,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(6, 5));
 
-        ActiviteDto dto = activiteService.creerActivite(1, req);
+        ActiviteDto dto = activiteService.creerActivite(1, req, "appelant-token");
 
         assertThat(dto.id()).isEqualTo(100);
         assertThat(dto.typeActivite().id()).isEqualTo(TYPE_ACTIVITE_ID);
@@ -232,7 +238,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        ActiviteDto dto = activiteService.creerActivite(1, req);
+        ActiviteDto dto = activiteService.creerActivite(1, req, "appelant-token");
 
         assertThat(dto.lieu()).isNotNull();
         assertThat(dto.lieu().id()).isEqualTo(42);
@@ -270,7 +276,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("déjà utilisé")
                 .hasMessageContaining("partagé");
@@ -313,7 +319,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        ActiviteDto dto = activiteService.creerActivite(1, req);
+        ActiviteDto dto = activiteService.creerActivite(1, req, "appelant-token");
 
         assertThat(dto.avertissementLieu()).isNotNull();
         assertThat(dto.avertissementLieu()).contains("déjà affecté");
@@ -351,7 +357,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("limite")
                 .hasMessageContaining("partage");
@@ -379,7 +385,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Lieu non trouvé pour ce séjour");
         verify(activiteRepository, never()).save(any());
@@ -423,7 +429,7 @@ class ActiviteServiceImplTest {
                 List.of("dir-1"),
                 List.of(5));
 
-        ActiviteDto dto = activiteService.creerActivite(1, req);
+        ActiviteDto dto = activiteService.creerActivite(1, req, "dir-1");
 
         assertThat(dto.id()).isEqualTo(100);
         verify(sejourEquipeRepository, never()).existsById(any());
@@ -450,7 +456,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(ConflitPlanningAnimateurException.class)
                 .hasMessageContaining("encadre déjà une autre activité")
                 .hasMessageContaining("Matin");
@@ -475,7 +481,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("ne fait pas partie de l'équipe");
         verify(activiteRepository, never()).save(any());
@@ -502,7 +508,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(7));
 
-        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("n'appartient pas à ce séjour");
     }
@@ -522,7 +528,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("doit être comprise entre");
         verify(activiteRepository, never()).save(any());
@@ -543,7 +549,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("doit être comprise entre");
         verify(activiteRepository, never()).save(any());
@@ -570,7 +576,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("date de début et une date de fin");
         verify(activiteRepository, never()).save(any());
@@ -602,7 +608,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        ActiviteDto dto = activiteService.modifierActivite(1, 4, req);
+        ActiviteDto dto = activiteService.modifierActivite(1, 4, req, "appelant-token");
 
         assertThat(dto.nom()).isEqualTo("Renommé");
         verify(activiteRepository)
@@ -631,7 +637,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        assertThatThrownBy(() -> activiteService.modifierActivite(1, 4, req))
+        assertThatThrownBy(() -> activiteService.modifierActivite(1, 4, req, "appelant-token"))
                 .isInstanceOf(ConflitPlanningAnimateurException.class)
                 .hasMessageContaining("encadre déjà une autre activité");
         verify(activiteRepository, never()).save(any());
@@ -654,10 +660,79 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        assertThatThrownBy(() -> activiteService.modifierActivite(1, 4, req))
+        assertThatThrownBy(() -> activiteService.modifierActivite(1, 4, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("doit être comprise entre");
         verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("modifierActivite - membre d'équipe non affecté à l'activité : refus")
+    void modifier_whenCallerNotInActiviteMembres_shouldThrow() {
+        Utilisateur autre = Utilisateur.builder()
+                .id(11)
+                .tokenId("mem-2")
+                .role(Role.BASIC_USER)
+                .build();
+        sejour.setEquipeRoles(List.of(
+                SejourEquipe.builder().sejour(sejour).utilisateur(membre).roleSejour(RoleSejour.ANIM).build(),
+                SejourEquipe.builder().sejour(sejour).utilisateur(autre).roleSejour(RoleSejour.ANIM).build()));
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        Activite a = activitePersistee(4, List.of(membre));
+        when(activiteRepository.findByIdAndSejourId(4, 1)).thenReturn(Optional.of(a));
+        when(utilisateurRepository.findByTokenId("mem-2")).thenReturn(Optional.of(autre));
+
+        UpdateActiviteRequest req = new UpdateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "X",
+                null,
+                null,
+                MOMENT_ID,
+                TYPE_ACTIVITE_ID,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.modifierActivite(1, 4, req, "mem-2"))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("affecté");
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("modifierActivite - animateur affecté : succès sans être directeur ni adjoint")
+    void modifier_whenCallerIsAssignedAnimateur_shouldSucceed() {
+        SejourEquipe eq = SejourEquipe.builder()
+                .sejour(sejour)
+                .utilisateur(membre)
+                .roleSejour(RoleSejour.ANIM)
+                .build();
+        sejour.setEquipeRoles(List.of(eq));
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        Activite a = activitePersistee(4, List.of(membre));
+        when(activiteRepository.findByIdAndSejourId(4, 1)).thenReturn(Optional.of(a));
+        givenMomentsAuMoinsUnPourSejour1();
+        givenTypeActivitePourSejour1();
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
+        when(activiteRepository.countActivitesAvecMembreMemeCreneau(
+                        eq(1), eq(LocalDate.of(2026, 7, 5)), eq(MOMENT_ID), eq(10), eq(4)))
+                .thenReturn(0L);
+        when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        UpdateActiviteRequest req = new UpdateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Par membre",
+                null,
+                null,
+                MOMENT_ID,
+                TYPE_ACTIVITE_ID,
+                List.of("mem-1"),
+                List.of(5));
+
+        ActiviteDto dto = activiteService.modifierActivite(1, 4, req, "mem-1");
+        assertThat(dto.nom()).isEqualTo("Par membre");
     }
 
     @Test
@@ -675,7 +750,7 @@ class ActiviteServiceImplTest {
     @DisplayName("supprimerActivite - absent")
     void supprimer_whenMissing_shouldThrow() {
         when(activiteRepository.findByIdAndSejourId(4, 1)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> activiteService.supprimerActivite(1, 4))
+        assertThatThrownBy(() -> activiteService.supprimerActivite(1, 4, "appelant-token"))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(activiteRepository, never()).delete(any());
     }
@@ -696,7 +771,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("direction");
         verify(momentRepository, never()).findByIdAndSejourId(anyInt(), anyInt());
@@ -719,7 +794,7 @@ class ActiviteServiceImplTest {
                 List.of("mem-1"),
                 List.of(5));
 
-        assertThatThrownBy(() -> activiteService.creerActivite(1, req))
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("obligatoire");
         verify(activiteRepository, never()).save(any());

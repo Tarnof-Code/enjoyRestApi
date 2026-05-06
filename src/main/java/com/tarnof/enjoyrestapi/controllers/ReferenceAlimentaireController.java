@@ -23,13 +23,13 @@ public class ReferenceAlimentaireController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
     public List<ReferenceAlimentaireDto> lister(@RequestParam(required = false) TypeReferenceAlimentaire type) {
         return referenceAlimentaireService.lister(type);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DIRECTION')")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
     public ReferenceAlimentaireDto get(@PathVariable int id) {
         return referenceAlimentaireService.getById(id);
     }

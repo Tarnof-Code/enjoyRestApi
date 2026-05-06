@@ -261,7 +261,7 @@
 
 #### Référentiel global — `/api/v1/references-alimentaires`
 
-- **Autorisation** : `ROLE_ADMIN` ou `ROLE_DIRECTION` pour toutes les opérations ci-dessous.
+- **Autorisation** : **`GET`** (liste et détail) : privilège **`ACCES_SEJOUR`** (ex. animateurs, direction, admin selon JWT). **`POST` / `PUT` / `DELETE`** : **`ROLE_ADMIN`** ou **`ROLE_DIRECTION`** uniquement.
 - **GET** `/api/v1/references-alimentaires` — Liste des références ; query optionnelle **`type`** (`TypeReferenceAlimentaire` : ex. allergène vs régime/préférence).
 - **GET** `/api/v1/references-alimentaires/{id}` — Détail.
 - **POST** `/api/v1/references-alimentaires` — Création ; body **`SaveReferenceAlimentaireRequest`** → **`201`**, **`ReferenceAlimentaireDto`**.
@@ -272,7 +272,7 @@ Les lignes « catalogue » attendues au besoin sont aussi créées idempotent pa
 
 #### Menus par séjour — `/api/v1/sejours/{sejourId}/menus`
 
-- **Autorisation** : `ROLE_DIRECTION`.
+- **Autorisation** : **`GET`** (liste, détail) : **`ACCES_SEJOUR`** + appartenance au séjour (directeur, membre d’équipe ou **ADMIN** — vérifiée côté service via **`tokenId`**). **`POST` / `PUT` / `DELETE`** : **`GESTION_SEJOURS`** (directeur, adjoint avec droits, etc., selon JWT + garde-fous existants).
 - **GET** `/api/v1/sejours/{sejourId}/menus` — Liste **`MenuRepasDto`** ; **obligatoire** : soit **`date`** (un jour, format ISO date), soit **`dateDebut` et `dateFin`** (période). Sinon **`400`** (`IllegalArgumentException` : message demandant l’un ou l’autre mode).
 - **GET** `/api/v1/sejours/{sejourId}/menus/{menuId}` — Détail.
 - **POST** `/api/v1/sejours/{sejourId}/menus` — Création ; body **`SaveMenuRepasRequest`** (`dateRepas`, **`typeRepas`** (`TypeRepas`), champs texte optionnels selon le type de repas, **`allergeneIds`**, **`regimePreferenceIds`**) → **`201`**, **`MenuRepasDto`**.
@@ -283,7 +283,7 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 #### Agrégation dossiers enfants du séjour — `/api/v1/sejours/{sejourId}/references-alimentaires-agregees-enfants`
 
-- **Autorisation** : `ROLE_DIRECTION`.
+- **Autorisation** : **`ACCES_SEJOUR`** + appartenance au séjour (vérification côté service).
 - **GET** — **`ReferencesAlimentairesAgregeesEnfantsDto`** : union des **`ReferenceAlimentaireDto`** déclarés sur au moins un **`DossierEnfant`** d’un enfant **inscrit** au séjour, séparée en **`allergenes`** et **`regimesEtPreferences`** (sans doublon). Sert typiquement à proposer des tags cohérents lors de la composition des menus.
 
 ### Endpoints des Groupes (`/api/v1/sejours/{sejourId}/groupes`)
@@ -439,7 +439,7 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 ### Endpoints des Activités (`/api/v1/sejours/{sejourId}/activites`)
 
-**Autorisation** : `ROLE_DIRECTION` pour toutes les opérations.
+**Autorisation** — **`GET`** : **`ACCES_SEJOUR`** + appartenance au séjour (comportement aligné sur lieux / horaires / activités en lecture). **`POST`** : **`ACCES_SEJOUR`** + **appartenance au séjour** (création réservée aux participants du séjour, pas au seul privilège global `GESTION_SEJOURS` sans lien). **`PUT` / `DELETE`** : **`ACCES_SEJOUR`** ; côté service, autorisé si **gestion complète du séjour** (**`SejourVerificationService.aDroitGestionCompleteSurSejour`**, ex. directeur, **ADJOINT**, **ADMIN**) **ou** si l’utilisateur est **affecté à l’activité** (liste **`membres`**), sinon **`403`** avec message métier (`AccessDeniedException`).
 
 #### GET `/api/v1/sejours/{sejourId}/activites`
 - **Description** : Lister les activités du séjour (tri date croissante puis id)
@@ -457,18 +457,18 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 `CreateActiviteRequest` (`date`, `nom`, `description` optionnelle, **`lieuId` optionnel**, **`momentId`** — obligatoire côté service si au moins un moment existe pour le séjour ; si **aucun moment** → **400** avec consigne de faire créer des moments par la direction, **`typeActiviteId` obligatoire** (`@NotNull`), `membreTokenIds`, **`groupeIds`**). **Partage lieu** : cohérence **jour + moment + lieu** (voir `ActiviteRepository`).
 - **Réponse** : `ActiviteDto` (201 Created) — **`moment`**, **`typeActivite`**, `groupeIds`, **`lieu`**, éventuellement **`avertissementLieu`** si le lieu était déjà occupé **ce jour et ce moment** mais le partage le permet
-- **Codes d'erreur** : `400` : validation Jakarta (dont **`typeActiviteId`** manquant), date / équipe / groupe / **moments** (aucun moment, moment obligatoire manquant), **lieu déjà pris** ou **limite de partage** ; `404` : séjour, membre, groupe, lieu, **moment**, **type d’activité** (**id inconnu** ou **pas pour ce séjour**) ; `500` théorique si lieu partageable sans max en base
+- **Codes d'erreur** : `400` : validation Jakarta (dont **`typeActiviteId`** manquant), date / équipe / groupe / **moments** (aucun moment, moment obligatoire manquant), **lieu déjà pris** ou **limite de partage** ; `404` : séjour, membre, groupe, lieu, **moment**, **type d’activité** (**id inconnu** ou **pas pour ce séjour**) ; `403` : pas d’accès au séjour ; `500` théorique si lieu partageable sans max en base
 
 #### PUT `/api/v1/sejours/{sejourId}/activites/{activiteId}`
 - **Description** : Modifier une activité
 - **Body** : `UpdateActiviteRequest` (comme la création ; **`lieuId` null** retire le lieu ; **`typeActiviteId` obligatoire** pour pointer vers un type du séjour — pas de retrait du type ; **`momentId`** requis selon les mêmes règles que POST)
 - **Réponse** : `ActiviteDto` (200 OK), **`avertissementLieu`** possible comme en POST
-- **Codes d'erreur** : `400` / `404` comme POST (comptage lieu **exclut** l’activité modifiée)
+- **Codes d'erreur** : `400` / `404` comme POST (comptage lieu **exclut** l’activité modifiée) ; `403` si l’utilisateur n’a pas la gestion complète du séjour **et** n’est pas affecté à l’activité
 
 #### DELETE `/api/v1/sejours/{sejourId}/activites/{activiteId}`
 - **Description** : Supprimer une activité
 - **Réponse** : `204 No Content`
-- **Codes d'erreur** : `404` : Séjour ou activité non trouvé
+- **Codes d'erreur** : `404` : Séjour ou activité non trouvé ; `403` : pas les droits (animateur non affecté à l’activité, etc.)
 
 ### Endpoints des types d’activité (`/api/v1/sejours/{sejourId}/types-activite`)
 

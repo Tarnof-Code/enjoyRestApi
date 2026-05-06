@@ -1,8 +1,10 @@
 package com.tarnof.enjoyrestapi.controllers;
 
+import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.payload.response.ReferencesAlimentairesAgregeesEnfantsDto;
 import com.tarnof.enjoyrestapi.services.ReferencesAlimentairesAgregeesEnfantsService;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,8 +26,10 @@ public class ReferencesAlimentairesAgregeesEnfantsController {
      * Utile pour restreindre les tags proposés lors de la saisie des menus.
      */
     @GetMapping
-    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
-    public ReferencesAlimentairesAgregeesEnfantsDto get(@PathVariable int sejourId) {
-        return referencesAlimentairesAgregeesEnfantsService.agregerPourSejour(sejourId);
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public ReferencesAlimentairesAgregeesEnfantsDto get(
+            @PathVariable int sejourId, Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return referencesAlimentairesAgregeesEnfantsService.agregerPourSejour(sejourId, utilisateur.getTokenId());
     }
 }

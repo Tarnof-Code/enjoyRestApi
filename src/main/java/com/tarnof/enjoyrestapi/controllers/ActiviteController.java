@@ -41,29 +41,35 @@ public class ActiviteController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
     @ResponseStatus(HttpStatus.CREATED)
     public ActiviteDto creer(
             @PathVariable("sejourId") int sejourId,
-            @Valid @RequestBody CreateActiviteRequest request) {
-        return activiteService.creerActivite(sejourId, request);
+            @Valid @RequestBody CreateActiviteRequest request,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return activiteService.creerActivite(sejourId, request, utilisateur.getTokenId());
     }
 
     @PutMapping("/{activiteId}")
-    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
     public ActiviteDto modifier(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("activiteId") int activiteId,
-            @Valid @RequestBody UpdateActiviteRequest request) {
-        return activiteService.modifierActivite(sejourId, activiteId, request);
+            @Valid @RequestBody UpdateActiviteRequest request,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return activiteService.modifierActivite(sejourId, activiteId, request, utilisateur.getTokenId());
     }
 
     @DeleteMapping("/{activiteId}")
-    @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(
             @PathVariable("sejourId") int sejourId,
-            @PathVariable("activiteId") int activiteId) {
-        activiteService.supprimerActivite(sejourId, activiteId);
+            @PathVariable("activiteId") int activiteId,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        activiteService.supprimerActivite(sejourId, activiteId, utilisateur.getTokenId());
     }
 }
