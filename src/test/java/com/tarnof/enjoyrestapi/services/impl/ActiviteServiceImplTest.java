@@ -13,6 +13,7 @@ import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.enums.RoleSejour;
 import com.tarnof.enjoyrestapi.enums.TypeGroupe;
+import com.tarnof.enjoyrestapi.enums.UsageLieu;
 import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningAnimateurException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
@@ -40,6 +41,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -244,6 +246,40 @@ class ActiviteServiceImplTest {
         assertThat(dto.lieu().id()).isEqualTo(42);
         assertThat(dto.lieu().nom()).isEqualTo("Salle polyvalente");
         assertThat(dto.avertissementLieu()).isNull();
+    }
+
+    @Test
+    @DisplayName("creerActivite - refuse si le lieu n'est pas un lieu d'activité")
+    void creer_whenLieuPasUsageActivite_shouldThrow() {
+        Lieu lieu = new Lieu();
+        lieu.setId(42);
+        lieu.setNom("Cour");
+        lieu.setEmplacement(EmplacementLieu.EXTERIEUR);
+        lieu.setSejour(sejour);
+        lieu.setUsages(Set.of(UsageLieu.SURVEILLANCE));
+        Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
+        when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Veillée",
+                null,
+                42,
+                MOMENT_ID,
+                TYPE_ACTIVITE_ID,
+                List.of("mem-1"),
+                List.of(5));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("activité");
+
+        verify(activiteRepository, never()).save(any());
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.Lieu;
 import com.tarnof.enjoyrestapi.entities.Sejour;
+import com.tarnof.enjoyrestapi.enums.UsageLieu;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.SaveLieuRequest;
@@ -9,10 +10,14 @@ import com.tarnof.enjoyrestapi.payload.response.LieuDto;
 import com.tarnof.enjoyrestapi.repositories.LieuRepository;
 import com.tarnof.enjoyrestapi.services.LieuService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
+import com.tarnof.enjoyrestapi.utils.LieuUsageRules;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -55,6 +60,7 @@ public class LieuServiceImpl implements LieuService {
         lieu.setPartageableEntreAnimateurs(request.partageableEntreAnimateurs());
         lieu.setNombreMaxActivitesSimultanees(
                 request.partageableEntreAnimateurs() ? request.nombreMaxActivitesSimultanees() : null);
+        lieu.setUsages(usagesDepuisRequete(request));
         lieu.setSejour(sejour);
         return mapToDto(lieuRepository.save(lieu));
     }
@@ -72,6 +78,7 @@ public class LieuServiceImpl implements LieuService {
         lieu.setPartageableEntreAnimateurs(request.partageableEntreAnimateurs());
         lieu.setNombreMaxActivitesSimultanees(
                 request.partageableEntreAnimateurs() ? request.nombreMaxActivitesSimultanees() : null);
+        lieu.setUsages(usagesDepuisRequete(request));
         return mapToDto(lieuRepository.save(lieu));
     }
 
@@ -100,6 +107,18 @@ public class LieuServiceImpl implements LieuService {
      *
      * @param excludeLieuId id du lieu à exclure lors d'une mise à jour ({@code null} à la création)
      */
+    private static LinkedHashSet<UsageLieu> usagesDepuisRequete(SaveLieuRequest request) {
+        LinkedHashSet<UsageLieu> out =
+                request.usages().stream()
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (out.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Sélectionnez au moins un usage valide : activité, surveillance et/ou rassemblement.");
+        }
+        return out;
+    }
+
     private static void validerParametresPartage(SaveLieuRequest request) {
         if (request.partageableEntreAnimateurs()) {
             Integer max = request.nombreMaxActivitesSimultanees();
@@ -131,6 +150,7 @@ public class LieuServiceImpl implements LieuService {
                 lieu.getNombreMax(),
                 lieu.isPartageableEntreAnimateurs(),
                 lieu.getNombreMaxActivitesSimultanees(),
+                LieuUsageRules.usagesEnOrdreDeclaration(LieuUsageRules.usagesEffectifs(lieu)),
                 lieu.getSejour().getId()
         );
     }

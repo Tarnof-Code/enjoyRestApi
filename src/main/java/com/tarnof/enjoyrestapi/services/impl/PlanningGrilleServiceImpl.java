@@ -11,6 +11,7 @@ import com.tarnof.enjoyrestapi.payload.response.PlanningLigneDto;
 import com.tarnof.enjoyrestapi.repositories.*;
 import com.tarnof.enjoyrestapi.services.PlanningGrilleService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
+import com.tarnof.enjoyrestapi.utils.LieuUsageRules;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -288,7 +289,7 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
             }
             case LIEU -> {
                 for (Integer id : idsUniquesOrdre(payload.lieuIds())) {
-                    cellule.getLieux().add(resoudreLieu(id, sejourId));
+                    cellule.getLieux().add(resoudreLieuPourPlanning(id, sejourId));
                 }
             }
             case HORAIRE -> {
@@ -495,7 +496,7 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
                 ligne.setLibelleSaisieLibre(trimToNull(libelleSaisieLibreBrut));
             }
             case LIEU -> {
-                Lieu lieu = resoudreLieu(Objects.requireNonNull(libelleLieuId), sejourId);
+                Lieu lieu = resoudreLieuPourPlanning(Objects.requireNonNull(libelleLieuId), sejourId);
                 ligne.setLibelleLieu(lieu);
                 ligne.setLibelleSaisieLibre(trimToNull(libelleSaisieLibreBrut));
             }
@@ -629,13 +630,19 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Groupe non trouvé avec l'ID: " + groupeId));
     }
 
-    private Lieu resoudreLieu(Integer lieuId, int sejourId) {
-        if (lieuId == null) {
-            return null;
+    private Lieu resoudreLieuPourPlanning(int lieuId, int sejourId) {
+        Lieu lieu =
+                lieuRepository
+                        .findByIdAndSejourId(lieuId, sejourId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Lieu non trouvé avec l'ID: " + lieuId));
+        if (!LieuUsageRules.acceptePourPlanningSurveillanceOuRassemblement(lieu)) {
+            throw new IllegalArgumentException(
+                    "Pour le planning, un lieu doit être désigné comme lieu de surveillance et/ou "
+                            + "de rassemblement (lieu id "
+                            + lieuId
+                            + ").");
         }
-        return lieuRepository
-                .findByIdAndSejourId(lieuId, sejourId)
-                .orElseThrow(() -> new ResourceNotFoundException("Lieu non trouvé avec l'ID: " + lieuId));
+        return lieu;
     }
 
     private Utilisateur resoudreUtilisateurMembreLigne(String tokenId, int sejourId) {

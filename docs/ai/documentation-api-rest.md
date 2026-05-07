@@ -340,11 +340,11 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 ### Endpoints des Lieux (`/api/v1/sejours/{sejourId}/lieux`)
 
-**Autorisation** : `ROLE_DIRECTION` pour toutes les opérations.
+**Autorisation** : **`GET`** **`ACCES_SEJOUR`** + **appartenance au séjour** (`verifierAppartenanceAuSejour`). **`POST` / `PUT` / `DELETE`** **`GESTION_SEJOURS`** (directeur / adjoint avec droits, etc. — aligné sur les autres ressources « direction de séjour »).
 
 #### GET `/api/v1/sejours/{sejourId}/lieux`
 - **Description** : Lister les lieux du séjour
-- **Réponse** : `List<LieuDto>` (200 OK) — inclut **`partageableEntreAnimateurs`**, **`nombreMaxActivitesSimultanees`**
+- **Réponse** : `List<LieuDto>` (200 OK) — inclut **`partageableEntreAnimateurs`**, **`nombreMaxActivitesSimultanees`**, **`usages`** (`Set` d’**`UsageLieu`** : **`ACTIVITE`**, **`SURVEILLANCE`**, **`RASSEMBLEMENT`**, ordre stable côté API)
 - **Codes d'erreur** : `404` : Séjour non trouvé
 
 #### GET `/api/v1/sejours/{sejourId}/lieux/{lieuId}`
@@ -354,15 +354,15 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 #### POST `/api/v1/sejours/{sejourId}/lieux`
 - **Description** : Créer un lieu pour le séjour
-- **Body** : `SaveLieuRequest` (`nom`, `emplacement`, `nombreMax` optionnel `@Positive`, **`partageableEntreAnimateurs`**, **`nombreMaxActivitesSimultanees`** : obligatoire et **≥ 2** si partage ; **`null`** si pas de partage)
+- **Body** : `SaveLieuRequest` (`nom`, `emplacement`, `nombreMax` optionnel `@Positive`, **`partageableEntreAnimateurs`**, **`nombreMaxActivitesSimultanees`** : obligatoire et **≥ 2** si partage ; **`null`** si pas de partage ; **`usages`** : ensemble **non vide** de **`UsageLieu`** — **`@NotEmpty`**)
 - **Réponse** : `LieuDto` (201 Created)
-- **Codes d'erreur** : `400` : validation Jakarta ou règles partage (`IllegalArgumentException`), `404` : séjour, `409` : nom déjà utilisé (casse ignorée)
+- **Codes d'erreur** : `400` : validation Jakarta, règles partage, ou **aucun usage valide** après filtrage (`IllegalArgumentException`), `404` : séjour, `409` : nom déjà utilisé (casse ignorée)
 
 #### PUT `/api/v1/sejours/{sejourId}/lieux/{lieuId}`
 - **Description** : Modifier un lieu
-- **Body** : `SaveLieuRequest`
+- **Body** : `SaveLieuRequest` (inchangé, incl. **`usages`** obligatoires côté contrat)
 - **Réponse** : `LieuDto` (200 OK)
-- **Codes d'erreur** : `400` : validation, `404` : Séjour ou lieu non trouvé / mauvais séjour, `409` : nouveau nom déjà pris par un autre lieu du même séjour
+- **Codes d'erreur** : `400` : validation / usages, `404` : Séjour ou lieu non trouvé / mauvais séjour, `409` : nouveau nom déjà pris par un autre lieu du même séjour
 
 #### DELETE `/api/v1/sejours/{sejourId}/lieux/{lieuId}`
 - **Description** : Supprimer un lieu
@@ -371,7 +371,7 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 ### Endpoints des Horaires (`/api/v1/sejours/{sejourId}/horaires`)
 
-**Autorisation** : `ROLE_DIRECTION` pour toutes les opérations.
+**Autorisation** : **`GET`** **`ACCES_SEJOUR`** + appartenance au séjour ; **`POST` / `PUT` / `DELETE`** **`GESTION_SEJOURS`**.
 
 #### GET `/api/v1/sejours/{sejourId}/horaires`
 - **Description** : Lister les horaires du séjour (**tri par `id` croissant**)
@@ -402,7 +402,7 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 ### Endpoints des Moments (`/api/v1/sejours/{sejourId}/moments`)
 
-**Autorisation** : `ROLE_DIRECTION` pour toutes les opérations.
+**Autorisation** : **`GET`** **`ACCES_SEJOUR`** + appartenance au séjour ; **`POST` / `PUT` / `DELETE`** **`GESTION_SEJOURS`** (incl. **`PUT .../moments/reorder`**).
 
 #### GET `/api/v1/sejours/{sejourId}/moments`
 - **Description** : Lister les moments du séjour (**tri chronologique** : `COALESCE(ordre, id)` croissant, puis `id`)
@@ -455,9 +455,9 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Description** : Créer une activité
 - **Body** :
 
-`CreateActiviteRequest` (`date`, `nom`, `description` optionnelle, **`lieuId` optionnel**, **`momentId`** — obligatoire côté service si au moins un moment existe pour le séjour ; si **aucun moment** → **400** avec consigne de faire créer des moments par la direction, **`typeActiviteId` obligatoire** (`@NotNull`), `membreTokenIds`, **`groupeIds`**). **Partage lieu** : cohérence **jour + moment + lieu** (voir `ActiviteRepository`).
-- **Réponse** : `ActiviteDto` (201 Created) — **`moment`**, **`typeActivite`**, `groupeIds`, **`lieu`**, éventuellement **`avertissementLieu`** si le lieu était déjà occupé **ce jour et ce moment** mais le partage le permet
-- **Codes d'erreur** : `400` : validation Jakarta (dont **`typeActiviteId`** manquant), date / équipe / groupe / **moments** (aucun moment, moment obligatoire manquant), **lieu déjà pris** ou **limite de partage** ; `404` : séjour, membre, groupe, lieu, **moment**, **type d’activité** (**id inconnu** ou **pas pour ce séjour**) ; `403` : pas d’accès au séjour ; `500` théorique si lieu partageable sans max en base
+`CreateActiviteRequest` (`date`, `nom`, `description` optionnelle, **`lieuId` optionnel** — si renseigné, le lieu doit porter l’usage **`ACTIVITE`** (`UsageLieu`) sinon **400**, **`momentId`** — obligatoire côté service si au moins un moment existe pour le séjour ; si **aucun moment** → **400** avec consigne de faire créer des moments par la direction, **`typeActiviteId` obligatoire** (`@NotNull`), `membreTokenIds`, **`groupeIds`**). **Partage lieu** : cohérence **jour + moment + lieu** (voir `ActiviteRepository`).
+- **Réponse** : `ActiviteDto` (201 Created) — **`moment`**, **`typeActivite`**, `groupeIds`, **`lieu`** (**`LieuDto.usages`**), éventuellement **`avertissementLieu`** si le lieu était déjà occupé **ce jour et ce moment** mais le partage le permet
+- **Codes d'erreur** : `400` : validation Jakarta (dont **`typeActiviteId`** manquant), date / équipe / groupe / **moments**, **lieu non « lieu d’activité »** (**`IllegalArgumentException`**, message avec id lieu), **lieu déjà pris** ou **limite de partage** ; `404` : séjour, membre, groupe, lieu, **moment**, **type d’activité** (**id inconnu** ou **pas pour ce séjour**) ; `403` : pas d’accès au séjour ; `500` théorique si lieu partageable sans max en base
 
 #### PUT `/api/v1/sejours/{sejourId}/activites/{activiteId}`
 - **Description** : Modifier une activité
@@ -472,7 +472,7 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 ### Endpoints des types d’activité (`/api/v1/sejours/{sejourId}/types-activite`)
 
-**Par séjour** (même espace que lieux / moments). **Autorisation** : `ROLE_DIRECTION` pour toutes les opérations.
+**Par séjour** (même espace que lieux / moments). **Autorisation** : **`GET`** **`ACCES_SEJOUR`** + appartenance ; **`POST` / `PUT` / `DELETE`** **`GESTION_SEJOURS`**.
 
 À la **création d’un séjour** et au **démarrage** de l’appli pour les séjours existants : les six types par défaut (**`TypeActiviteLibellesParDefaut`**) sont assurés pour le séjour (`predefini = true`, non modifiables / non supprimables).
 
@@ -507,9 +507,9 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 **Autorisation** :
 - **Lecture** (`GET`) : privilège **`ACCES_SEJOUR`** (directeur, équipe, ou ADMIN). Vérification d'**appartenance au séjour** côté service via **`SejourVerificationService.verifierAppartenanceAuSejour`** ; un appel hors séjour → **403** (`AccessDeniedException`).
-- **Écriture** (`POST` / `PUT` / `DELETE`) : `ROLE_DIRECTION`.
+- **Écriture** (`POST` / `PUT` / `DELETE`) : **`GESTION_SEJOURS`** (aligné sur les autres grilles / ressources direction de séjour ; plus seulement `ROLE_DIRECTION`).
 
-Grille = **`PlanningGrille`** (titre, consigne, **`sourceLibelleLignes`**, **`sourceContenuCellules`**, **`miseAJour`**). Lignes = **`PlanningLigne`** (ordre, libellés / refs selon la source — **une seule** référence métier pour le libellé de ligne, ex. `libelleMomentId`). Cellules = **`PlanningCellule`** (jour, texte libre, **plusieurs** animateurs / horaires / moments / groupes / lieux via listes JSON — voir ci‑dessous).
+Grille = **`PlanningGrille`** (titre, consigne, **`sourceLibelleLignes`**, **`sourceContenuCellules`**, **`miseAJour`**). Lignes = **`PlanningLigne`** (ordre, libellés / refs selon la source — **une seule** référence métier pour le libellé de ligne, ex. `libelleMomentId`). Cellules = **`PlanningCellule`** (jour, texte libre, **plusieurs** animateurs / horaires / moments / groupes / lieux via listes JSON — voir ci‑dessous). **Règle lieu** : lorsque la source est **`LIEU`** (libellé de ligne ou contenu de cellule), chaque lieu référencé doit avoir au moins l’usage **`SURVEILLANCE`** ou **`RASSEMBLEMENT`** ; sinon **`IllegalArgumentException`** (**400**).
 
 #### GET `/api/v1/sejours/{sejourId}/planning-grilles`
 - **Autorisation** : `ACCES_SEJOUR` (directeur / membre d'équipe / ADMIN)
@@ -667,7 +667,7 @@ Tous les types TypeScript sont définis dans `enjoyWebApp/src/types/api.d.ts` :
 - `SaveReferenceAlimentaireRequest`, `UpdateReferenceAlimentaireRequest`
 - `ReferencesAlimentairesAgregeesEnfantsDto`
 - `GroupeDto`, `CreateGroupeRequest`, `AjouterReferentRequest`
-- `LieuDto`, `SaveLieuRequest`, `EmplacementLieu` (enum API — à ajouter dans `api.d.ts` si le frontend gère les lieux)
+- `LieuDto`, `SaveLieuRequest`, `EmplacementLieu`, **`UsageLieu`** (enum API — **à ajouter / aligner** dans `api.d.ts` : **`usages`** sur lieux)
 - `HoraireDto`, `SaveHoraireRequest` (à ajouter dans `api.d.ts` si le frontend gère les horaires)
 - `MomentDto` (**`ordre`**), `SaveMomentRequest`, `ReorderMomentsRequest` (**`momentIds`**)
 - `ActiviteDto` (**`moment`**, **`lieu`**, **`typeActivite`**, **`avertissementLieu`**, `groupeIds`), `CreateActiviteRequest`, `UpdateActiviteRequest` (**`typeActiviteId`** obligatoire)

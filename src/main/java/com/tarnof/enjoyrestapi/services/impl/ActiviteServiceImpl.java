@@ -26,6 +26,7 @@ import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.ActiviteService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import com.tarnof.enjoyrestapi.utils.DateFormatHelper;
+import com.tarnof.enjoyrestapi.utils.LieuUsageRules;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -225,9 +226,16 @@ public class ActiviteServiceImpl implements ActiviteService {
         if (lieuId == null) {
             return null;
         }
-        return lieuRepository.findByIdAndSejourId(lieuId, sejourId)
+        Lieu lieu = lieuRepository.findByIdAndSejourId(lieuId, sejourId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Lieu non trouvé pour ce séjour (id: " + lieuId + ")"));
+        if (!LieuUsageRules.acceptePourActivite(lieu)) {
+            throw new IllegalArgumentException(
+                    "Seuls les lieux désignés comme lieu d’activité peuvent être attribués à une activité (lieu id "
+                            + lieuId
+                            + ").");
+        }
+        return lieu;
     }
 
     private TypeActivite resoudreTypeActivite(int sejourId, Integer typeActiviteId) {
@@ -342,6 +350,7 @@ public class ActiviteServiceImpl implements ActiviteService {
                 lieu.getNombreMax(),
                 lieu.isPartageableEntreAnimateurs(),
                 lieu.getNombreMaxActivitesSimultanees(),
+                LieuUsageRules.usagesEnOrdreDeclaration(LieuUsageRules.usagesEffectifs(lieu)),
                 lieu.getSejour().getId());
     }
 

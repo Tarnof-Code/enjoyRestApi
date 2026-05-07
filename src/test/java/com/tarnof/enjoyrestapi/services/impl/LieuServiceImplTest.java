@@ -5,6 +5,7 @@ import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
 import com.tarnof.enjoyrestapi.enums.Role;
+import com.tarnof.enjoyrestapi.enums.UsageLieu;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.SaveLieuRequest;
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -67,7 +69,7 @@ class LieuServiceImplTest {
         when(lieuRepository.existsBySejourIdAndNomIgnoreCase(1, "salle a")).thenReturn(true);
 
         assertThatThrownBy(() -> lieuService.creerLieu(1,
-                new SaveLieuRequest("  salle a  ", EmplacementLieu.INTERIEUR, null, false, null)))
+                new SaveLieuRequest("  salle a  ", EmplacementLieu.INTERIEUR, null, false, null, Set.of(UsageLieu.ACTIVITE))))
                 .isInstanceOf(ResourceAlreadyExistsException.class)
                 .hasMessageContaining("déjà");
 
@@ -88,7 +90,8 @@ class LieuServiceImplTest {
         when(lieuRepository.save(any(Lieu.class))).thenReturn(saved);
 
         var dto = lieuService.creerLieu(1,
-                new SaveLieuRequest("  Terrain  ", EmplacementLieu.EXTERIEUR, null, false, null));
+                new SaveLieuRequest(
+                        "  Terrain  ", EmplacementLieu.EXTERIEUR, null, false, null, Set.of(UsageLieu.ACTIVITE)));
 
         assertThat(dto.nom()).isEqualTo("Terrain");
         assertThat(dto.id()).isEqualTo(10);
@@ -106,7 +109,7 @@ class LieuServiceImplTest {
         when(lieuRepository.existsBySejourIdAndNomIgnoreCaseAndIdNot(1, "Autre", 5)).thenReturn(true);
 
         assertThatThrownBy(() -> lieuService.modifierLieu(1, 5,
-                new SaveLieuRequest("Autre", EmplacementLieu.EXTERIEUR, 20, false, null)))
+                new SaveLieuRequest("Autre", EmplacementLieu.EXTERIEUR, 20, false, null, Set.of(UsageLieu.ACTIVITE))))
                 .isInstanceOf(ResourceAlreadyExistsException.class);
 
         verify(lieuRepository, never()).save(any());
@@ -125,7 +128,8 @@ class LieuServiceImplTest {
         when(lieuRepository.save(any(Lieu.class))).thenAnswer(inv -> inv.getArgument(0));
 
         lieuService.modifierLieu(1, 5,
-                new SaveLieuRequest("SALLE", EmplacementLieu.HORS_CENTRE, null, false, null));
+                new SaveLieuRequest(
+                        "SALLE", EmplacementLieu.HORS_CENTRE, null, false, null, Set.of(UsageLieu.ACTIVITE)));
 
         verify(lieuRepository).save(lieu);
         assertThat(lieu.getNom()).isEqualTo("SALLE");
@@ -153,7 +157,8 @@ class LieuServiceImplTest {
         when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
 
         assertThatThrownBy(() -> lieuService.creerLieu(1,
-                new SaveLieuRequest("Salle", EmplacementLieu.INTERIEUR, null, true, null)))
+                new SaveLieuRequest(
+                        "Salle", EmplacementLieu.INTERIEUR, null, true, null, Set.of(UsageLieu.ACTIVITE))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("simultanées");
 
@@ -172,10 +177,32 @@ class LieuServiceImplTest {
         });
 
         var dto = lieuService.creerLieu(1,
-                new SaveLieuRequest("Grande salle", EmplacementLieu.INTERIEUR, null, true, 2));
+                new SaveLieuRequest(
+                        "Grande salle",
+                        EmplacementLieu.INTERIEUR,
+                        null,
+                        true,
+                        2,
+                        Set.of(UsageLieu.ACTIVITE, UsageLieu.SURVEILLANCE)));
 
         assertThat(dto.partageableEntreAnimateurs()).isTrue();
         assertThat(dto.nombreMaxActivitesSimultanees()).isEqualTo(2);
+        assertThat(dto.usages())
+                .containsExactly(UsageLieu.ACTIVITE, UsageLieu.SURVEILLANCE);
+    }
+
+    @Test
+    @DisplayName("creerLieu - refuse une liste d'usages vide")
+    void creerLieu_whenUsagesVides_shouldThrow400() {
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+
+        assertThatThrownBy(() -> lieuService.creerLieu(1,
+                        new SaveLieuRequest(
+                                "Salle", EmplacementLieu.INTERIEUR, null, false, null, Set.of())))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("usage");
+
+        verify(lieuRepository, never()).save(any());
     }
 
     @Test

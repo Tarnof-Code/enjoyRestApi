@@ -2,6 +2,7 @@ package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.*;
 import com.tarnof.enjoyrestapi.enums.PlanningLigneLibelleSource;
+import com.tarnof.enjoyrestapi.enums.UsageLieu;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.*;
@@ -16,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -245,5 +247,61 @@ class PlanningGrilleServiceImplTest {
                 .isInstanceOf(AccessDeniedException.class);
 
         verify(planningGrilleRepository, never()).findBySejour_IdOrderByMiseAJourDesc(any(Integer.class));
+    }
+
+    @Test
+    @DisplayName("creerLigne - refus si le lieu est seulement lieu d'activité")
+    void creerLigne_lieuActiviteSeul_devraitEchouer() {
+        PlanningGrille grille = new PlanningGrille();
+        grille.setId(10);
+        grille.setSejour(sejour);
+        grille.setSourceLibelleLignes(PlanningLigneLibelleSource.LIEU);
+        Lieu lieu = new Lieu();
+        lieu.setId(50);
+        lieu.setSejour(sejour);
+        lieu.setUsages(EnumSet.of(UsageLieu.ACTIVITE));
+
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(planningGrilleRepository.findByIdAndSejour_Id(10, 1)).thenReturn(Optional.of(grille));
+        when(lieuRepository.findByIdAndSejourId(50, 1)).thenReturn(Optional.of(lieu));
+
+        var req = new SavePlanningLigneRequest(0, null, null, null, null, null, 50, null);
+
+        assertThatThrownBy(() -> service.creerLigne(1, 10, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("surveillance");
+
+        verify(planningLigneRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("creerLigne - lieu de rassemblement accepté")
+    void creerLigne_lieuRassemblement_ok() {
+        PlanningGrille grille = new PlanningGrille();
+        grille.setId(11);
+        grille.setSejour(sejour);
+        grille.setSourceLibelleLignes(PlanningLigneLibelleSource.LIEU);
+        Lieu lieu = new Lieu();
+        lieu.setId(51);
+        lieu.setSejour(sejour);
+        lieu.setUsages(EnumSet.of(UsageLieu.RASSEMBLEMENT));
+
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(planningGrilleRepository.findByIdAndSejour_Id(11, 1)).thenReturn(Optional.of(grille));
+        when(lieuRepository.findByIdAndSejourId(51, 1)).thenReturn(Optional.of(lieu));
+        when(planningLigneRepository.save(any(PlanningLigne.class)))
+                .thenAnswer(
+                        inv -> {
+                            PlanningLigne l = inv.getArgument(0);
+                            l.setId(999);
+                            return l;
+                        });
+
+        var dto =
+                service.creerLigne(
+                        1, 11, new SavePlanningLigneRequest(2, null, null, null, null, null, 51, null));
+
+        assertThat(dto.libelleLieuId()).isEqualTo(51);
+        verify(planningLigneRepository).save(any(PlanningLigne.class));
     }
 }

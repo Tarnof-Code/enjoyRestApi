@@ -1,10 +1,14 @@
 package com.tarnof.enjoyrestapi.payload.request;
 
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
+import com.tarnof.enjoyrestapi.enums.UsageLieu;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+
+import java.util.Set;
 
 public record SaveLieuRequest(
         @NotBlank(message = "Le nom du lieu est obligatoire")
@@ -19,5 +23,8 @@ public record SaveLieuRequest(
 
         boolean partageableEntreAnimateurs,
 
-        Integer nombreMaxActivitesSimultanees
+        Integer nombreMaxActivitesSimultanees,
+
+        @NotEmpty(message = "Sélectionnez au moins un usage : activité, surveillance et/ou rassemblement")
+        Set<UsageLieu> usages
 ) {}

@@ -1,9 +1,13 @@
 package com.tarnof.enjoyrestapi.entities;
 
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
+import com.tarnof.enjoyrestapi.enums.UsageLieu;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(
@@ -42,6 +46,15 @@ public class Lieu {
     @ManyToOne
     @JoinColumn(name = "sejour_id", nullable = false)
     private Sejour sejour;
+
+    /**
+     * Au moins un usage est requis en création / mise à jour via l’API ({@link com.tarnof.enjoyrestapi.payload.request.SaveLieuRequest}).
+     */
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "lieu_usage", joinColumns = @JoinColumn(name = "lieu_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "usage_lieu", nullable = false)
+    private Set<UsageLieu> usages = new LinkedHashSet<>();
 
     public Lieu() {
     }
@@ -102,6 +115,14 @@ public class Lieu {
         this.sejour = sejour;
     }
 
+    public Set<UsageLieu> getUsages() {
+        return usages;
+    }
+
+    public void setUsages(Set<UsageLieu> usages) {
+        this.usages = usages != null ? usages : new LinkedHashSet<>();
+    }
+
     /** Sans {@code sejour} : évite lazy load et référence circulaire avec {@link Sejour}. */
     @Override
     public String toString() {
@@ -112,6 +133,7 @@ public class Lieu {
                 ", nombreMax=" + nombreMax +
                 ", partageableEntreAnimateurs=" + partageableEntreAnimateurs +
                 ", nombreMaxActivitesSimultanees=" + nombreMaxActivitesSimultanees +
+                ", usages=" + usages +
                 '}';
     }
 }

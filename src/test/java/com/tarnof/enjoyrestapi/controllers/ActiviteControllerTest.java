@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
+import com.tarnof.enjoyrestapi.enums.UsageLieu;
 import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActiviteDto;
@@ -28,6 +29,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -65,7 +67,8 @@ class ActiviteControllerTest {
     @DisplayName("GET /api/v1/sejours/{id}/activites")
     void lister_shouldReturn200() throws Exception {
         LocalDate date = LocalDate.of(2026, 7, 5);
-        LieuDto lieu = new LieuDto(8, "Terrain", EmplacementLieu.EXTERIEUR, null, false, null, 3);
+        LieuDto lieu =
+                new LieuDto(8, "Terrain", EmplacementLieu.EXTERIEUR, null, false, null, Set.of(UsageLieu.ACTIVITE), 3);
         MomentDto moment = new MomentDto(2, "Matin", 3, 0);
         TypeActiviteDto typeActivite = new TypeActiviteDto(5, "Sport", true, 3);
         List<ActiviteDto.MembreEquipeInfo> membres =

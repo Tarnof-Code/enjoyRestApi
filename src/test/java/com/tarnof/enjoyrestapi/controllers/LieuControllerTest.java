@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
+import com.tarnof.enjoyrestapi.enums.UsageLieu;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
@@ -24,6 +25,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -61,8 +63,24 @@ class LieuControllerTest {
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
 
-        lieuDto = new LieuDto(3, "Salle polyvalente", EmplacementLieu.INTERIEUR, 40, false, null, 1);
-        saveLieuRequest = new SaveLieuRequest("Salle polyvalente", EmplacementLieu.INTERIEUR, 40, false, null);
+        lieuDto =
+                new LieuDto(
+                        3,
+                        "Salle polyvalente",
+                        EmplacementLieu.INTERIEUR,
+                        40,
+                        false,
+                        null,
+                        Set.of(UsageLieu.ACTIVITE),
+                        1);
+        saveLieuRequest =
+                new SaveLieuRequest(
+                        "Salle polyvalente",
+                        EmplacementLieu.INTERIEUR,
+                        40,
+                        false,
+                        null,
+                        Set.of(UsageLieu.ACTIVITE));
 
         Utilisateur utilisateur = Utilisateur.builder().tokenId("user-token-123").build();
         authentication = new UsernamePasswordAuthenticationToken(
