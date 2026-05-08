@@ -13,7 +13,9 @@ import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;
 import com.tarnof.enjoyrestapi.payload.request.MembreEquipeRequest;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateMembreEquipeRoleRequest;
+import com.tarnof.enjoyrestapi.payload.response.EnfantDossierSanitaireLigneDto;
 import com.tarnof.enjoyrestapi.payload.response.SejourDto;
+import com.tarnof.enjoyrestapi.services.EnfantService;
 import com.tarnof.enjoyrestapi.services.SejourService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -50,6 +52,9 @@ class SejourControllerTest {
 
     @Mock
     private SejourService sejourService;
+
+    @Mock
+    private EnfantService enfantService;
 
     @InjectMocks
     private SejourController sejourController;
@@ -219,6 +224,27 @@ class SejourControllerTest {
                 .andExpect(jsonPath("$.error").value("Séjour non trouvé avec l'ID: 999"));
 
         verify(sejourService).getSejourById(999, "user-token-123");
+    }
+
+    @Test
+    @DisplayName("listerDossiersEnfantsDuSejour - Devrait retourner 200 OK avec les lignes sanitaires")
+    void listerDossiersEnfantsDuSejour_ShouldReturn200() throws Exception {
+        Utilisateur utilisateur = Utilisateur.builder().tokenId("user-token-123").build();
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                utilisateur, null, Collections.emptyList());
+        EnfantDossierSanitaireLigneDto ligne =
+                new EnfantDossierSanitaireLigneDto(1, "Emma", "Martin", Collections.emptyList(), null);
+        when(enfantService.listerDossiersEnfantsDuSejour(1, "user-token-123")).thenReturn(List.of(ligne));
+
+        mockMvc.perform(get("/api/v1/sejours/1/dossiers-enfants").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].enfantId").value(1))
+                .andExpect(jsonPath("$[0].prenom").value("Emma"))
+                .andExpect(jsonPath("$[0].nom").value("Martin"))
+                .andExpect(jsonPath("$[0].dossier").value((Object) null));
+
+        verify(enfantService).listerDossiersEnfantsDuSejour(1, "user-token-123");
     }
 
     // ========== Tests pour creerSejour() ==========

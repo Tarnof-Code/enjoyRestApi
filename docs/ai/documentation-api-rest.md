@@ -149,6 +149,15 @@
 - **Codes d'erreur** :
   - `404` : Séjour non trouvé
 
+#### GET `/api/v1/sejours/{sejourId}/dossiers-enfants`
+- **Description** : Liste pour un écran type **sanitaire** : un élément par enfant inscrit au séjour, avec identité, **groupes** du séjour auxquels l’enfant est rattaché, et **dossier** (même contenu fonctionnel que `DossierEnfantDto` du GET dossier unitaire). Charge optimisée (requêtes groupées : inscriptions, dossiers avec références alimentaires, groupes avec enfants).
+- **Autorisation** : **`ACCES_SEJOUR`** — accès réservé au **directeur** du séjour ou à un **membre d’équipe** (même règle métier que la consultation des enfants / dossiers de ce séjour).
+- **Path Variable** : `sejourId` (int)
+- **Réponse** : `List<EnfantDossierSanitaireLigneDto>` (200 OK) — champs : **`enfantId`**, **`prenom`**, **`nom`**, **`groupes`** (`List<GroupeResumeDto>` : **`id`**, **`libelle`**), **`dossier`** (`DossierEnfantDto` ou **`null`** s’il n’existe pas de ligne dossier pour cet enfant ; un dossier « vide » reste un objet avec champs / listes vides).
+- **Codes d'erreur** :
+  - `403` : Utilisateur ne participant pas au séjour
+  - `404` : Séjour non trouvé
+
 #### GET `/api/v1/sejours/{id}/enfants/{enfantId}/dossier`
 - **Description** : Récupérer le dossier d'un enfant (contacts parents, infos médicales, traitements, etc.)
 - **Autorisation** : `ROLE_DIRECTION` (directeur du séjour ou membre de l'équipe)

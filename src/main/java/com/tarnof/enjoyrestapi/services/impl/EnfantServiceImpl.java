@@ -5,6 +5,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,9 @@ import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.NiveauScolaire;
 import com.tarnof.enjoyrestapi.enums.TypeReferenceAlimentaire;
 import com.tarnof.enjoyrestapi.payload.response.DossierEnfantDto;
+import com.tarnof.enjoyrestapi.payload.response.EnfantDossierSanitaireLigneDto;
 import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
+import com.tarnof.enjoyrestapi.payload.response.GroupeResumeDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
 import com.tarnof.enjoyrestapi.payload.response.ReferenceAlimentaireDto;
 import com.tarnof.enjoyrestapi.entities.DossierEnfant;
@@ -311,6 +314,61 @@ public class EnfantServiceImpl implements EnfantService {
                 .map(SejourEnfant::getEnfant)
                 .map(this::mapToEnfantDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<EnfantDossierSanitaireLigneDto> listerDossiersEnfantsDuSejour(int sejourId, String utilisateurTokenId) {
+        Sejour sejour = sejourRepository.findById(sejourId)
+                .orElseThrow(() -> new ResourceNotFoundException("Séjour non trouvé avec l'ID: " + sejourId));
+
+        boolean estDirecteur = sejour.getDirecteur() != null && sejour.getDirecteur().getTokenId().equals(utilisateurTokenId);
+        boolean estDansEquipe = sejour.getEquipeRoles() != null && sejour.getEquipeRoles().stream()
+                .anyMatch(se -> se.getUtilisateur() != null && se.getUtilisateur().getTokenId().equals(utilisateurTokenId));
+        if (!estDirecteur && !estDansEquipe) {
+            throw new AccessDeniedException("Vous ne participez pas à ce séjour");
+        }
+
+        List<SejourEnfant> liens = sejourEnfantRepository.findBySejourIdWithEnfant(sejourId);
+        if (liens.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Integer> enfantIds = liens.stream().map(se -> se.getEnfant().getId()).collect(Collectors.toList());
+
+        Map<Integer, DossierEnfant> dossierParEnfantId = dossierEnfantRepository
+                .findByEnfantIdInFetchingReferences(enfantIds)
+                .stream()
+                .collect(Collectors.toMap(d -> d.getEnfant().getId(), d -> d, (a, b) -> a));
+
+        Map<Integer, List<GroupeResumeDto>> groupesParEnfant = new HashMap<>();
+        for (Groupe groupe : groupeRepository.findBySejourIdFetchingEnfants(sejourId)) {
+            GroupeResumeDto resume = new GroupeResumeDto(groupe.getId(), groupe.getNom());
+            if (groupe.getEnfants() != null) {
+                for (Enfant e : groupe.getEnfants()) {
+                    groupesParEnfant.computeIfAbsent(e.getId(), k -> new ArrayList<>()).add(resume);
+                }
+            }
+        }
+
+        List<EnfantDossierSanitaireLigneDto> lignes = new ArrayList<>(liens.size());
+        for (SejourEnfant lien : liens) {
+            Enfant e = lien.getEnfant();
+            int idEnfant = e.getId();
+            List<GroupeResumeDto> groupes = new ArrayList<>(groupesParEnfant.getOrDefault(idEnfant, List.of()));
+            groupes.sort(Comparator.comparingInt(GroupeResumeDto::id));
+
+            DossierEnfant dossierEnt = dossierParEnfantId.get(idEnfant);
+            DossierEnfantDto dossierDto = dossierEnt != null ? mapToDossierEnfantDto(dossierEnt) : null;
+
+            lignes.add(new EnfantDossierSanitaireLigneDto(
+                    idEnfant,
+                    e.getPrenom(),
+                    e.getNom(),
+                    groupes,
+                    dossierDto
+            ));
+        }
+        return lignes;
     }
 
     @Override

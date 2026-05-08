@@ -12,7 +12,7 @@ import java.util.List;
 @Repository
 public interface SejourEnfantRepository extends JpaRepository<SejourEnfant, SejourEnfantId> {
 
-    @Query("SELECT se FROM SejourEnfant se JOIN FETCH se.enfant WHERE se.sejour.id = :sejourId")
+    @Query("SELECT se FROM SejourEnfant se JOIN FETCH se.enfant e WHERE se.sejour.id = :sejourId ORDER BY e.nom, e.prenom")
     List<SejourEnfant> findBySejourIdWithEnfant(@Param("sejourId") int sejourId);
     /**
      * Compte le nombre de séjours auxquels un enfant est inscrit

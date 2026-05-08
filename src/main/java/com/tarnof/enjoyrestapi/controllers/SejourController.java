@@ -8,11 +8,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.payload.response.EnfantDossierSanitaireLigneDto;
 import com.tarnof.enjoyrestapi.payload.response.SejourDto;
 import com.tarnof.enjoyrestapi.payload.request.MembreEquipeRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateMembreEquipeRoleRequest;
 import com.tarnof.enjoyrestapi.payload.request.CreateSejourRequest;
 import com.tarnof.enjoyrestapi.payload.request.RegisterRequest;
+import com.tarnof.enjoyrestapi.services.EnfantService;
 import com.tarnof.enjoyrestapi.services.SejourService;
     
 import jakarta.validation.Valid;
@@ -22,9 +24,11 @@ import jakarta.validation.Valid;
 public class SejourController {
     
     private final SejourService sejourService;
+    private final EnfantService enfantService;
 
-    public SejourController(SejourService sejourService) {
+    public SejourController(SejourService sejourService, EnfantService enfantService) {
         this.sejourService = sejourService;
+        this.enfantService = enfantService;
     }
 
     @GetMapping
@@ -38,6 +42,15 @@ public class SejourController {
     public SejourDto getSejourById(@PathVariable int id, Authentication authentication) {
         Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
         return sejourService.getSejourById(id, utilisateur.getTokenId());
+    }
+
+    @GetMapping("/{sejourId}/dossiers-enfants")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public List<EnfantDossierSanitaireLigneDto> listerDossiersEnfantsDuSejour(
+            @PathVariable int sejourId,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return enfantService.listerDossiersEnfantsDuSejour(sejourId, utilisateur.getTokenId());
     }
 
     @PostMapping("/{id}/equipe/existant")

@@ -1,15 +1,18 @@
 package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.Enfant;
+import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEnfant;
 import com.tarnof.enjoyrestapi.entities.SejourEnfantId;
 import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.NiveauScolaire;
+import com.tarnof.enjoyrestapi.enums.TypeGroupe;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateEnfantRequest;
 import com.tarnof.enjoyrestapi.payload.response.EnfantDto;
+import com.tarnof.enjoyrestapi.payload.response.EnfantDossierSanitaireLigneDto;
 import com.tarnof.enjoyrestapi.payload.response.ExcelImportResponse;
 import com.tarnof.enjoyrestapi.repositories.DossierEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.ReferenceAlimentaireRepository;
@@ -29,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -527,6 +531,67 @@ class EnfantServiceImplTest {
                 .hasMessageContaining("Séjour non trouvé avec l'ID: 999");
 
         verify(sejourRepository).findById(999);
+    }
+
+    // ==================== listerDossiersEnfantsDuSejour ====================
+
+    @Test
+    @DisplayName("listerDossiersEnfantsDuSejour - Devrait retourner dossier null et groupes vides quand absent")
+    void listerDossiersEnfantsDuSejour_ShouldReturnNullDossierWhenNoRow() {
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(Objects.requireNonNull(sejour)));
+        when(sejourEnfantRepository.findBySejourIdWithEnfant(1)).thenReturn(List.of(sejourEnfant));
+        when(dossierEnfantRepository.findByEnfantIdInFetchingReferences(List.of(1))).thenReturn(Collections.emptyList());
+        when(groupeRepo.findBySejourIdFetchingEnfants(1)).thenReturn(Collections.emptyList());
+
+        List<EnfantDossierSanitaireLigneDto> result = enfantService.listerDossiersEnfantsDuSejour(1, "dir-token");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).enfantId()).isEqualTo(1);
+        assertThat(result.get(0).prenom()).isEqualTo("Emma");
+        assertThat(result.get(0).nom()).isEqualTo("Martin");
+        assertThat(result.get(0).groupes()).isEmpty();
+        assertThat(result.get(0).dossier()).isNull();
+    }
+
+    @Test
+    @DisplayName("listerDossiersEnfantsDuSejour - Devrait inclure les groupes du séjour pour un membre d'équipe")
+    void listerDossiersEnfantsDuSejour_ShouldIncludeGroupesForEquipeMember() {
+        Groupe g = Groupe.builder()
+                .id(10)
+                .nom("Les Loups")
+                .typeGroupe(TypeGroupe.THEMATIQUE)
+                .sejour(sejour)
+                .enfants(new ArrayList<>(List.of(enfant)))
+                .build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(Objects.requireNonNull(sejour)));
+        when(sejourEnfantRepository.findBySejourIdWithEnfant(1)).thenReturn(List.of(sejourEnfant));
+        when(dossierEnfantRepository.findByEnfantIdInFetchingReferences(List.of(1))).thenReturn(Collections.emptyList());
+        when(groupeRepo.findBySejourIdFetchingEnfants(1)).thenReturn(List.of(g));
+
+        List<EnfantDossierSanitaireLigneDto> result = enfantService.listerDossiersEnfantsDuSejour(1, "membre-token");
+
+        assertThat(result.get(0).groupes()).hasSize(1);
+        assertThat(result.get(0).groupes().get(0).id()).isEqualTo(10);
+        assertThat(result.get(0).groupes().get(0).libelle()).isEqualTo("Les Loups");
+    }
+
+    @Test
+    @DisplayName("listerDossiersEnfantsDuSejour - Devrait refuser un utilisateur qui ne participe pas au séjour")
+    void listerDossiersEnfantsDuSejour_WhenNotParticipant_ShouldDeny() {
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(Objects.requireNonNull(sejour)));
+
+        assertThatThrownBy(() -> enfantService.listerDossiersEnfantsDuSejour(1, "inconnu"))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("listerDossiersEnfantsDuSejour - Devrait retourner 404 si le séjour n'existe pas")
+    void listerDossiersEnfantsDuSejour_WhenSejourNotFound_ShouldThrow404() {
+        when(sejourRepository.findById(999)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> enfantService.listerDossiersEnfantsDuSejour(999, "dir-token"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Séjour non trouvé avec l'ID: 999");
     }
 
     // ==================== importerEnfantsDepuisExcel ====================
