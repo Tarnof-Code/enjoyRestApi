@@ -27,6 +27,7 @@ import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.TypeActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.springframework.security.access.AccessDeniedException;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,6 +77,8 @@ class ActiviteServiceImplTest {
     private MomentRepository momentRepository;
     @Mock
     private TypeActiviteRepository typeActiviteRepository;
+    @Mock
+    private HistoriqueModificationService historiqueModificationService;
 
     private ActiviteServiceImpl activiteService;
     private Sejour sejour;
@@ -94,7 +97,8 @@ class ActiviteServiceImplTest {
                 groupeRepository,
                 lieuRepository,
                 momentRepository,
-                typeActiviteRepository);
+                typeActiviteRepository,
+                historiqueModificationService);
         sejour = Sejour.builder()
                 .id(1)
                 .nom("Colo")

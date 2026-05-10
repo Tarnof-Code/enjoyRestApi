@@ -479,6 +479,12 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Réponse** : `204 No Content`
 - **Codes d'erreur** : `404` : Séjour ou activité non trouvé ; `403` : pas les droits (animateur non affecté à l’activité, etc.)
 
+#### GET `/api/v1/sejours/{sejourId}/activites/{activiteId}/historique`
+- **Description** : Consulter l'historique des modifications d'une activité (création, modification, suppression) avec snapshots compacts des valeurs
+- **Autorisation** : **`ACCES_SEJOUR`** + appartenance au séjour
+- **Réponse** : `List<HistoriqueModificationActiviteDto>` (200 OK) — tri chronologique (date modification croissante). Chaque entrée contient : `base` (`id`, `type`, `dateModification`, `modificateurTokenId`, `nom`, `prenom`, `action`, **`ancienneValeur`** (string ou null), **`nouvelleValeur`** (string ou null)), `activiteId`. **Format snapshots** (pipe-separated, **libellés lisibles**, pas d’ids) : `date|nom|description|nomLieu|nomMoment|libelleTypeActivite|animateurs|nomsGroupes`. **Animateurs** : `prénom nom` séparés par `", "` (tri alphabétique sur ce libellé). Lieu / moment / type absents : `-`. Exemple : `2026-05-15|Randonnée|Balade en forêt|Salle A|Matin|Sportive|Jean Dupont, Alice Martin|Groupe 1`
+- **Codes d'erreur** : `404` : Séjour ou activité non trouvé ; `403` : pas d'accès au séjour
+
 ### Endpoints des types d’activité (`/api/v1/sejours/{sejourId}/types-activite`)
 
 **Par séjour** (même espace que lieux / moments). **Autorisation** : **`GET`** **`ACCES_SEJOUR`** + appartenance ; **`POST` / `PUT` / `DELETE`** **`GESTION_SEJOURS`**.
@@ -551,7 +557,13 @@ Grille = **`PlanningGrille`** (titre, consigne, **`sourceLibelleLignes`**, **`so
 - **Réponse** : `PlanningLigneDto` (200)
 
 #### DELETE `/api/v1/sejours/{sejourId}/planning-grilles/{grilleId}/lignes/{ligneId}`
-- **Réponse** : `204`
+
+#### GET `/api/v1/sejours/{sejourId}/planning-grilles/{grilleId}/lignes/{ligneId}/historique-cellules`
+- **Description** : Consulter l'historique des modifications des cellules d'une ligne de planning (création, modification, suppression) avec snapshots compacts des valeurs
+- **Autorisation** : **`ACCES_SEJOUR`** + appartenance au séjour
+- **Query Parameters** : `jour` (`LocalDate`, optionnel) — filtre par jour spécifique
+- **Réponse** : `List<HistoriqueModificationPlanningCelluleDto>` (200 OK) — tri chronologique. Chaque entrée contient : `base` (`id`, `type`, `dateModification`, `modificateurTokenId`, `nom`, `prenom`, `action`, **`ancienneValeur`** (string ou null), **`nouvelleValeur`** (string ou null)), `planningLigneId`, `planningJour`, `planningCelluleId`. **Format snapshots** (pipe-separated, **libellés lisibles**) : `texteLibre|animateurs|horaires|moments|groupes|lieux`. Segments = listes séparées par **virgule et espace** (`", "`) : animateurs en **prénom nom** (tri alphabétique), horaires par **libellé**, moments / groupes / lieux par **nom**. Exemple : `Surveillance piscine|Jean Dupont|8h00, 9h00|Matin|Les ados|Piscine, Clairière`
+- **Codes d'erreur** : `404` : Séjour, grille ou ligne non trouvé ; `403` : pas d'accès au séjour
 
 #### PUT `/api/v1/sejours/{sejourId}/planning-grilles/{grilleId}/lignes/{ligneId}/cellules`
 - **Body** : `UpsertPlanningCellulesRequest` — champ **`cellules`** : liste de **`PlanningCellulePayload`** (`jour` obligatoire ; **`membreTokenIds`**, **`horaireIds`**, **`momentIds`**, **`groupeIds`**, **`lieuIds`** en **tableaux** ; **`texteLibre`** ; plus de champs singuliers `horaireId` / … pour les cellules).
@@ -681,6 +693,7 @@ Tous les types TypeScript sont définis dans `enjoyWebApp/src/types/api.d.ts` :
 - `MomentDto` (**`ordre`**), `SaveMomentRequest`, `ReorderMomentsRequest` (**`momentIds`**)
 - `ActiviteDto` (**`moment`**, **`lieu`**, **`typeActivite`**, **`avertissementLieu`**, `groupeIds`), `CreateActiviteRequest`, `UpdateActiviteRequest` (**`typeActiviteId`** obligatoire)
 - `TypeActiviteDto` (**`sejourId`**, **`predefini`**), `SaveTypeActiviteRequest`
+- `HistoriqueModificationActiviteDto`, `HistoriqueModificationPlanningCelluleDto`, `HistoriqueModificationBaseDto` (inclut **`ancienneValeur`** et **`nouvelleValeur`** : chaînes lisibles pipe-separated, voir endpoints *historique* ; pas du JSON)
 - `PlanningGrilleSummaryDto`, `PlanningGrilleDetailDto`, `PlanningLigneDto`, **`PlanningCelluleDto`** (listes **`horaireIds`**, **`horaireLibelles`**, **`momentIds`**, **`groupeIds`**, **`lieuIds`**, **`membreTokenIds`**), `UpsertPlanningCellulesRequest`, **`PlanningCellulePayload`**
 - `CreateSejourRequest`
 - `CreateEnfantRequest`

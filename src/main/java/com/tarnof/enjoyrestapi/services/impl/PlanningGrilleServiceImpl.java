@@ -1,6 +1,7 @@
 package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.*;
+import com.tarnof.enjoyrestapi.enums.HistoriqueModificationAction;
 import com.tarnof.enjoyrestapi.enums.PlanningLigneLibelleSource;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.*;
@@ -9,9 +10,11 @@ import com.tarnof.enjoyrestapi.payload.response.PlanningGrilleDetailDto;
 import com.tarnof.enjoyrestapi.payload.response.PlanningGrilleSummaryDto;
 import com.tarnof.enjoyrestapi.payload.response.PlanningLigneDto;
 import com.tarnof.enjoyrestapi.repositories.*;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import com.tarnof.enjoyrestapi.services.PlanningGrilleService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import com.tarnof.enjoyrestapi.utils.LieuUsageRules;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +24,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@SuppressWarnings("null")
 public class PlanningGrilleServiceImpl implements PlanningGrilleService {
 
     private final PlanningGrilleRepository planningGrilleRepository;
@@ -34,6 +36,7 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
     private final LieuRepository lieuRepository;
     private final SejourEquipeRepository sejourEquipeRepository;
     private final UtilisateurRepository utilisateurRepository;
+    private final HistoriqueModificationService historiqueModificationService;
 
     public PlanningGrilleServiceImpl(
             PlanningGrilleRepository planningGrilleRepository,
@@ -45,7 +48,8 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
             GroupeRepository groupeRepository,
             LieuRepository lieuRepository,
             SejourEquipeRepository sejourEquipeRepository,
-            UtilisateurRepository utilisateurRepository) {
+            UtilisateurRepository utilisateurRepository,
+            HistoriqueModificationService historiqueModificationService) {
         this.planningGrilleRepository = planningGrilleRepository;
         this.planningLigneRepository = planningLigneRepository;
         this.planningCelluleRepository = planningCelluleRepository;
@@ -56,6 +60,7 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
         this.lieuRepository = lieuRepository;
         this.sejourEquipeRepository = sejourEquipeRepository;
         this.utilisateurRepository = utilisateurRepository;
+        this.historiqueModificationService = historiqueModificationService;
     }
 
     @Override
@@ -176,7 +181,11 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
     @Override
     @Transactional
     public List<PlanningCelluleDto> remplacerCellules(
-            int sejourId, int grilleId, int ligneId, UpsertPlanningCellulesRequest request) {
+            int sejourId,
+            int grilleId,
+            int ligneId,
+            UpsertPlanningCellulesRequest request,
+            String modificateurTokenId) {
         PlanningGrille grille = getGrilleEtVerifierSejour(sejourId, grilleId);
         Sejour sejour = grille.getSejour();
         PlanningLigne ligne = getLigneEtVerifierGrille(grilleId, ligneId);
@@ -185,11 +194,26 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
             if (cellulePayloadVide(payload)) {
                 planningCelluleRepository
                         .findByLigne_IdAndJour(ligneId, payload.jour())
-                        .ifPresent(planningCelluleRepository::delete);
+                        .ifPresent(
+                                existing -> {
+                                    String ancienneValeur = snapshotPlanningCellule(existing);
+                                    historiqueModificationService.enregistrerPlanningCellule(
+                                            modificateurTokenId,
+                                            HistoriqueModificationAction.SUPPRESSION,
+                                            ligneId,
+                                            payload.jour(),
+                                            existing.getId(),
+                                            ancienneValeur,
+                                            null);
+                                    planningCelluleRepository.delete(existing);
+                                });
             } else {
-                PlanningCellule cellule = planningCelluleRepository
-                        .findByLigne_IdAndJour(ligneId, payload.jour())
-                        .orElseGet(() -> nouvelleCellule(ligne, payload.jour()));
+                Optional<PlanningCellule> existOpt =
+                        planningCelluleRepository.findByLigne_IdAndJour(ligneId, payload.jour());
+                String signatureAvant = existOpt.map(this::signatureContenuCellule).orElse(null);
+                String ancienneValeur = existOpt.map(this::snapshotPlanningCellule).orElse(null);
+                PlanningCellule cellule =
+                        existOpt.orElseGet(() -> nouvelleCellule(ligne, payload.jour()));
                 cellule.setLigne(ligne);
                 cellule.setJour(payload.jour());
                 appliquerReferencesMetierCellule(sejourId, cellule, sourceContenuCellulesEffectif(grille), payload);
@@ -197,6 +221,28 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
                 cellule.getAnimateursAssignes().clear();
                 cellule.getAnimateursAssignes().addAll(chargerMembresCelluleValides(sejour, payload.membreTokenIds()));
                 planningCelluleRepository.save(cellule);
+                String signatureApres = signatureContenuCellule(cellule);
+                if (signatureAvant == null) {
+                    String nouvelleValeur = snapshotPlanningCellule(cellule);
+                    historiqueModificationService.enregistrerPlanningCellule(
+                            modificateurTokenId,
+                            HistoriqueModificationAction.CREATION,
+                            ligneId,
+                            payload.jour(),
+                            cellule.getId(),
+                            null,
+                            nouvelleValeur);
+                } else if (!signatureAvant.equals(signatureApres)) {
+                    String nouvelleValeur = snapshotPlanningCellule(cellule);
+                    historiqueModificationService.enregistrerPlanningCellule(
+                            modificateurTokenId,
+                            HistoriqueModificationAction.MODIFICATION,
+                            ligneId,
+                            payload.jour(),
+                            cellule.getId(),
+                            ancienneValeur,
+                            nouvelleValeur);
+                }
             }
         }
         touch(grille);
@@ -400,17 +446,21 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
                 .thenComparing(PlanningLigne::getId);
     }
 
+    @NonNull
     private PlanningGrille getGrilleEtVerifierSejour(int sejourId, int grilleId) {
         sejourVerificationService.verifierSejourExiste(sejourId);
-        return planningGrilleRepository
-                .findByIdAndSejour_Id(grilleId, sejourId)
-                .orElseThrow(() -> new ResourceNotFoundException("Planning non trouvé avec l'ID: " + grilleId));
+        return Objects.requireNonNull(
+                planningGrilleRepository
+                        .findByIdAndSejour_Id(grilleId, sejourId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Planning non trouvé avec l'ID: " + grilleId)));
     }
 
+    @NonNull
     private PlanningLigne getLigneEtVerifierGrille(int grilleId, int ligneId) {
-        return planningLigneRepository
-                .findByIdAndGrille_Id(ligneId, grilleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Ligne de planning non trouvée avec l'ID: " + ligneId));
+        return Objects.requireNonNull(
+                planningLigneRepository
+                        .findByIdAndGrille_Id(ligneId, grilleId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Ligne de planning non trouvée avec l'ID: " + ligneId)));
     }
 
     /**
@@ -742,6 +792,112 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
                 ligne.getLibelleLieu() == null ? null : ligne.getLibelleLieu().getId(),
                 ligne.getLibelleUtilisateur() == null ? null : ligne.getLibelleUtilisateur().getTokenId(),
                 celluleDtos);
+    }
+
+    /**
+     * Signature stable du contenu métier d'une cellule (hors id), pour détecter une vraie modification.
+     */
+    private String signatureContenuCellule(PlanningCellule c) {
+        List<String> membreTokenIds =
+                c.getAnimateursAssignes().stream()
+                        .map(Utilisateur::getTokenId)
+                        .filter(Objects::nonNull)
+                        .sorted()
+                        .toList();
+        List<Integer> horaireIds =
+                c.getHoraires().stream()
+                        .map(Horaire::getId)
+                        .filter(Objects::nonNull)
+                        .sorted()
+                        .toList();
+        List<Integer> momentIds =
+                c.getMoments().stream()
+                        .map(Moment::getId)
+                        .filter(Objects::nonNull)
+                        .sorted()
+                        .toList();
+        List<Integer> groupeIds =
+                c.getGroupes().stream()
+                        .map(Groupe::getId)
+                        .filter(Objects::nonNull)
+                        .sorted()
+                        .toList();
+        List<Integer> lieuIds =
+                c.getLieux().stream()
+                        .map(Lieu::getId)
+                        .filter(Objects::nonNull)
+                        .sorted()
+                        .toList();
+        String texte = c.getTexteLibre() == null ? "" : c.getTexteLibre();
+        return String.join(
+                "|",
+                texte,
+                membreTokenIds.toString(),
+                horaireIds.toString(),
+                momentIds.toString(),
+                groupeIds.toString(),
+                lieuIds.toString());
+    }
+
+    private String snapshotPlanningCellule(PlanningCellule c) {
+        return contenuCelluleLibellePourHistorique(c);
+    }
+
+    /** Libellés lisibles pour l'historique (prénom/nom, libellés, noms — pas d'ids). */
+    private String contenuCelluleLibellePourHistorique(PlanningCellule c) {
+        List<String> membresLibelles =
+                c.getAnimateursAssignes().stream()
+                        .map(this::libelleUtilisateurPourHistorique)
+                        .sorted()
+                        .toList();
+        List<String> horaireLibelles =
+                c.getHoraires().stream()
+                        .map(Horaire::getLibelle)
+                        .filter(Objects::nonNull)
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .sorted()
+                        .toList();
+        List<String> momentNoms =
+                c.getMoments().stream()
+                        .map(Moment::getNom)
+                        .filter(Objects::nonNull)
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .sorted()
+                        .toList();
+        List<String> groupeNoms =
+                c.getGroupes().stream()
+                        .map(Groupe::getNom)
+                        .filter(Objects::nonNull)
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .sorted()
+                        .toList();
+        List<String> lieuNoms =
+                c.getLieux().stream()
+                        .map(Lieu::getNom)
+                        .filter(Objects::nonNull)
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .sorted()
+                        .toList();
+        String texte = c.getTexteLibre() == null ? "" : c.getTexteLibre();
+        return String.join(
+                "|",
+                texte,
+                String.join(", ", membresLibelles),
+                String.join(", ", horaireLibelles),
+                String.join(", ", momentNoms),
+                String.join(", ", groupeNoms),
+                String.join(", ", lieuNoms));
+    }
+
+    private String libelleUtilisateurPourHistorique(Utilisateur u) {
+        String p = u.getPrenom() != null ? u.getPrenom().trim() : "";
+        String n = u.getNom() != null ? u.getNom().trim() : "";
+        String s = (p + " " + n).trim();
+        return s.isEmpty() ? "?" : s;
     }
 
     private PlanningCelluleDto toCelluleDto(PlanningCellule cellule) {

@@ -7,6 +7,7 @@ import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.*;
 import com.tarnof.enjoyrestapi.repositories.*;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.springframework.security.access.AccessDeniedException;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +52,8 @@ class PlanningGrilleServiceImplTest {
     private SejourEquipeRepository sejourEquipeRepository;
     @Mock
     private UtilisateurRepository utilisateurRepository;
+    @Mock
+    private HistoriqueModificationService historiqueModificationService;
 
     private PlanningGrilleServiceImpl service;
 
@@ -69,7 +72,8 @@ class PlanningGrilleServiceImplTest {
                 groupeRepository,
                 lieuRepository,
                 sejourEquipeRepository,
-                utilisateurRepository);
+                utilisateurRepository,
+                historiqueModificationService);
         sejour = new Sejour();
         sejour.setId(1);
         appelantAdmin = Utilisateur.builder()
@@ -189,7 +193,7 @@ class PlanningGrilleServiceImplTest {
                                         null,
                                         null)));
 
-        assertThatThrownBy(() -> service.remplacerCellules(1, 10, 20, req))
+        assertThatThrownBy(() -> service.remplacerCellules(1, 10, 20, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("équipe");
 

@@ -13,6 +13,7 @@ import com.tarnof.enjoyrestapi.payload.response.LieuDto;
 import com.tarnof.enjoyrestapi.payload.response.MomentDto;
 import com.tarnof.enjoyrestapi.payload.response.TypeActiviteDto;
 import com.tarnof.enjoyrestapi.services.ActiviteService;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,8 @@ class ActiviteControllerTest {
 
     @Mock
     private ActiviteService activiteService;
+    @Mock
+    private HistoriqueModificationService historiqueModificationService;
 
     @InjectMocks
     private ActiviteController activiteController;

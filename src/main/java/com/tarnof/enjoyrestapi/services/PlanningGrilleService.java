@@ -27,5 +27,9 @@ public interface PlanningGrilleService {
     void supprimerLigne(int sejourId, int grilleId, int ligneId);
 
     List<PlanningCelluleDto> remplacerCellules(
-            int sejourId, int grilleId, int ligneId, UpsertPlanningCellulesRequest request);
+            int sejourId,
+            int grilleId,
+            int ligneId,
+            UpsertPlanningCellulesRequest request,
+            String modificateurTokenId);
 }

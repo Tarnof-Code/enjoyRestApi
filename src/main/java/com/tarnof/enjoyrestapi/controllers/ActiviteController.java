@@ -4,7 +4,9 @@ import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActiviteDto;
+import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationActiviteDto;
 import com.tarnof.enjoyrestapi.services.ActiviteService;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,9 +20,12 @@ import java.util.List;
 public class ActiviteController {
 
     private final ActiviteService activiteService;
+    private final HistoriqueModificationService historiqueModificationService;
 
-    public ActiviteController(ActiviteService activiteService) {
+    public ActiviteController(
+            ActiviteService activiteService, HistoriqueModificationService historiqueModificationService) {
         this.activiteService = activiteService;
+        this.historiqueModificationService = historiqueModificationService;
     }
 
     @GetMapping
@@ -38,6 +43,17 @@ public class ActiviteController {
             Authentication authentication) {
         Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
         return activiteService.getActivite(sejourId, activiteId, utilisateur.getTokenId());
+    }
+
+    @GetMapping("/{activiteId}/historique")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public List<HistoriqueModificationActiviteDto> historique(
+            @PathVariable("sejourId") int sejourId,
+            @PathVariable("activiteId") int activiteId,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return historiqueModificationService.listerHistoriqueActivite(
+                sejourId, activiteId, utilisateur.getTokenId());
     }
 
     @PostMapping

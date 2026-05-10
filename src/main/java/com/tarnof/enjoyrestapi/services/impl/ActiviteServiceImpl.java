@@ -10,6 +10,7 @@ import com.tarnof.enjoyrestapi.entities.TypeActivite;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningAnimateurException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
+import com.tarnof.enjoyrestapi.enums.HistoriqueModificationAction;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActiviteDto;
@@ -24,6 +25,7 @@ import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.TypeActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.ActiviteService;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import com.tarnof.enjoyrestapi.utils.DateFormatHelper;
 import com.tarnof.enjoyrestapi.utils.LieuUsageRules;
@@ -40,7 +42,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
-@SuppressWarnings("null")
 public class ActiviteServiceImpl implements ActiviteService {
 
     private final ActiviteRepository activiteRepository;
@@ -51,11 +52,18 @@ public class ActiviteServiceImpl implements ActiviteService {
     private final LieuRepository lieuRepository;
     private final MomentRepository momentRepository;
     private final TypeActiviteRepository typeActiviteRepository;
+    private final HistoriqueModificationService historiqueModificationService;
 
-    public ActiviteServiceImpl(ActiviteRepository activiteRepository, SejourVerificationService sejourVerificationService,
-                               UtilisateurRepository utilisateurRepository, SejourEquipeRepository sejourEquipeRepository,
-                               GroupeRepository groupeRepository, LieuRepository lieuRepository,
-                               MomentRepository momentRepository, TypeActiviteRepository typeActiviteRepository) {
+    public ActiviteServiceImpl(
+            ActiviteRepository activiteRepository,
+            SejourVerificationService sejourVerificationService,
+            UtilisateurRepository utilisateurRepository,
+            SejourEquipeRepository sejourEquipeRepository,
+            GroupeRepository groupeRepository,
+            LieuRepository lieuRepository,
+            MomentRepository momentRepository,
+            TypeActiviteRepository typeActiviteRepository,
+            HistoriqueModificationService historiqueModificationService) {
         this.activiteRepository = activiteRepository;
         this.sejourVerificationService = sejourVerificationService;
         this.utilisateurRepository = utilisateurRepository;
@@ -64,6 +72,7 @@ public class ActiviteServiceImpl implements ActiviteService {
         this.lieuRepository = lieuRepository;
         this.momentRepository = momentRepository;
         this.typeActiviteRepository = typeActiviteRepository;
+        this.historiqueModificationService = historiqueModificationService;
     }
 
     @Override
@@ -112,6 +121,9 @@ public class ActiviteServiceImpl implements ActiviteService {
         activite.setMembres(new ArrayList<>(membres));
         activite.setGroupes(new ArrayList<>(groupes));
         activite = activiteRepository.save(activite);
+        String nouvelleValeur = snapshotActivite(activite);
+        historiqueModificationService.enregistrerActivite(
+                utilisateurTokenId, HistoriqueModificationAction.CREATION, activite.getId(), null, nouvelleValeur);
         return toDto(activite, avertissementLieu);
     }
 
@@ -123,6 +135,9 @@ public class ActiviteServiceImpl implements ActiviteService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Activité non trouvée pour ce séjour (id: " + activiteId + ")"));
         sejourVerificationService.verifierDroitModificationOuSuppressionActivite(sejourId, activite, utilisateurTokenId);
+
+        String signatureAvant = signatureActivite(activite);
+        String ancienneValeur = snapshotActivite(activite);
 
         verifierMomentsEtResolution(sejourId, request.momentId());
         Moment moment = resoudreMomentPourSejour(sejourId, request.momentId());
@@ -146,6 +161,11 @@ public class ActiviteServiceImpl implements ActiviteService {
         activite.getGroupes().clear();
         activite.getGroupes().addAll(groupes);
         activite = activiteRepository.save(activite);
+        if (!signatureAvant.equals(signatureActivite(activite))) {
+            String nouvelleValeur = snapshotActivite(activite);
+            historiqueModificationService.enregistrerActivite(
+                    utilisateurTokenId, HistoriqueModificationAction.MODIFICATION, activite.getId(), ancienneValeur, nouvelleValeur);
+        }
         return toDto(activite, avertissementLieu);
     }
 
@@ -156,7 +176,102 @@ public class ActiviteServiceImpl implements ActiviteService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Activité non trouvée pour ce séjour (id: " + activiteId + ")"));
         sejourVerificationService.verifierDroitModificationOuSuppressionActivite(sejourId, activite, utilisateurTokenId);
+        int idSupprimee = activite.getId();
+        String ancienneValeur = snapshotActivite(activite);
+        historiqueModificationService.enregistrerActivite(
+                utilisateurTokenId, HistoriqueModificationAction.SUPPRESSION, idSupprimee, ancienneValeur, null);
         activiteRepository.delete(activite);
+    }
+
+    private String signatureActivite(Activite a) {
+        String lieuPart = a.getLieu() == null ? "-" : String.valueOf(a.getLieu().getId());
+        String momentPart = a.getMoment() == null ? "-" : String.valueOf(a.getMoment().getId());
+        String typePart = a.getTypeActivite() == null ? "-" : String.valueOf(a.getTypeActivite().getId());
+        String membres =
+                a.getMembres().stream()
+                        .map(Utilisateur::getId)
+                        .sorted()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
+        String groupes =
+                a.getGroupes().stream()
+                        .map(Groupe::getId)
+                        .filter(Objects::nonNull)
+                        .sorted()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
+        String desc = a.getDescription() == null ? "" : a.getDescription();
+        return a.getDate()
+                + "|"
+                + a.getNom()
+                + "|"
+                + desc
+                + "|"
+                + lieuPart
+                + "|"
+                + momentPart
+                + "|"
+                + typePart
+                + "|"
+                + membres
+                + "|"
+                + groupes;
+    }
+
+    private String snapshotActivite(Activite a) {
+        return activiteLibellePourHistorique(a);
+    }
+
+    /** Libellés lisibles pour l'historique (pas d'ids ni tokenIds). */
+    private String activiteLibellePourHistorique(Activite a) {
+        String lieuPart = a.getLieu() == null ? "-" : nullToDash(a.getLieu().getNom());
+        String momentPart = a.getMoment() == null ? "-" : nullToDash(a.getMoment().getNom());
+        String typePart =
+                a.getTypeActivite() == null ? "-" : nullToDash(a.getTypeActivite().getLibelle());
+        String membres =
+                a.getMembres().stream()
+                        .map(this::libelleUtilisateurPourHistorique)
+                        .sorted()
+                        .collect(Collectors.joining(", "));
+        String groupes =
+                a.getGroupes().stream()
+                        .map(Groupe::getNom)
+                        .filter(Objects::nonNull)
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .sorted()
+                        .collect(Collectors.joining(", "));
+        String desc = a.getDescription() == null ? "" : a.getDescription();
+        return a.getDate()
+                + "|"
+                + a.getNom()
+                + "|"
+                + desc
+                + "|"
+                + lieuPart
+                + "|"
+                + momentPart
+                + "|"
+                + typePart
+                + "|"
+                + membres
+                + "|"
+                + groupes;
+    }
+
+    private String libelleUtilisateurPourHistorique(Utilisateur u) {
+        String p = u.getPrenom() != null ? u.getPrenom().trim() : "";
+        String n = u.getNom() != null ? u.getNom().trim() : "";
+        String s = (p + " " + n).trim();
+        return s.isEmpty() ? "?" : s;
+    }
+
+    private String nullToDash(String s) {
+        if (s == null) {
+            return "-";
+        }
+        String t = s.trim();
+        return t.isEmpty() ? "-" : t;
     }
 
     private void verifierDateActiviteDansSejour(Sejour sejour, LocalDate dateActivite) {

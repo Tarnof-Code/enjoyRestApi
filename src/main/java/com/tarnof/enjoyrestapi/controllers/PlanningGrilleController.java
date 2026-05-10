@@ -2,10 +2,12 @@ package com.tarnof.enjoyrestapi.controllers;
 
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.payload.request.*;
+import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationPlanningCelluleDto;
 import com.tarnof.enjoyrestapi.payload.response.PlanningCelluleDto;
 import com.tarnof.enjoyrestapi.payload.response.PlanningGrilleDetailDto;
 import com.tarnof.enjoyrestapi.payload.response.PlanningGrilleSummaryDto;
 import com.tarnof.enjoyrestapi.payload.response.PlanningLigneDto;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import com.tarnof.enjoyrestapi.services.PlanningGrilleService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -13,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -20,9 +23,13 @@ import java.util.List;
 public class PlanningGrilleController {
 
     private final PlanningGrilleService planningGrilleService;
+    private final HistoriqueModificationService historiqueModificationService;
 
-    public PlanningGrilleController(PlanningGrilleService planningGrilleService) {
+    public PlanningGrilleController(
+            PlanningGrilleService planningGrilleService,
+            HistoriqueModificationService historiqueModificationService) {
         this.planningGrilleService = planningGrilleService;
+        this.historiqueModificationService = historiqueModificationService;
     }
 
     @GetMapping
@@ -97,13 +104,29 @@ public class PlanningGrilleController {
         planningGrilleService.supprimerLigne(sejourId, grilleId, ligneId);
     }
 
+    @GetMapping("/{grilleId}/lignes/{ligneId}/historique-cellules")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public List<HistoriqueModificationPlanningCelluleDto> historiqueCellules(
+            @PathVariable("sejourId") int sejourId,
+            @PathVariable("grilleId") int grilleId,
+            @PathVariable("ligneId") int ligneId,
+            @RequestParam(value = "jour", required = false) LocalDate jour,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return historiqueModificationService.listerHistoriquePlanningCellules(
+                sejourId, grilleId, ligneId, jour, utilisateur.getTokenId());
+    }
+
     @PutMapping("/{grilleId}/lignes/{ligneId}/cellules")
     @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     public List<PlanningCelluleDto> remplacerCellules(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("grilleId") int grilleId,
             @PathVariable("ligneId") int ligneId,
-            @Valid @RequestBody UpsertPlanningCellulesRequest request) {
-        return planningGrilleService.remplacerCellules(sejourId, grilleId, ligneId, request);
+            @Valid @RequestBody UpsertPlanningCellulesRequest request,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return planningGrilleService.remplacerCellules(
+                sejourId, grilleId, ligneId, request, utilisateur.getTokenId());
     }
 }

@@ -9,6 +9,7 @@ import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
 import com.tarnof.enjoyrestapi.payload.request.SavePlanningGrilleRequest;
 import com.tarnof.enjoyrestapi.payload.response.PlanningGrilleDetailDto;
 import com.tarnof.enjoyrestapi.payload.response.PlanningGrilleSummaryDto;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import com.tarnof.enjoyrestapi.services.PlanningGrilleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +47,8 @@ class PlanningGrilleControllerTest {
 
     @Mock
     private PlanningGrilleService planningGrilleService;
+    @Mock
+    private HistoriqueModificationService historiqueModificationService;
 
     @InjectMocks
     private PlanningGrilleController planningGrilleController;
