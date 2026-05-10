@@ -1,6 +1,7 @@
 package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.*;
+import com.tarnof.enjoyrestapi.enums.HistoriqueModificationAction;
 import com.tarnof.enjoyrestapi.enums.PlanningLigneLibelleSource;
 import com.tarnof.enjoyrestapi.enums.UsageLieu;
 import com.tarnof.enjoyrestapi.enums.Role;
@@ -19,12 +20,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -307,5 +311,130 @@ class PlanningGrilleServiceImplTest {
 
         assertThat(dto.libelleLieuId()).isEqualTo(51);
         verify(planningLigneRepository).save(any(PlanningLigne.class));
+    }
+
+    @Test
+    @DisplayName("modifierMaPresenceSurCelluleMembreEquipe - refuse si source contenu cellules ≠ MEMBRE_EQUIPE")
+    void modifierMaPresence_sourcePasMembreEquipe_accessDenied() {
+        Utilisateur anim = Utilisateur.builder().id(5).tokenId("anim-token").role(Role.BASIC_USER).build();
+        SejourEquipe equipeRole = new SejourEquipe();
+        equipeRole.setUtilisateur(anim);
+        sejour.setEquipeRoles(List.of(equipeRole));
+
+        PlanningGrille grille = new PlanningGrille();
+        grille.setId(10);
+        grille.setSejour(sejour);
+        grille.setSourceContenuCellules(PlanningLigneLibelleSource.SAISIE_LIBRE);
+
+        when(utilisateurRepository.findByTokenId("anim-token")).thenReturn(Optional.of(anim));
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(planningGrilleRepository.findByIdAndSejour_Id(10, 1)).thenReturn(Optional.of(grille));
+
+        assertThatThrownBy(
+                        () ->
+                                service.modifierMaPresenceSurCelluleMembreEquipe(
+                                        1, 10, 20, LocalDate.of(2026, 8, 1), true, "anim-token"))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(planningCelluleRepository, never()).save(any());
+        verify(planningCelluleRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("modifierMaPresenceSurCelluleMembreEquipe - inscription crée une cellule et trace l'historique")
+    void modifierMaPresence_inscription_creeEtHistorique() {
+        Utilisateur anim = Utilisateur.builder().id(5).tokenId("anim-token").role(Role.BASIC_USER).build();
+        SejourEquipe equipeRole = new SejourEquipe();
+        equipeRole.setUtilisateur(anim);
+        sejour.setEquipeRoles(List.of(equipeRole));
+
+        PlanningGrille grille = new PlanningGrille();
+        grille.setId(10);
+        grille.setSejour(sejour);
+        grille.setSourceContenuCellules(PlanningLigneLibelleSource.MEMBRE_EQUIPE);
+
+        PlanningLigne ligne = new PlanningLigne();
+        ligne.setId(20);
+        ligne.setGrille(grille);
+
+        LocalDate jour = LocalDate.of(2026, 8, 2);
+
+        when(utilisateurRepository.findByTokenId("anim-token")).thenReturn(Optional.of(anim));
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(planningGrilleRepository.findByIdAndSejour_Id(10, 1)).thenReturn(Optional.of(grille));
+        when(planningLigneRepository.findByIdAndGrille_Id(20, 10)).thenReturn(Optional.of(ligne));
+        when(planningCelluleRepository.findByLigne_IdAndJour(20, jour)).thenReturn(Optional.empty());
+        when(sejourEquipeRepository.existsBySejour_IdAndUtilisateur_Id(1, 5)).thenReturn(true);
+        when(planningCelluleRepository.save(any(PlanningCellule.class)))
+                .thenAnswer(
+                        inv -> {
+                            PlanningCellule c = inv.getArgument(0);
+                            c.setId(400);
+                            return c;
+                        });
+
+        assertThat(service.modifierMaPresenceSurCelluleMembreEquipe(1, 10, 20, jour, true, "anim-token"))
+                .hasValueSatisfying(
+                        dto -> {
+                            assertThat(dto.id()).isEqualTo(400);
+                            assertThat(dto.membreTokenIds()).containsExactly("anim-token");
+                        });
+
+        verify(historiqueModificationService)
+                .enregistrerPlanningCellule(
+                        eq("anim-token"),
+                        eq(HistoriqueModificationAction.CREATION),
+                        eq(20),
+                        eq(jour),
+                        eq(400),
+                        eq(null),
+                        any());
+    }
+
+    @Test
+    @DisplayName("modifierMaPresenceSurCelluleMembreEquipe - désinscription dernier animateur supprime la cellule")
+    void modifierMaPresence_desinscriptionDernier_supprimeEtHistorique() {
+        Utilisateur anim = Utilisateur.builder().id(5).tokenId("anim-token").role(Role.BASIC_USER).build();
+        SejourEquipe equipeRole = new SejourEquipe();
+        equipeRole.setUtilisateur(anim);
+        sejour.setEquipeRoles(List.of(equipeRole));
+
+        PlanningGrille grille = new PlanningGrille();
+        grille.setId(10);
+        grille.setSejour(sejour);
+        grille.setSourceContenuCellules(PlanningLigneLibelleSource.MEMBRE_EQUIPE);
+
+        PlanningLigne ligne = new PlanningLigne();
+        ligne.setId(20);
+        ligne.setGrille(grille);
+
+        LocalDate jour = LocalDate.of(2026, 8, 3);
+
+        PlanningCellule cellule = new PlanningCellule();
+        cellule.setId(401);
+        cellule.setLigne(ligne);
+        cellule.setJour(jour);
+        cellule.setAnimateursAssignes(new HashSet<>(Set.of(anim)));
+
+        when(utilisateurRepository.findByTokenId("anim-token")).thenReturn(Optional.of(anim));
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(planningGrilleRepository.findByIdAndSejour_Id(10, 1)).thenReturn(Optional.of(grille));
+        when(planningLigneRepository.findByIdAndGrille_Id(20, 10)).thenReturn(Optional.of(ligne));
+        when(planningCelluleRepository.findByLigne_IdAndJour(20, jour)).thenReturn(Optional.of(cellule));
+        when(sejourEquipeRepository.existsBySejour_IdAndUtilisateur_Id(1, 5)).thenReturn(true);
+
+        assertThat(service.modifierMaPresenceSurCelluleMembreEquipe(1, 10, 20, jour, false, "anim-token"))
+                .isEmpty();
+
+        verify(planningCelluleRepository).delete(cellule);
+        verify(historiqueModificationService)
+                .enregistrerPlanningCellule(
+                        eq("anim-token"),
+                        eq(HistoriqueModificationAction.SUPPRESSION),
+                        eq(20),
+                        eq(jour),
+                        eq(401),
+                        any(),
+                        eq(null));
     }
 }

@@ -6,7 +6,9 @@ import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.PlanningLigneLibelleSource;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.handlers.GlobalExceptionHandler;
+import com.tarnof.enjoyrestapi.payload.request.ModifierMaPresenceCelluleMembreEquipeRequest;
 import com.tarnof.enjoyrestapi.payload.request.SavePlanningGrilleRequest;
+import com.tarnof.enjoyrestapi.payload.response.PlanningCelluleDto;
 import com.tarnof.enjoyrestapi.payload.response.PlanningGrilleDetailDto;
 import com.tarnof.enjoyrestapi.payload.response.PlanningGrilleSummaryDto;
 import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
@@ -25,13 +27,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -145,5 +150,60 @@ class PlanningGrilleControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(4))
                 .andExpect(jsonPath("$.sourceLibelleLignes").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    @DisplayName("modifierMaPresenceSurCelluleMembreEquipe - 200")
+    void maPresence_cellule_ok() throws Exception {
+        PlanningCelluleDto dto =
+                new PlanningCelluleDto(
+                        9,
+                        LocalDate.of(2026, 7, 15),
+                        List.of("user-token-123"),
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        null);
+        when(planningGrilleService.modifierMaPresenceSurCelluleMembreEquipe(
+                        eq(1), eq(2), eq(3), eq(LocalDate.of(2026, 7, 15)), eq(true), eq("user-token-123")))
+                .thenReturn(Optional.of(dto));
+
+        mockMvc.perform(
+                        patch("/api/v1/sejours/1/planning-grilles/2/lignes/3/cellules/2026-07-15/ma-presence")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                new ModifierMaPresenceCelluleMembreEquipeRequest(true)))
+                                .principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(9))
+                .andExpect(jsonPath("$.membreTokenIds[0]").value("user-token-123"));
+
+        verify(planningGrilleService)
+                .modifierMaPresenceSurCelluleMembreEquipe(
+                        1, 2, 3, LocalDate.of(2026, 7, 15), true, "user-token-123");
+    }
+
+    @Test
+    @DisplayName("modifierMaPresenceSurCelluleMembreEquipe - 204")
+    void maPresence_noContent() throws Exception {
+        when(planningGrilleService.modifierMaPresenceSurCelluleMembreEquipe(
+                        eq(1), eq(2), eq(3), eq(LocalDate.of(2026, 7, 16)), eq(false), eq("user-token-123")))
+                .thenReturn(Optional.empty());
+
+        mockMvc.perform(
+                        patch("/api/v1/sejours/1/planning-grilles/2/lignes/3/cellules/2026-07-16/ma-presence")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                new ModifierMaPresenceCelluleMembreEquipeRequest(false)))
+                                .principal(authentication))
+                .andExpect(status().isNoContent());
+
+        verify(planningGrilleService)
+                .modifierMaPresenceSurCelluleMembreEquipe(
+                        1, 2, 3, LocalDate.of(2026, 7, 16), false, "user-token-123");
     }
 }

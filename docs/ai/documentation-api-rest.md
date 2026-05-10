@@ -523,6 +523,7 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 **Autorisation** :
 - **Lecture** (`GET`) : privilège **`ACCES_SEJOUR`** (directeur, équipe, ou ADMIN). Vérification d'**appartenance au séjour** côté service via **`SejourVerificationService.verifierAppartenanceAuSejour`** ; un appel hors séjour → **403** (`AccessDeniedException`).
 - **Écriture** (`POST` / `PUT` / `DELETE`) : **`GESTION_SEJOURS`** (aligné sur les autres grilles / ressources direction de séjour ; plus seulement `ROLE_DIRECTION`).
+- **Inscription personnelle sur une cellule « membre d'équipe »** (`PATCH .../cellules/{jour}/ma-presence`) : **`ACCES_SEJOUR`** + appartenance au séjour. Réservé aux grilles dont **`sourceContenuCellules`** effectif est **`MEMBRE_EQUIPE`** ; seul **l'utilisateur connecté** peut être ajouté ou retiré (**pas** les autres animateurs). Hors type membre d'équipe → **403**.
 
 Grille = **`PlanningGrille`** (titre, consigne, **`sourceLibelleLignes`**, **`sourceContenuCellules`**, **`miseAJour`**). Lignes = **`PlanningLigne`** (ordre, libellés / refs selon la source — **une seule** référence métier pour le libellé de ligne, ex. `libelleMomentId`). Cellules = **`PlanningCellule`** (jour, texte libre, **plusieurs** animateurs / horaires / moments / groupes / lieux via listes JSON — voir ci‑dessous). **Règle lieu** : lorsque la source est **`LIEU`** (libellé de ligne ou contenu de cellule), chaque lieu référencé doit avoir au moins l’usage **`SURVEILLANCE`** ou **`RASSEMBLEMENT`** ; sinon **`IllegalArgumentException`** (**400**).
 
@@ -570,6 +571,15 @@ Grille = **`PlanningGrille`** (titre, consigne, **`sourceLibelleLignes`**, **`so
 - **Réponse** : `List<PlanningCelluleDto>` (200) — **`horaireIds`** + **`horaireLibelles`** (même ordre, tri par id horaire) ; autres ids / `membreTokenIds` en listes.
 - **Règle** : selon **`sourceContenuCellules`** de la grille, **une seule** « famille » de listes d’ids doit être renseignée par cellule (ex. `MOMENT` → au moins un **`momentIds`**, pas `groupeIds` en même temps). `MEMBRE_EQUIPE` → uniquement **`membreTokenIds`**. Incohérence → **400**.
 - **Guide front** (détail UX / exemples) : [`docs/frontend-planning-cellules-multiples.md`](../../frontend-planning-cellules-multiples.md).
+
+#### PATCH `/api/v1/sejours/{sejourId}/planning-grilles/{grilleId}/lignes/{ligneId}/cellules/{jour}/ma-presence`
+- **Description** : L’animateur ou tout membre d’équipe avec **`ACCES_SEJOUR`** s’inscrit (`present: true`) ou se désinscrit (`present: false`) sur une cellule d’une journée précise, **uniquement si** la grille a un contenu de cellules de type **`MEMBRE_EQUIPE`**. Aucune liste d’animateurs dans le corps : impossible d’ajouter ou de retirer quelqu’un d’autre.
+- **Autorisation** : **`ACCES_SEJOUR`** + appartenance au séjour.
+- **Path** : **`jour`** en date ISO (`yyyy-MM-dd`).
+- **Body** : `ModifierMaPresenceCelluleMembreEquipeRequest` — **`present`** (`Boolean`, obligatoire : `true` = inscription, `false` = désinscription).
+- **Réponse** : **`PlanningCelluleDto`** (200) si une cellule subsiste après l’opération (inchangée si désinscription alors que le connecté n’était pas inscrit) ; **`204 No Content`** si la cellule est supprimée après retrait du dernier inscrit, ou s’il n’existait aucune cellule pour ce jour et que `present` est `false` (réponse vide idempotente).
+- **Codes d'erreur** : **`403`** : type de cellule différent de membre d’équipe, ou non rattaché au séjour ; **`404`** : séjour, grille ou ligne ; **`400`** : contraintes métier (ex. participant non valide pour le séjour).
+- **Front** : pour un membre d’équipe **sans** **`GESTION_SEJOURS`**, ne pas appeler **PUT** `/cellules` avec une liste d’animateurs : utiliser **PATCH** `ma-presence` ; dans la modale cellule, afficher les autres animateurs **non modifiables** (cases désactivées), seule la case du **connecté** est éditable.
 
 **Persistance (réf.)** : jointures `planning_cellule_utilisateur`, `planning_cellule_horaire`, `planning_cellule_moment`, `planning_cellule_groupe`, `planning_cellule_lieu`. Anciennes colonnes `horaire_id` / … sur `planning_cellule` : hors mapping ; migration manuelle possible (reprise puis `DROP FOREIGN KEY` + `DROP COLUMN`) — voir [etat-projet.md](./etat-projet.md) (entités).
 

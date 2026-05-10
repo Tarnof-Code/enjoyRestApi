@@ -6,7 +6,9 @@ import com.tarnof.enjoyrestapi.payload.response.PlanningGrilleDetailDto;
 import com.tarnof.enjoyrestapi.payload.response.PlanningGrilleSummaryDto;
 import com.tarnof.enjoyrestapi.payload.response.PlanningLigneDto;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface PlanningGrilleService {
 
@@ -32,4 +34,18 @@ public interface PlanningGrilleService {
             int ligneId,
             UpsertPlanningCellulesRequest request,
             String modificateurTokenId);
+
+    /**
+     * Ajoute ou retire l'utilisateur désigné par {@code utilisateurTokenId} sur une cellule
+     * « membre d'équipe » pour un jour donné ; uniquement ce compte peut être ajouté ou retiré.
+     *
+     * @return une cellule persistante le cas échéant ; vide si aucune cellule après l'opération (ex. dernier animateur parti)
+     */
+    Optional<PlanningCelluleDto> modifierMaPresenceSurCelluleMembreEquipe(
+            int sejourId,
+            int grilleId,
+            int ligneId,
+            LocalDate jour,
+            boolean present,
+            String utilisateurTokenId);
 }

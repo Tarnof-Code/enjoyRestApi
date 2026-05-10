@@ -10,13 +10,16 @@ import com.tarnof.enjoyrestapi.payload.response.PlanningLigneDto;
 import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import com.tarnof.enjoyrestapi.services.PlanningGrilleService;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/sejours/{sejourId}/planning-grilles")
@@ -128,5 +131,28 @@ public class PlanningGrilleController {
         Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
         return planningGrilleService.remplacerCellules(
                 sejourId, grilleId, ligneId, request, utilisateur.getTokenId());
+    }
+
+    /** Ajout ou retrait du connecté sur une cellule « membre d'équipe » seulement. */
+    @PatchMapping("/{grilleId}/lignes/{ligneId}/cellules/{jour}/ma-presence")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public ResponseEntity<PlanningCelluleDto> modifierMaPresenceSurCelluleMembreEquipe(
+            @PathVariable("sejourId") int sejourId,
+            @PathVariable("grilleId") int grilleId,
+            @PathVariable("ligneId") int ligneId,
+            @PathVariable("jour") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate jour,
+            @Valid @RequestBody ModifierMaPresenceCelluleMembreEquipeRequest body,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        Optional<PlanningCelluleDto> resultat =
+                planningGrilleService.modifierMaPresenceSurCelluleMembreEquipe(
+                        sejourId,
+                        grilleId,
+                        ligneId,
+                        jour,
+                        Boolean.TRUE.equals(body.present()),
+                        utilisateur.getTokenId());
+        return resultat.<ResponseEntity<PlanningCelluleDto>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 }

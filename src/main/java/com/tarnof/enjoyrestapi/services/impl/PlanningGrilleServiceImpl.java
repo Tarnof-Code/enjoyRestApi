@@ -15,6 +15,7 @@ import com.tarnof.enjoyrestapi.services.PlanningGrilleService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import com.tarnof.enjoyrestapi.utils.LieuUsageRules;
 import org.springframework.lang.NonNull;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -252,6 +253,109 @@ public class PlanningGrilleServiceImpl implements PlanningGrilleService {
                 .sorted(Comparator.comparing(PlanningCellule::getJour))
                 .map(this::toCelluleDto)
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public Optional<PlanningCelluleDto> modifierMaPresenceSurCelluleMembreEquipe(
+            int sejourId,
+            int grilleId,
+            int ligneId,
+            LocalDate jour,
+            boolean present,
+            String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
+        PlanningGrille grille = getGrilleEtVerifierSejour(sejourId, grilleId);
+        if (sourceContenuCellulesEffectif(grille) != PlanningLigneLibelleSource.MEMBRE_EQUIPE) {
+            throw new AccessDeniedException(
+                    "Seules les cellules de type « membre d'équipe » permettent de modifier votre propre inscription.");
+        }
+        PlanningLigne ligne = getLigneEtVerifierGrille(grilleId, ligneId);
+        Sejour sejour = grille.getSejour();
+        Set<Utilisateur> valides = chargerMembresCelluleValides(sejour, List.of(utilisateurTokenId));
+        if (valides.isEmpty()) {
+            throw new IllegalArgumentException("Aucun participant valide pour l'inscription au planning.");
+        }
+        Utilisateur moi = valides.iterator().next();
+        Optional<PlanningCellule> existOpt = planningCelluleRepository.findByLigne_IdAndJour(ligneId, jour);
+
+        if (present) {
+            if (existOpt.isPresent()) {
+                PlanningCellule cellule = existOpt.get();
+                if (cellule.getAnimateursAssignes().stream()
+                        .anyMatch(u -> utilisateurTokenId.equals(u.getTokenId()))) {
+                    return Optional.of(toCelluleDto(cellule));
+                }
+                String signatureAvant = signatureContenuCellule(cellule);
+                String ancienneValeur = snapshotPlanningCellule(cellule);
+                cellule.getAnimateursAssignes().add(moi);
+                planningCelluleRepository.save(cellule);
+                String signatureApres = signatureContenuCellule(cellule);
+                if (!signatureAvant.equals(signatureApres)) {
+                    historiqueModificationService.enregistrerPlanningCellule(
+                            utilisateurTokenId,
+                            HistoriqueModificationAction.MODIFICATION,
+                            ligneId,
+                            jour,
+                            cellule.getId(),
+                            ancienneValeur,
+                            snapshotPlanningCellule(cellule));
+                }
+                touch(grille);
+                return Optional.of(toCelluleDto(cellule));
+            }
+
+            PlanningCellule cellule = nouvelleCellule(ligne, jour);
+            cellule.getAnimateursAssignes().clear();
+            cellule.getAnimateursAssignes().add(moi);
+            planningCelluleRepository.save(cellule);
+            historiqueModificationService.enregistrerPlanningCellule(
+                    utilisateurTokenId,
+                    HistoriqueModificationAction.CREATION,
+                    ligneId,
+                    jour,
+                    cellule.getId(),
+                    null,
+                    snapshotPlanningCellule(cellule));
+            touch(grille);
+            return Optional.of(toCelluleDto(cellule));
+        }
+
+        if (existOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        PlanningCellule cellule = existOpt.get();
+        if (cellule.getAnimateursAssignes().stream()
+                .noneMatch(u -> utilisateurTokenId.equals(u.getTokenId()))) {
+            return Optional.of(toCelluleDto(cellule));
+        }
+        String ancienneValeur = snapshotPlanningCellule(cellule);
+        cellule.getAnimateursAssignes().removeIf(u -> utilisateurTokenId.equals(u.getTokenId()));
+        if (cellule.getAnimateursAssignes().isEmpty()) {
+            int cellId = Objects.requireNonNull(cellule.getId());
+            historiqueModificationService.enregistrerPlanningCellule(
+                    utilisateurTokenId,
+                    HistoriqueModificationAction.SUPPRESSION,
+                    ligneId,
+                    jour,
+                    cellId,
+                    ancienneValeur,
+                    null);
+            planningCelluleRepository.delete(cellule);
+            touch(grille);
+            return Optional.empty();
+        }
+        planningCelluleRepository.save(cellule);
+        historiqueModificationService.enregistrerPlanningCellule(
+                utilisateurTokenId,
+                HistoriqueModificationAction.MODIFICATION,
+                ligneId,
+                jour,
+                cellule.getId(),
+                ancienneValeur,
+                snapshotPlanningCellule(cellule));
+        touch(grille);
+        return Optional.of(toCelluleDto(cellule));
     }
 
     private void verifierPasDeJourDuplique(UpsertPlanningCellulesRequest request) {
