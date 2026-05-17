@@ -52,6 +52,9 @@ class GroupeServiceImplTest {
     @Mock
     private ActiviteRepository activiteRepository;
 
+    @Mock
+    private SejourEquipeRepository sejourEquipeRepository;
+
     private GroupeServiceImpl groupeService;
 
     private Sejour sejour;
@@ -62,7 +65,7 @@ class GroupeServiceImplTest {
     void setUp() {
         groupeService = new GroupeServiceImpl(
                 groupeRepository,
-                new SejourVerificationService(sejourRepository, utilisateurRepository),
+                new SejourVerificationService(sejourRepository, utilisateurRepository, sejourEquipeRepository),
                 enfantRepository,
                 utilisateurRepository,
                 sejourEnfantRepository,

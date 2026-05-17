@@ -10,6 +10,7 @@ import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.SaveLieuRequest;
 import com.tarnof.enjoyrestapi.repositories.LieuRepository;
+import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
@@ -42,6 +43,8 @@ class LieuServiceImplTest {
     private SejourRepository sejourRepository;
     @Mock
     private UtilisateurRepository utilisateurRepository;
+    @Mock
+    private SejourEquipeRepository sejourEquipeRepository;
 
     private LieuServiceImpl lieuService;
 
@@ -52,7 +55,7 @@ class LieuServiceImplTest {
     void setUp() {
         lieuService = new LieuServiceImpl(
                 lieuRepository,
-                new SejourVerificationService(sejourRepository, utilisateurRepository));
+                new SejourVerificationService(sejourRepository, utilisateurRepository, sejourEquipeRepository));
         sejour = new Sejour();
         sejour.setId(1);
         appelantAdmin = Utilisateur.builder()

@@ -13,31 +13,33 @@ Après **`AI_MEMORY.md`**, le dépôt **enjoyApi** attend que le frontend (équi
 
 Ensuite uniquement : parcourir les **guides** dans [`docs/`](docs/) (hors `ai/`) lorsqu’ils sont cités depuis *contexte-actif*, *Point saillant récent* ou *documentation-api-rest* (migration, UX). Index du dossier `docs/ai/` : [`docs/ai/README.md`](docs/ai/README.md).
 
-## Protocole IA (voir [`.cursorrules`](.cursorrules))
+## Protocole IA (voir [`.cursorrules`](.cursorrules) §7–§8)
 
-- **Lecture minimale** : ce pivot, puis **systématiquement** [`docs/ai/contexte-actif.md`](docs/ai/contexte-actif.md) et [`docs/ai/decisions-architecturales.md`](docs/ai/decisions-architecturales.md) ; ensuite les autres fiches selon la tâche (**§7.1**).
-- **Mise à jour** : demande explicite (prompt libre) — **détail dans les fiches `docs/ai/`** après **lecture / vérif codebase** (`git`, sources, tests) ; dans **`AI_MEMORY.md`**, **seulement** protocole, tableau des fiches et **puces courtes** *Point saillant* + liens (**ne pas surcharger** ce fichier). **§5** et **§7.2** du [`.cursorrules`](.cursorrules).
-- **Après commit + push** significatif : aligner Memory Bank et éventuellement `.cursorrules` — **§8**.
+- **Lecture** (**§7.1**) : ce pivot ; puis **systématiquement** [`docs/ai/contexte-actif.md`](docs/ai/contexte-actif.md) et [`docs/ai/decisions-architecturales.md`](docs/ai/decisions-architecturales.md) ; ouvrir les autres fiches `docs/ai/` (et si besoin `docs/*.md` hors `ai/`) selon la tâche (`documentation-api-rest`, `etat-projet`, `roadmap`, etc.).
+- **Mise à jour** (**§7.2**) : sur demande explicite (« mettre à jour la Memory Bank », formulation libre), traiter comme **mise à jour complète** : enrichir d’abord les **fiches thématiques** `docs/ai/` après **vérif codebase** (diff, sources, tests) — **ne pas** se limiter à paraphraser les markdowns ; nouvelle fiche uniquement si **§5** l’exige (`kebab-case`, références dans ce pivot + [`docs/ai/README.md`](docs/ai/README.md)). Dans **`AI_MEMORY.md`** : **seulement** ajustements minimes (protocole, tableau, **puce courte** *Point saillant* + liens).
+- **Réflexivité** (**§7.3**) : le code et la doc générés doivent respecter le pivot, les fiches lues et l’intégralité des règles [`.cursorrules`](.cursorrules).
+- **Après commit ET push** (**§8**) : prioriser la mise à jour des fiches `docs/ai/` concernées + pivot si besoin ; mettre à jour [`.cursorrules`](.cursorrules) si de **nouvelles** conventions ont été introduites.
 
 ## Carte des sections `.cursorrules`
 
 | § | Thème |
 |---|--------|
-| **1** | Langue (FR), commits (EN), ton |
-| **2** | `pom.xml`, Java 21 |
-| **3** | Spring : injection, DTOs/records, `tokenId` API, contrôleurs / services |
-| **4** | Qualité : nommage, imports, erreurs, Excel/locale, tests |
-| **5** | **Documentation Markdown** : où ranger quoi dans `docs/ai/`, éviter fiches trop spécifiques |
-| **6** | Messages de commit (format, types) |
-| **7** | **AI Memory Bank** (lecture, mise à jour sur demande, réflexivité) |
-| **8** | Post-commit / post-push |
+| **1** | Langue (FR), commits (EN), ton professionnel |
+| **2** | **Contexte auto** : analyser le `pom.xml` (bibliothèques), Java **21** (Records, etc.) |
+| **3** | Spring : **injection par constructeur** (pas `@Autowired` sur champs ; Lombok `@RequiredArgsConstructor` ou constructeur explicite) ; **cohérence par module** (ex. **`Lieu`** : entité + service + contrôleur en constructeurs explicites, pas `@Data`/`@Builder` sans décision) ; **records** pour DTOs/payloads ; entités JPA classiques ; **`tokenId` obligatoire** dans les échanges JSON utilisateur (jamais l’`id` SQL) ; contrôleurs « stupides » sans `try-catch` ; services sans masquer les erreurs |
+| **4** | Qualité : nommage, **imports en tête** (interdit FQN dans le corps), erreurs via `GlobalExceptionHandler` / exceptions métier ; **Excel/POI** : `DataFormatter(Locale.US)` ; **dates messages** : `DateFormatHelper.formatDdMmYyyy` ; **tests** JUnit 5 + Mockito + **AssertJ**, MockMvc `standaloneSetup` avec `@InjectMocks`, `@SuppressWarnings("null")` **au niveau classe** pour mocks (Eclipse 1102) |
+| **5** | **Documentation Markdown** : où ranger quoi dans `docs/ai/`, éviter fiches trop spécifiques ; `docs/*.md` hors `ai/` liés depuis la fiche pertinente |
+| **6** | Messages de commit **en anglais** : type(scope), corps détaillé puces + paragraphe final (`feat` / `fix` / `refactor` / `chore` / `docs`) |
+| **7** | **AI Memory Bank** : lecture pivot → **toujours** `contexte-actif` + `decisions-architecturales` puis fiches selon tâche ; mise à jour = **détail dans `docs/ai/`** après vérif codebase ; **`AI_MEMORY.md`** = fil court + liens uniquement ; **§7.2** demande explicite = mise à jour **complète** de la Memory Bank (pas seulement le pivot) |
+| **8** | **Post-commit & post-push** : actualiser fiches `docs/ai/` + pivot si besoin ; mettre à jour **`.cursorrules`** si nouvelles conventions |
 
 ## Invariants et règles d’exécution
 
-Les conventions **obligatoires** (langue, injection, `tokenId` côté API, structure des contrôleurs, granularité doc **§5**, etc.) sont dans [`.cursorrules`](.cursorrules). Ce pivot oriente vers les fiches métier (tests, API, journal).
+Les conventions **obligatoires** ci-dessus (injection, `tokenId` côté API, structure contrôleurs/services, granularité doc **§5**, format commits **§6**, protocole **§7–§8**) sont la référence dans [`.cursorrules`](.cursorrules). Ce pivot oriente vers les fiches métier (`docs/ai/`) pour le fil détaillé (tests, API, journal).
 
 ## Point saillant récent
 
+- **2026-05-17** — **Cahier d’infirmerie (séjour)** : CRUD sous **`/api/v1/sejours/{sejourId}/cahier-infirmerie`** ; **lecture / historique** en **`ACCES_SEJOUR`** ; **POST** : créateur = connecté, **`soigneurTokenId`** libre dans l’équipe ; **PUT** / **DELETE** : **direction du séjour** (**`aDroitGestionCompleteSurSejour`**) **ou** **auteur** **ou** **soigneur** (**ADMIN** illimité) — **`DELETE`** en **`ACCES_SEJOUR`** + vérif service. **Historique** : **`CAHIER_INFIRMERIE`**, **`GET .../{entreeId}/historique`**. Détail : [contexte-actif.md](docs/ai/contexte-actif.md), contrats : [documentation-api-rest.md](docs/ai/documentation-api-rest.md), modèle : [etat-projet.md](docs/ai/etat-projet.md).
 - **2026-05-10** — **Planning — inscription / désinscription personnelle (cellules « membre d'équipe »)** : **`PATCH /api/v1/sejours/{sejourId}/planning-grilles/{grilleId}/lignes/{ligneId}/cellules/{jour}/ma-presence`**, **`ACCES_SEJOUR`** + **`verifierAppartenanceAuSejour`** ; body **`ModifierMaPresenceCelluleMembreEquipeRequest.present`** (`Boolean` `@NotNull`) ; réservé aux grilles dont **`sourceContenuCellules`** effectif = **`MEMBRE_EQUIPE`** (sinon 403). Seul **le `tokenId` connecté** est ajouté ou retiré (**aucun** autre animateur). Réponse **200** + `PlanningCelluleDto` ou **204** si plus de cellule ce jour. **`PUT .../cellules`** inchangé (**`GESTION_SEJOURS`**). Service : **`PlanningGrilleService.modifierMaPresenceSurCelluleMembreEquipe`**. Tests : **`PlanningGrilleControllerTest`** (+2), **`PlanningGrilleServiceImplTest`** (+3). Détail : [documentation-api-rest.md](docs/ai/documentation-api-rest.md), [contexte-actif.md](docs/ai/contexte-actif.md), [etat-projet.md](docs/ai/etat-projet.md).
 - **2026-05-10** — **Historique des modifications (Activités & Cellules de planning)** : Système de traçabilité des créations, modifications et suppressions avec **capture automatique des valeurs**. Entité **`HistoriqueModification`** avec stratégie **SINGLE_TABLE** : sous-classes **`HistoriqueModificationActivite`** et **`HistoriqueModificationPlanningCellule`**. Table **`historique_modification`** avec colonnes **`ancienne_valeur`** et **`nouvelle_valeur`** (TEXT, **libellés lisibles** : prénom/nom, noms lieux/moments/groupes, libellés horaires/types, etc.). Détection de changement : toujours **`signatureActivite`** / **`signatureContenuCellule`** (ids). Consultation via **`GET .../activites/{id}/historique`** et **`GET .../planning-grilles/.../lignes/{id}/historique-cellules?jour={jour}`** avec **`ACCES_SEJOUR`** + appartenance. DTOs : **`HistoriqueModificationBaseDto`**, **`HistoriqueModificationActiviteDto`**, **`HistoriqueModificationPlanningCelluleDto`**. Détail : [contexte-actif.md](docs/ai/contexte-actif.md), contrats : [documentation-api-rest.md](docs/ai/documentation-api-rest.md), modèle : [etat-projet.md](docs/ai/etat-projet.md).
 - **2026-05-08** — **Écran sanitaire : liste agrégée dossiers + groupes par séjour** : Endpoint **`GET /api/v1/sejours/{sejourId}/dossiers-enfants`** (`SejourController`, **`@PreAuthorize("hasAuthority('ACCES_SEJOUR')")`**) ; logique **`EnfantService.listerDossiersEnfantsDuSejour`** — même contrôle d’accès que la consultation enfants / dossier (**directeur** ou **membre d’équipe** du séjour). Réponse : **`List<EnfantDossierSanitaireLigneDto>`** (`enfantId`, `prenom`, `nom`, **`groupes`** : **`List<GroupeResumeDto>`** `id` + `libelle` = nom du groupe, **`dossier`** : **`DossierEnfantDto`** ou **`null`** si aucune ligne dossier — le GET unitaire **`…/enfants/{id}/dossier`** renvoie encore **404** sans dossier). Chargement : **`SejourEnfantRepository.findBySejourIdWithEnfant`** (tri enfant `nom`, `prenom`), **`DossierEnfantRepository.findByEnfantIdInFetchingReferences`**, **`GroupeRepository.findBySejourIdFetchingEnfants`** (JOIN FETCH enfants). Tests : **`EnfantServiceImplTest` 27**, **`SejourControllerTest` 28** ; agrégat Surefire **`mvn test`** **346** tests (2026-05-08). Détail : [contexte-actif.md](docs/ai/contexte-actif.md), [documentation-api-rest.md](docs/ai/documentation-api-rest.md), [etat-projet.md](docs/ai/etat-projet.md).
@@ -73,7 +75,7 @@ Guides pour un autre dépôt ou public (ex. front) : les **lier** depuis la fich
 
 ## Convention de maintenance
 
-- **`AI_MEMORY.md`** : **pivot léger** — pas d’empilement de paragraphes techniques ; une ligne *Point saillant* = rappel + **lien(s)** vers `docs/ai/`.
+- **`AI_MEMORY.md`** : **pivot léger** — pas d’empilement de paragraphes techniques ; une ligne *Point saillant* = rappel + **lien(s)** vers `docs/ai/`. Si la liste *Point saillant récent* grossit trop, **condenser ou archiver** d’anciennes puces (réflexe **§7.2** [`.cursorrules`](.cursorrules)) : le détail vit surtout dans **`contexte-actif.md`**.
 - **Résumé / fil détaillé** : [contexte-actif.md](docs/ai/contexte-actif.md) ; ajuster ce pivot racine si la liste des fiches change.
 - **Détail** : enrichir **toujours** la fiche thématique du tableau ci-dessus (actualisée depuis la codebase quand c’est une vraie évolution).
 - **Nouvelle fiche `docs/ai/*.md`** : uniquement si aucune fiche du tableau ne couvre le domaine ; puis lien ici + [docs/ai/README.md](docs/ai/README.md) (**§5**, **§7.2**).

@@ -91,7 +91,7 @@ class ActiviteServiceImplTest {
     void setUp() {
         activiteService = new ActiviteServiceImpl(
                 activiteRepository,
-                new SejourVerificationService(sejourRepository, utilisateurRepository),
+                new SejourVerificationService(sejourRepository, utilisateurRepository, sejourEquipeRepository),
                 utilisateurRepository,
                 sejourEquipeRepository,
                 groupeRepository,

@@ -8,6 +8,7 @@ import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.SaveHoraireRequest;
 import com.tarnof.enjoyrestapi.repositories.HoraireRepository;
+import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
@@ -39,6 +40,8 @@ class HoraireServiceImplTest {
     private SejourRepository sejourRepository;
     @Mock
     private UtilisateurRepository utilisateurRepository;
+    @Mock
+    private SejourEquipeRepository sejourEquipeRepository;
 
     private HoraireServiceImpl horaireService;
 
@@ -49,7 +52,7 @@ class HoraireServiceImplTest {
     void setUp() {
         horaireService = new HoraireServiceImpl(
                 horaireRepository,
-                new SejourVerificationService(sejourRepository, utilisateurRepository));
+                new SejourVerificationService(sejourRepository, utilisateurRepository, sejourEquipeRepository));
         sejour = new Sejour();
         sejour.setId(1);
         appelantAdmin = Utilisateur.builder()

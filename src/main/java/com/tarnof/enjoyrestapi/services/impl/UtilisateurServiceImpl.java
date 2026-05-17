@@ -92,13 +92,11 @@ public class UtilisateurServiceImpl implements UtilisateurService {
 
     @Override
     public Utilisateur modifUserByUser(Utilisateur utilisateur, UpdateUserRequest request) {
-        System.out.println("+++++++++++++++++Dans modifUserByUser++++++++++++++++");
         return modifUser(utilisateur, request, false);
     }
 
     @Override
     public Utilisateur modifUserByAdmin(Utilisateur utilisateur, UpdateUserRequest request) {
-        System.out.println("+++++++++++++++++Dans modifUserByAdmin++++++++++++++++");
         return modifUser(utilisateur, request, true);
     }
 

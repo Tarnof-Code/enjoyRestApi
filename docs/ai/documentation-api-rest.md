@@ -409,6 +409,40 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Réponse** : `204 No Content`
 - **Codes d'erreur** : `404` : Séjour ou horaire non trouvé / mauvais séjour
 
+### Cahier d’infirmerie (`/api/v1/sejours/{sejourId}/cahier-infirmerie`)
+
+**Autorisation** — **`GET`** (liste, détail, historique) : **`ACCES_SEJOUR`** + appartenance au séjour. **`POST`** : idem ; le **créateur** est l’utilisateur connecté, le **soigneur** est choisi via **`soigneurTokenId`**. **`PUT`** et **`DELETE`** : **`ACCES_SEJOUR`** ; côté service : **gestion complète du séjour** sur ce séjour (**`aDroitGestionCompleteSurSejour`** : directeur, adjoint **`GESTION_SEJOURS`**, …), **ADMIN**, **ou** **auteur** (**`createur.tokenId`**) **ou** **soigneur** (**`soigneur.tokenId`**), sinon **`403`**.
+
+#### GET `/api/v1/sejours/{sejourId}/cahier-infirmerie`
+- **Description** : Lister les entrées du cahier (**tri** : `dateHeure` décroissante, puis `id`)
+- **Réponse** : `List<CahierInfirmerieEntreeDto>` (200 OK)
+
+#### GET `/api/v1/sejours/{sejourId}/cahier-infirmerie/{entreeId}`
+- **Description** : Détail d’une entrée
+- **Réponse** : `CahierInfirmerieEntreeDto` (200 OK)
+- **Codes d'erreur** : `404` si entrée absente ou pas pour ce séjour
+
+#### GET `/api/v1/sejours/{sejourId}/cahier-infirmerie/{entreeId}/historique`
+- **Description** : Historique des modifications (création, modification, suppression) avec **snapshots lisibles** dans `ancienneValeur` / `nouvelleValeur`
+- **Réponse** : `List<HistoriqueModificationCahierInfirmerieDto>` (200 OK) — **`type`** = **`CAHIER_INFIRMERIE`**, champ **`cahierInfirmerieEntreeId`**
+- **Codes d'erreur** : `404` si entrée introuvable pour ce séjour
+
+#### POST `/api/v1/sejours/{sejourId}/cahier-infirmerie`
+- **Description** : Créer une entrée ; le **créateur** est l’utilisateur authentifié (`createur` persisté). Le **soigneur** peut être **une autre personne** : **`soigneurTokenId`** désigne qui a réalisé les soins (directeur du séjour ou membre **`sejour_equipe`**).
+- **Body** : `SaveCahierInfirmerieEntreeRequest` (`dateHeure`, `enfantId`, `description`, `localisationCorps?`, **`soins`** non vide, `soinsAutrePrecision?`, **`temperatureCelsius?`** — **obligatoire** (`BigDecimal`, ex. `37.5`) si **`PRISE_TEMPERATURE`** ∈ `soins`, interdit sinon ; plage métier **30–45** °C, **≤ 2** décimales, `appels` défaut `[]`, `appelAutrePrecision?`, **`soigneurTokenId`** — doit désigner le **directeur** du séjour ou un utilisateur présent dans **`sejour_equipe`**) — si **`AUTRE`** dans `soins` / `appels`, précision obligatoire (**400**)
+- **Réponse** : `CahierInfirmerieEntreeDto` (201 Created)
+- **Codes d'erreur** : `400` (validation, enfant non inscrit au séjour), `404` utilisateur token pour persistance créateur
+
+#### PUT `/api/v1/sejours/{sejourId}/cahier-infirmerie/{entreeId}`
+- **Description** : Mettre à jour une entrée (même body que POST). **Gestion du séjour** (directeur / adjoint avec **`GESTION_SEJOURS`**), **auteur**, **soigneur** désigné ou **ADMIN**.
+- **Réponse** : `CahierInfirmerieEntreeDto` (200 OK)
+- **Codes d'erreur** : `403` si aucun de ces rôles / liens ; `400` / `404` comme POST
+
+#### DELETE `/api/v1/sejours/{sejourId}/cahier-infirmerie/{entreeId}`
+- **Description** : Supprimer une entrée — **mêmes acteurs autorisés** que pour le **PUT** (direction du séjour sur ce séjour, auteur, soigneur désigné, **ADMIN**).
+- **Réponse** : `204 No Content` — une ligne **`SUPPRESSION`** est enregistrée dans l’historique **avant** suppression
+- **Codes d'erreur** : `403`, `404`
+
 ### Endpoints des Moments (`/api/v1/sejours/{sejourId}/moments`)
 
 **Autorisation** : **`GET`** **`ACCES_SEJOUR`** + appartenance au séjour ; **`POST` / `PUT` / `DELETE`** **`GESTION_SEJOURS`** (incl. **`PUT .../moments/reorder`**).
@@ -703,7 +737,8 @@ Tous les types TypeScript sont définis dans `enjoyWebApp/src/types/api.d.ts` :
 - `MomentDto` (**`ordre`**), `SaveMomentRequest`, `ReorderMomentsRequest` (**`momentIds`**)
 - `ActiviteDto` (**`moment`**, **`lieu`**, **`typeActivite`**, **`avertissementLieu`**, `groupeIds`), `CreateActiviteRequest`, `UpdateActiviteRequest` (**`typeActiviteId`** obligatoire)
 - `TypeActiviteDto` (**`sejourId`**, **`predefini`**), `SaveTypeActiviteRequest`
-- `HistoriqueModificationActiviteDto`, `HistoriqueModificationPlanningCelluleDto`, `HistoriqueModificationBaseDto` (inclut **`ancienneValeur`** et **`nouvelleValeur`** : chaînes lisibles pipe-separated, voir endpoints *historique* ; pas du JSON)
+- `HistoriqueModificationActiviteDto`, `HistoriqueModificationPlanningCelluleDto`, **`HistoriqueModificationCahierInfirmerieDto`** (**`cahierInfirmerieEntreeId`**), `HistoriqueModificationBaseDto` (inclut **`type`** dont **`CAHIER_INFIRMERIE`**, **`ancienneValeur`** et **`nouvelleValeur`** : texte lisible pour l’historique ; pas du JSON binaire)
+- **`CahierInfirmerieEntreeDto`** (**`createurTokenId`**, **`createurNom`**, **`createurPrenom`**, **`soigneurTokenId`**, **`soigneurNom`**, **`soigneurPrenom`**, **`temperatureCelsius`** : `BigDecimal` ou `null`, `enfantId`, enums **`TypeSoinInfirmerie`**, **`TypeAppelInfirmerie`**), **`SaveCahierInfirmerieEntreeRequest`**
 - `PlanningGrilleSummaryDto`, `PlanningGrilleDetailDto`, `PlanningLigneDto`, **`PlanningCelluleDto`** (listes **`horaireIds`**, **`horaireLibelles`**, **`momentIds`**, **`groupeIds`**, **`lieuIds`**, **`membreTokenIds`**), `UpsertPlanningCellulesRequest`, **`PlanningCellulePayload`**
 - `CreateSejourRequest`
 - `CreateEnfantRequest`
