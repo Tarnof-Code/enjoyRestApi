@@ -480,6 +480,39 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Réponse** : `204 No Content`
 - **Codes d'erreur** : `404` séjour ou moment, `400` si activités existantes (`IllegalArgumentException`)
 
+### Endpoints des réunions / comptes rendus (`/api/v1/sejours/{sejourId}/reunions`)
+
+**Autorisation** : **`GET` (liste et détail)** **`ACCES_SEJOUR`** + appartenance au séjour (**`SejourVerificationService.verifierAppartenanceAuSejour`**). **`POST` / `PUT` / `DELETE`** **`GESTION_SEJOURS`** (même périmètre que moments / lieux pour l’écriture « direction » au sens Spring).
+
+**Contrat données** :
+- **`date`** : **`LocalDate`**, sérialisée **`yyyy-MM-dd`** (`@JsonFormat` sur **`ReunionDto`** et **`SaveReunionRequest`**).
+- **`ordreDuJour`** : **optionnel** ; string courte **`@Size(max=500)`**, normalisée côté service (`null` si absent ou blanc après trim).
+- **`contenu`** : **document JSON TipTap** (ProseMirror), obligatoire en création/mise à jour ; persisté en colonne **`contenu_json`** (TEXT). Le backend sérialise / désérialise avec Jackson (`JsonNode`).
+
+#### GET `/api/v1/sejours/{sejourId}/reunions`
+- **Description** : Lister les comptes rendus du séjour (**tri** : **`date_reunion` croissant**, puis **`id`**)
+- **Réponse** : `List<ReunionDto>` (200 OK) — `id`, `sejourId`, `date`, `ordreDuJour` (peut être `null`), `contenu` (objet JSON)
+- **Codes d'erreur** : `403` si pas d’accès au séjour
+
+#### GET `/api/v1/sejours/{sejourId}/reunions/{reunionId}`
+- **Description** : Détail d’une réunion
+- **Réponse** : `ReunionDto` (200 OK)
+- **Codes d'erreur** : `404` réunion absente ou pas pour ce séjour
+
+#### POST `/api/v1/sejours/{sejourId}/reunions`
+- **Body** : `SaveReunionRequest` (`date` **obligatoire**, `ordreDuJour` **optionnel**, `contenu` **obligatoire** — JSON TipTap, ex. `{"type":"doc","content":[]}`)
+- **Réponse** : `ReunionDto` (201 Created)
+- **Codes d'erreur** : `400` validation ; `404` séjour
+
+#### PUT `/api/v1/sejours/{sejourId}/reunions/{reunionId}`
+- **Description** : Remplacement du document (même body que POST)
+- **Réponse** : `ReunionDto` (200 OK)
+- **Codes d'erreur** : `400` / `404` comme POST
+
+#### DELETE `/api/v1/sejours/{sejourId}/reunions/{reunionId}`
+- **Réponse** : `204 No Content`
+- **Codes d'erreur** : `404`
+
 ### Endpoints des Activités (`/api/v1/sejours/{sejourId}/activites`)
 
 **Autorisation** — **`GET`** : **`ACCES_SEJOUR`** + appartenance au séjour (comportement aligné sur lieux / horaires / activités en lecture). **`POST`** : **`ACCES_SEJOUR`** + **appartenance au séjour** (création réservée aux participants du séjour, pas au seul privilège global `GESTION_SEJOURS` sans lien). **`PUT` / `DELETE`** : **`ACCES_SEJOUR`** ; côté service, autorisé si **gestion complète du séjour** (**`SejourVerificationService.aDroitGestionCompleteSurSejour`**, ex. directeur, **ADJOINT**, **ADMIN**) **ou** si l’utilisateur est **affecté à l’activité** (liste **`membres`**), sinon **`403`** avec message métier (`AccessDeniedException`).
@@ -735,6 +768,7 @@ Tous les types TypeScript sont définis dans `enjoyWebApp/src/types/api.d.ts` :
 - `LieuDto`, `SaveLieuRequest`, `EmplacementLieu`, **`UsageLieu`** (enum API — **à ajouter / aligner** dans `api.d.ts` : **`usages`** sur lieux)
 - `HoraireDto`, `SaveHoraireRequest` (à ajouter dans `api.d.ts` si le frontend gère les horaires)
 - `MomentDto` (**`ordre`**), `SaveMomentRequest`, `ReorderMomentsRequest` (**`momentIds`**)
+- **`ReunionDto`** (`id`, `sejourId`, **`date`** `yyyy-MM-dd`, **`ordreDuJour`** optionnel, **`contenu`** objet JSON TipTap), **`SaveReunionRequest`** — **à aligner dans `api.d.ts`**
 - `ActiviteDto` (**`moment`**, **`lieu`**, **`typeActivite`**, **`avertissementLieu`**, `groupeIds`), `CreateActiviteRequest`, `UpdateActiviteRequest` (**`typeActiviteId`** obligatoire)
 - `TypeActiviteDto` (**`sejourId`**, **`predefini`**), `SaveTypeActiviteRequest`
 - `HistoriqueModificationActiviteDto`, `HistoriqueModificationPlanningCelluleDto`, **`HistoriqueModificationCahierInfirmerieDto`** (**`cahierInfirmerieEntreeId`**), `HistoriqueModificationBaseDto` (inclut **`type`** dont **`CAHIER_INFIRMERIE`**, **`ancienneValeur`** et **`nouvelleValeur`** : texte lisible pour l’historique ; pas du JSON binaire)
