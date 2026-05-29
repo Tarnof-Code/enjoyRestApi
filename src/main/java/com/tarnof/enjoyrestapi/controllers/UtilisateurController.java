@@ -98,9 +98,21 @@ public class UtilisateurController {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        Utilisateur userUpdated = droits.contains("GESTION_UTILISATEURS")
-                ? utilisateurService.modifUserByAdmin(utilisateur, request)
-                : utilisateurService.modifUserByUser(utilisateur, request);
+        Utilisateur currentUser = (Utilisateur) authentication.getPrincipal();
+        boolean isAdmin = droits.contains("GESTION_UTILISATEURS");
+        boolean isDirectorModifyingBasicUser = !isAdmin
+                && currentUser.getRole() == Role.DIRECTION
+                && utilisateur.getRole() == Role.BASIC_USER
+                && !currentUser.getTokenId().equals(utilisateur.getTokenId());
+
+        Utilisateur userUpdated;
+        if (isAdmin) {
+            userUpdated = utilisateurService.modifUserByAdmin(utilisateur, request);
+        } else if (isDirectorModifyingBasicUser) {
+            userUpdated = utilisateurService.modifUserByDirector(utilisateur, request);
+        } else {
+            userUpdated = utilisateurService.modifUserByUser(utilisateur, request);
+        }
 
         ProfilDto profilDTO = utilisateurService.mapUtilisateurToProfilDTO(userUpdated);
         return ResponseEntity.ok(profilDTO);

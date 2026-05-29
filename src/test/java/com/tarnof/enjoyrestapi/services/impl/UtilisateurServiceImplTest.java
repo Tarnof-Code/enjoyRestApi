@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.Instant;
@@ -423,10 +424,58 @@ public class UtilisateurServiceImplTest {
     }
 
     @Test
-    @DisplayName("modifUserByUser - Devrait lancer une exception si l'email est déjà utilisé par un autre utilisateur")
+    @DisplayName("modifUserByUser - Devrait refuser la modification de l'email")
     @SuppressWarnings("null")
-    void modifUserByUser_WhenEmailAlreadyUsed_ShouldThrowException() {
-        // Given
+    void modifUserByUser_WhenEmailChanged_ShouldThrowAccessDeniedException() {
+        UpdateUserRequest request = new UpdateUserRequest(
+                "user-token-123",
+                "Jean",
+                "Dupont",
+                "Homme",
+                "nouveau.email@test.fr",
+                "0123456789",
+                dateNaissance,
+                null,
+                null
+        );
+
+        assertThatThrownBy(() -> utilisateurService.modifUserByUser(utilisateur, request))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Vous n'êtes pas autorisé à modifier l'adresse email");
+        verify(utilisateurRepository, never()).existsByEmail(anyString());
+        verify(utilisateurRepository, never()).save(any(Utilisateur.class));
+    }
+
+    @Test
+    @DisplayName("modifUserByDirector - Devrait modifier l'email d'un membre de l'équipe")
+    @SuppressWarnings("null")
+    void modifUserByDirector_WhenEmailChanged_ShouldUpdateUser() {
+        UpdateUserRequest request = new UpdateUserRequest(
+                "user-token-123",
+                "Pierre",
+                "Martin",
+                "Femme",
+                "nouveau.email@test.fr",
+                "0123456789",
+                dateNaissance,
+                null,
+                null
+        );
+
+        when(utilisateurRepository.existsByEmail(request.email())).thenReturn(false);
+        when(utilisateurRepository.save(any(Utilisateur.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Utilisateur result = utilisateurService.modifUserByDirector(utilisateur, request);
+
+        assertThat(result.getEmail()).isEqualTo("nouveau.email@test.fr");
+        verify(utilisateurRepository).existsByEmail(request.email());
+        verify(utilisateurRepository).save(any(Utilisateur.class));
+    }
+
+    @Test
+    @DisplayName("modifUserByDirector - Devrait lancer une exception si l'email est déjà utilisé")
+    @SuppressWarnings("null")
+    void modifUserByDirector_WhenEmailAlreadyUsed_ShouldThrowException() {
         UpdateUserRequest request = new UpdateUserRequest(
                 "user-token-123",
                 "Jean",
@@ -441,8 +490,7 @@ public class UtilisateurServiceImplTest {
 
         when(utilisateurRepository.existsByEmail(request.email())).thenReturn(true);
 
-        // When & Then
-        assertThatThrownBy(() -> utilisateurService.modifUserByUser(utilisateur, request))
+        assertThatThrownBy(() -> utilisateurService.modifUserByDirector(utilisateur, request))
                 .isInstanceOf(EmailDejaUtiliseException.class)
                 .hasMessageContaining("L'email est déjà utilisé par un autre compte");
         verify(utilisateurRepository).existsByEmail(request.email());

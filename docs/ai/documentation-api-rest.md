@@ -681,13 +681,21 @@ Grille = **`PlanningGrille`** (titre, consigne, **`sourceLibelleLignes`**, **`so
   - `404` : Utilisateur non trouvé
 
 #### PUT `/api/v1/utilisateurs`
-- **Description** : Modifier un utilisateur (soi-même ou par admin)
-- **Autorisation** : Utilisateur connecté (modification de soi) ou `GESTION_UTILISATEURS` (modification par admin)
+- **Description** : Modifier un utilisateur (soi-même, par admin, ou par directeur pour un membre d'équipe)
+- **Autorisation** :
+  - **`GESTION_UTILISATEURS`** (admin) : modification complète de tout utilisateur
+  - **`DIRECTION`** modifiant un autre utilisateur **`BASIC_USER`** : modification du profil, **y compris l'email**
+  - Utilisateur connecté modifiant **son propre** profil : nom, prénom, genre, téléphone, date de naissance — **pas l'email**
 - **Body** : `UpdateUserRequest`
 - **Réponse** : `ProfilUtilisateurDTO` (200 OK)
+- **Règle email** :
+  - Un **directeur** ne peut **pas** modifier **son propre** email (réservé à l'admin)
+  - Un **membre d'équipe** (`BASIC_USER`) ne peut **pas** modifier **son propre** email (réservé à un directeur ou à l'admin)
 - **Codes d'erreur** :
   - `400` : Validation échouée
+  - `403` : Tentative de modification de l'email sans droit (`AccessDeniedException`, message : « Vous n'êtes pas autorisé à modifier l'adresse email »)
   - `404` : Utilisateur non trouvé
+  - `409` : Email déjà utilisé par un autre compte
 
 #### DELETE `/api/v1/utilisateurs/{tokenId}`
 - **Description** : Supprimer un utilisateur

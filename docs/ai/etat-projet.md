@@ -30,7 +30,8 @@
   - `profilUtilisateur()` : utilisateur trouvé, utilisateur non trouvé
   - `getUtilisateurByEmail()` : utilisateur trouvé, utilisateur non trouvé
   - `mapUtilisateurToProfilDTO()` : mapping avec refreshToken, mapping sans refreshToken
-  - `modifUserByUser()` : modification réussie, email déjà utilisé
+  - `modifUserByUser()` : modification réussie, refus changement email (`AccessDeniedException`)
+  - `modifUserByDirector()` : modification email d'un membre `BASIC_USER`, email déjà utilisé
   - `modifUserByAdmin()` : modification réussie, changement rôle DIRECTION (avec/sans séjours), mise à jour refreshToken, sans refreshToken, dateExpiration null, changement rôle non-DIRECTION
   - `supprimerUtilisateur()` : suppression réussie, utilisateur non trouvé
   - `changerMotDePasseParAdmin()` : changement réussi, utilisateur non trouvé
@@ -161,7 +162,7 @@
   - `chercherUtilisateurParEmail()` : 200 OK, 400 Bad Request (utilisateur DIRECTION), 400 Bad Request (utilisateur ADMIN), 404 Not Found (4 tests)
   - `profilUtilisateur()` : 200 OK, 404 Not Found (2 tests)
   - `supprimerUtilisateur()` : 204 No Content (1 test)
-  - `modifierUtilisateur()` : 200 OK par admin, 200 OK par utilisateur, 404 Not Found (3 tests)
+  - `modifierUtilisateur()` : 200 OK par admin, 200 OK par utilisateur, 200 OK par directeur pour membre `BASIC_USER`, 404 Not Found (4 tests)
   - `changerMotDePasse()` : 200 OK par admin, 200 OK par utilisateur, 403 Forbidden (token différent), 400 Bad Request (ancien mot de passe manquant), 400 Bad Request (ancien mot de passe vide) (5 tests)
   - Tests organisés de manière cohérente par méthode
   - Utilisation de `@InjectMocks` pour injecter automatiquement les mocks dans le contrôleur (cohérence avec les autres tests)

@@ -59,6 +59,7 @@ class UtilisateurControllerTest {
     private ChangePasswordRequest changePasswordRequest;
     private Authentication authenticationAdmin;
     private Authentication authenticationUser;
+    private Authentication authenticationDirector;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -135,6 +136,26 @@ class UtilisateurControllerTest {
         Collection<? extends GrantedAuthority> userAuthorities = (Collection) List.of(userAuthority);
         doReturn(userAuthorities).when(authenticationUser).getAuthorities();
         when(authenticationUser.getPrincipal()).thenReturn(utilisateur);
+
+        Utilisateur directeur = Utilisateur.builder()
+                .id(2)
+                .tokenId("token-directeur")
+                .role(Role.DIRECTION)
+                .nom("Directeur")
+                .prenom("Paul")
+                .genre(Genre.Masculin)
+                .email("directeur@test.fr")
+                .telephone("0111111111")
+                .dateNaissance(dateNaissance)
+                .build();
+
+        authenticationDirector = mock(Authentication.class);
+        GrantedAuthority directionAuthority = mock(GrantedAuthority.class);
+        when(directionAuthority.getAuthority()).thenReturn("ROLE_DIRECTION");
+        @SuppressWarnings("rawtypes")
+        Collection<? extends GrantedAuthority> directionAuthorities = (Collection) List.of(directionAuthority);
+        doReturn(directionAuthorities).when(authenticationDirector).getAuthorities();
+        when(authenticationDirector.getPrincipal()).thenReturn(directeur);
     }
 
     // ========== Tests pour consulterLaListeDesUtilisateurs() ==========
@@ -435,7 +456,60 @@ class UtilisateurControllerTest {
         verify(utilisateurService).profilUtilisateur("token-123");
         verify(utilisateurService).modifUserByUser(utilisateur, updateUserRequest);
         verify(utilisateurService, never()).modifUserByAdmin(any(), any());
+        verify(utilisateurService, never()).modifUserByDirector(any(), any());
         verify(utilisateurService).mapUtilisateurToProfilDTO(updatedUser);
+    }
+
+    @Test
+    @DisplayName("modifierUtilisateur - Devrait appeler modifUserByDirector quand un directeur modifie un membre")
+    @SuppressWarnings("null")
+    void modifierUtilisateur_ByDirectorForBasicUser_ShouldCallModifUserByDirector() throws Exception {
+        UpdateUserRequest request = new UpdateUserRequest(
+                "token-123",
+                "Jean",
+                "Dupont",
+                "M",
+                "nouveau.email@test.fr",
+                "0123456789",
+                updateUserRequest.dateNaissance(),
+                Role.BASIC_USER,
+                updateUserRequest.dateExpirationCompte()
+        );
+
+        Utilisateur updatedUser = utilisateur.toBuilder()
+                .email("nouveau.email@test.fr")
+                .build();
+
+        ProfilDto updatedProfilDto = new ProfilDto(
+                "token-123",
+                Role.BASIC_USER,
+                null,
+                "Dupont",
+                "Jean",
+                Genre.Masculin,
+                "nouveau.email@test.fr",
+                "0123456789",
+                updateUserRequest.dateNaissance(),
+                updateUserRequest.dateExpirationCompte()
+        );
+
+        when(utilisateurService.profilUtilisateur("token-123"))
+                .thenReturn(Optional.of(utilisateur));
+        when(utilisateurService.modifUserByDirector(utilisateur, request))
+                .thenReturn(updatedUser);
+        when(utilisateurService.mapUtilisateurToProfilDTO(updatedUser))
+                .thenReturn(updatedProfilDto);
+
+        mockMvc.perform(put("/api/v1/utilisateurs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .principal(authenticationDirector))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("nouveau.email@test.fr"));
+
+        verify(utilisateurService).modifUserByDirector(utilisateur, request);
+        verify(utilisateurService, never()).modifUserByAdmin(any(), any());
+        verify(utilisateurService, never()).modifUserByUser(any(), any());
     }
 
     @Test

@@ -14,6 +14,7 @@ public interface UtilisateurService {
     public List<ProfilDto> getAllUtilisateursDTO();
     public List<ProfilDto> getUtilisateursByRole(Role role);
     public Utilisateur modifUserByUser(Utilisateur utilisateur, UpdateUserRequest request);
+    public Utilisateur modifUserByDirector(Utilisateur utilisateur, UpdateUserRequest request);
     public Utilisateur modifUserByAdmin(Utilisateur utilisateur, UpdateUserRequest request);
     public void supprimerUtilisateur(String tokenId);
     public Optional<Utilisateur> profilUtilisateur(String tokenId);

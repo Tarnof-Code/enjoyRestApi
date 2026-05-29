@@ -16,6 +16,7 @@ import com.tarnof.enjoyrestapi.services.UtilisateurService;
 import jakarta.transaction.Transactional;
 
 import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
@@ -92,15 +93,23 @@ public class UtilisateurServiceImpl implements UtilisateurService {
 
     @Override
     public Utilisateur modifUserByUser(Utilisateur utilisateur, UpdateUserRequest request) {
-        return modifUser(utilisateur, request, false);
+        return modifUser(utilisateur, request, false, false);
+    }
+
+    @Override
+    public Utilisateur modifUserByDirector(Utilisateur utilisateur, UpdateUserRequest request) {
+        return modifUser(utilisateur, request, false, true);
     }
 
     @Override
     public Utilisateur modifUserByAdmin(Utilisateur utilisateur, UpdateUserRequest request) {
-        return modifUser(utilisateur, request, true);
+        return modifUser(utilisateur, request, true, true);
     }
 
-    private Utilisateur modifUser(Utilisateur utilisateur, UpdateUserRequest request, boolean isAdmin) {
+    private Utilisateur modifUser(Utilisateur utilisateur, UpdateUserRequest request, boolean isAdmin, boolean allowEmailChange) {
+        if (!allowEmailChange && !utilisateur.getEmail().equals(request.email())) {
+            throw new AccessDeniedException("Vous n'êtes pas autorisé à modifier l'adresse email");
+        }
         // Vérifier si l'email est déjà utilisé par un autre utilisateur
         if (!utilisateur.getEmail().equals(request.email()) && utilisateurRepository.existsByEmail(request.email())) {
             throw new EmailDejaUtiliseException("L'email est déjà utilisé par un autre compte.");
