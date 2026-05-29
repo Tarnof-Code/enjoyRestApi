@@ -1,0 +1,12 @@
+---
+description: Utiliser cette règle pour auditer ou mettre à jour la Memory Bank
+alwaysApply: false
+---
+
+# Memory Bank
+- Pour une question ciblée, lire directement la fiche pertinente dans `docs/ai/`.
+- Lire `AI_MEMORY.md` seulement si l’utilisateur demande la Memory Bank, une synthèse projet, ou une tâche transverse multi-modules.
+- Ne pas pré-lire `contexte-actif.md`, `decisions-architecturales.md`, `etat-projet.md` ou `documentation-api-rest.md` sans besoin identifié.
+- En mise à jour, écrire le détail dans la fiche thématique ; garder `AI_MEMORY.md` comme index de 10 à 20 lignes.
+- Nouvelle fiche `docs/ai/*.md` uniquement si aucune fiche existante ne couvre le sujet ; référencer ensuite dans `AI_MEMORY.md` et `docs/ai/README.md`.
+- Après commit ET push, proposer la mise à jour des fiches concernées si une convention ou un contrat durable a changé.

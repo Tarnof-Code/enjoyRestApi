@@ -1,0 +1,12 @@
+---
+description: Conventions pour modifier les fichiers de documentation IA
+globs: docs/ai/**/*.md,AI_MEMORY.md
+alwaysApply: false
+---
+
+# Documentation IA
+- Placer contrats HTTP dans `documentation-api-rest.md`, modèle/tests dans `etat-projet.md`, décisions dans `decisions-architecturales.md`, actualité dans `contexte-actif.md`.
+- Éviter les fiches trop spécifiques ; enrichir une fiche existante sauf nouveau domaine majeur.
+- Ne pas recopier de longs détails dans `AI_MEMORY.md` ; y garder navigation et rappels essentiels.
+- Lier les guides `docs/*.md` hors `ai/` depuis la fiche thématique pertinente.
+- Ne jamais documenter de secrets, données personnelles réelles ou dumps.

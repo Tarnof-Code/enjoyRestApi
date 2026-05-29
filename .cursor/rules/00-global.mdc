@@ -1,0 +1,12 @@
+---
+description: Règles globales minimales du projet Enjoy API
+alwaysApply: true
+---
+
+# Global
+- Répondre en français ; messages de commit Git en anglais.
+- Ne jamais lire ni exposer de secrets (`.env*`, credentials, dumps).
+- Code : Spring Boot Java 21, injection par constructeur, contrôleurs sans logique métier, services sans `null` silencieux.
+- JSON utilisateur côté API : exposer/référencer `tokenId`, jamais l’id SQL.
+- Documentation IA : pour une question ciblée, lire directement le fichier concerné ; élargir à `AI_MEMORY.md` ou aux pivots seulement sur demande explicite ou tâche transverse.
+- Périmètre d’exploration : si des fichiers sont ouverts, déduire le module (`src/`, `docs/ai/`, `sql/`) et limiter lecture/recherche à ce périmètre + fiche `docs/ai/` pertinente ; demander confirmation avant d’explorer ailleurs.

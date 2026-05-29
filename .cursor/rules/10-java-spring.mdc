@@ -1,0 +1,14 @@
+---
+description: Standards Java Spring Boot quand le code backend est concerné
+globs: src/**/*.java,pom.xml
+alwaysApply: false
+---
+
+# Java Spring
+- Vérifier `pom.xml` seulement si une dépendance, version Java ou API externe est en jeu.
+- Utiliser Java 21 et les records pour DTOs/payloads ; garder les entités JPA en classes classiques.
+- Injection par constructeur explicite ; ne pas utiliser `@Autowired` sur champs.
+- Contrôleurs minces : pas de logique métier ni `try-catch` masquant les erreurs.
+- Services : logique métier, exceptions dédiées, pas de `ResponseEntity`, pas de retour `null` en erreur.
+- Tests : JUnit 5, Mockito, AssertJ, scénario précis par test, `@SuppressWarnings("null")` au niveau classe si nécessaire.
+- Imports en haut du fichier ; éviter les noms qualifiés complets dans le corps du code.

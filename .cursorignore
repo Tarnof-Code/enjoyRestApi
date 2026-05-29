@@ -1,0 +1,11 @@
+.env
+.env.*
+*.env
+*credentials*
+*secret*
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+*.sql.zip
