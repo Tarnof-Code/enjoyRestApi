@@ -31,6 +31,8 @@ public class Sejour {
     private List<Horaire> horaires;
     @OneToMany(mappedBy = "sejour", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Reunion> reunions;
+    @OneToMany(mappedBy = "sejour", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Chambre> chambres;
 
     public Sejour() {
     }
@@ -38,7 +40,7 @@ public class Sejour {
     public Sejour(int id, String nom, String description, Date dateDebut, Date dateFin, String lieuDuSejour,
                   Utilisateur directeur, List<SejourEquipe> equipeRoles, List<SejourEnfant> enfants,
                   List<Groupe> groupes, List<Lieu> lieux, List<Moment> moments, List<Horaire> horaires,
-                  List<Reunion> reunions) {
+                  List<Reunion> reunions, List<Chambre> chambres) {
         this.id = id;
         this.nom = nom;
         this.description = description;
@@ -53,6 +55,7 @@ public class Sejour {
         this.moments = moments;
         this.horaires = horaires;
         this.reunions = reunions;
+        this.chambres = chambres;
     }
 
     public static SejourBuilder builder() {
@@ -171,6 +174,14 @@ public class Sejour {
         this.reunions = reunions;
     }
 
+    public List<Chambre> getChambres() {
+        return chambres;
+    }
+
+    public void setChambres(List<Chambre> chambres) {
+        this.chambres = chambres;
+    }
+
     @Override
     public String toString() {
         return "Sejour{" +
@@ -188,6 +199,7 @@ public class Sejour {
                 ", moments=" + moments +
                 ", horaires=" + horaires +
                 ", reunions=" + reunions +
+                ", chambres=" + chambres +
                 '}';
     }
 
@@ -206,6 +218,7 @@ public class Sejour {
         private List<Moment> moments;
         private List<Horaire> horaires;
         private List<Reunion> reunions;
+        private List<Chambre> chambres;
 
         public SejourBuilder id(int id) {
             this.id = id;
@@ -277,6 +290,11 @@ public class Sejour {
             return this;
         }
 
+        public SejourBuilder chambres(List<Chambre> chambres) {
+            this.chambres = chambres;
+            return this;
+        }
+
         public Sejour build() {
             return new Sejour(
                     id,
@@ -292,7 +310,8 @@ public class Sejour {
                     lieux,
                     moments,
                     horaires,
-                    reunions);
+                    reunions,
+                    chambres);
         }
     }
 }

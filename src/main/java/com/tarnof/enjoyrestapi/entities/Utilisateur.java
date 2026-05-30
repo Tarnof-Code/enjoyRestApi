@@ -53,6 +53,8 @@ public class Utilisateur implements UserDetails {
     private RefreshToken refreshToken;
     @ManyToMany(mappedBy = "referents")
     private List<Groupe> groupesReferent = new ArrayList<>();
+    @ManyToMany(mappedBy = "referents")
+    private List<Chambre> chambresReferent = new ArrayList<>();
 
     public Utilisateur() {
     }
@@ -76,7 +78,8 @@ public class Utilisateur implements UserDetails {
                 .motDePasse(this.motDePasse)
                 .dateExpirationCompte(this.dateExpirationCompte)
                 .refreshToken(this.refreshToken)
-                .groupesReferent(this.groupesReferent);
+                .groupesReferent(this.groupesReferent)
+                .chambresReferent(this.chambresReferent);
     }
 
     public int getId() {
@@ -187,6 +190,14 @@ public class Utilisateur implements UserDetails {
         this.groupesReferent = groupesReferent;
     }
 
+    public List<Chambre> getChambresReferent() {
+        return chambresReferent;
+    }
+
+    public void setChambresReferent(List<Chambre> chambresReferent) {
+        this.chambresReferent = chambresReferent;
+    }
+
     @Override
     public String toString() {
         return "Utilisateur{" +
@@ -268,6 +279,7 @@ public class Utilisateur implements UserDetails {
         private Instant dateExpirationCompte;
         private RefreshToken refreshToken;
         private List<Groupe> groupesReferent;
+        private List<Chambre> chambresReferent;
 
         public UtilisateurBuilder id(int id) {
             this.id = id;
@@ -339,6 +351,11 @@ public class Utilisateur implements UserDetails {
             return this;
         }
 
+        public UtilisateurBuilder chambresReferent(List<Chambre> chambresReferent) {
+            this.chambresReferent = chambresReferent;
+            return this;
+        }
+
         public Utilisateur build() {
             Utilisateur u = new Utilisateur();
             u.setId(id);
@@ -355,6 +372,7 @@ public class Utilisateur implements UserDetails {
             u.setDateExpirationCompte(dateExpirationCompte);
             u.setRefreshToken(refreshToken);
             u.setGroupesReferent(groupesReferent != null ? groupesReferent : new ArrayList<>());
+            u.setChambresReferent(chambresReferent != null ? chambresReferent : new ArrayList<>());
             return u;
         }
     }

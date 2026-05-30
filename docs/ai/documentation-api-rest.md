@@ -378,6 +378,53 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Réponse** : `204 No Content`
 - **Codes d'erreur** : `404` : Séjour ou lieu non trouvé / mauvais séjour
 
+### Endpoints des Chambres (`/api/v1/sejours/{sejourId}/chambres`)
+
+**Autorisation** : **`GET`** **`ACCES_SEJOUR`** + appartenance au séjour ; **`POST` / `PUT` / `DELETE`** et gestion référents **`GESTION_SEJOURS`**.
+
+**Modèle** : hébergement (distinct des **Lieux** d’activité). **`TypeChambre`** : **`ENFANT`** (référents autorisés) ou **`EQUIPE`** (pas de référents). **`identifiant`** obligatoire, **unique par séjour** (casse ignorée) ; **`nom`** optionnel (surnom). **Hors périmètre API** : affectation des occupants (enfants / membres d’équipe) aux chambres.
+
+#### GET `/api/v1/sejours/{sejourId}/chambres`
+- **Description** : Lister les chambres du séjour (**tri** : `batiment`, `etage`, `couloir`, `identifiant`)
+- **Réponse** : `List<ChambreDto>` (200 OK)
+- **Codes d'erreur** : `404` : Séjour non trouvé ; `403` : hors séjour
+
+#### GET `/api/v1/sejours/{sejourId}/chambres/{chambreId}`
+- **Description** : Détail d’une chambre
+- **Réponse** : `ChambreDto` (200 OK)
+- **Codes d'erreur** : `404` : Séjour ou chambre non trouvé / mauvais séjour
+
+#### POST `/api/v1/sejours/{sejourId}/chambres`
+- **Description** : Créer une chambre
+- **Body** : `SaveChambreRequest` (`typeChambre`, `identifiant` **@NotBlank** max 50, `nom?` max 150, `capaciteMax` **@Positive**, `genreAutorise`, `description?`, `batiment?`, `couloir?`, `etage?`)
+- **Réponse** : `ChambreDto` (201 Created)
+- **Codes d'erreur** : `400` validation Jakarta, `404` séjour, `409` identifiant déjà utilisé pour ce séjour
+
+#### PUT `/api/v1/sejours/{sejourId}/chambres/{chambreId}`
+- **Description** : Modifier une chambre (même body que POST). Passage **`ENFANT` → `EQUIPE`** : référents supprimés côté serveur.
+- **Réponse** : `ChambreDto` (200 OK)
+- **Codes d'erreur** : `400` validation, `404` séjour ou chambre, `409` identifiant en conflit
+
+#### DELETE `/api/v1/sejours/{sejourId}/chambres/{chambreId}`
+- **Description** : Supprimer une chambre
+- **Réponse** : `204 No Content`
+- **Codes d'erreur** : `404` : Séjour ou chambre non trouvé
+
+#### POST `/api/v1/sejours/{sejourId}/chambres/{chambreId}/referents`
+- **Description** : Ajouter un référent (**chambres `ENFANT` uniquement**)
+- **Body** : `AjouterReferentRequest` (`referentTokenId`)
+- **Réponse** : `201 Created` (corps vide)
+- **Codes d'erreur** : `400` chambre **`EQUIPE`**, `404` séjour / chambre / référent, `409` référent déjà présent
+
+#### DELETE `/api/v1/sejours/{sejourId}/chambres/{chambreId}/referents/{referentTokenId}`
+- **Description** : Retirer un référent (**chambres `ENFANT` uniquement**)
+- **Réponse** : `204 No Content`
+- **Codes d'erreur** : `400` chambre **`EQUIPE`**, `404` séjour / chambre / référent absent
+
+**DTO `ChambreDto`** : `id`, `sejourId`, `typeChambre`, `identifiant`, `nom`, `capaciteMax`, `genreAutorise`, `description`, `batiment`, `couloir`, `etage`, `referents[]` (`tokenId`, `nom`, `prenom` — **`[]`** pour **`EQUIPE`**).
+
+**Enums** : **`TypeChambre`** (`ENFANT`, `EQUIPE`), **`GenreChambre`** (`MASCULIN`, `FEMININ`, `MIXTE`).
+
 ### Endpoints des Horaires (`/api/v1/sejours/{sejourId}/horaires`)
 
 **Autorisation** : **`GET`** **`ACCES_SEJOUR`** + appartenance au séjour ; **`POST` / `PUT` / `DELETE`** **`GESTION_SEJOURS`**.
