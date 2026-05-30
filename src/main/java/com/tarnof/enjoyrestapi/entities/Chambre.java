@@ -59,6 +59,14 @@ public class Chambre {
     @JoinColumn(name = "sejour_id", nullable = false)
     private Sejour sejour;
 
+    /**
+     * Groupe dont les enfants sont autorisés à dormir dans cette chambre.
+     * Réservé aux chambres {@link TypeChambre#ENFANT} ; si renseigné, seuls ses membres peuvent y être affectés.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "groupe_id")
+    private Groupe groupe;
+
     /** Réservé aux chambres {@link TypeChambre#ENFANT}. */
     @ManyToMany
     @JoinTable(
@@ -66,6 +74,9 @@ public class Chambre {
             joinColumns = @JoinColumn(name = "chambre_id"),
             inverseJoinColumns = @JoinColumn(name = "utilisateur_id"))
     private List<Utilisateur> referents = new ArrayList<>();
+
+    @OneToMany(mappedBy = "chambre", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ChambreOccupant> occupants = new ArrayList<>();
 
     public Chambre() {
     }
@@ -158,12 +169,28 @@ public class Chambre {
         this.sejour = sejour;
     }
 
+    public Groupe getGroupe() {
+        return groupe;
+    }
+
+    public void setGroupe(Groupe groupe) {
+        this.groupe = groupe;
+    }
+
     public List<Utilisateur> getReferents() {
         return referents;
     }
 
     public void setReferents(List<Utilisateur> referents) {
         this.referents = referents != null ? referents : new ArrayList<>();
+    }
+
+    public List<ChambreOccupant> getOccupants() {
+        return occupants;
+    }
+
+    public void setOccupants(List<ChambreOccupant> occupants) {
+        this.occupants = occupants != null ? occupants : new ArrayList<>();
     }
 
     /** Sans {@code sejour} : évite lazy load et cycle avec {@link Sejour}. */

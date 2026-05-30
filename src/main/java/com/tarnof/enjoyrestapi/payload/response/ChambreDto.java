@@ -17,7 +17,9 @@ public record ChambreDto(
         String batiment,
         String couloir,
         Integer etage,
-        List<ReferentInfos> referents
+        GroupeResumeDto groupe,
+        List<ReferentInfos> referents,
+        List<ChambreOccupantDto> occupants
 ) {
     public record ReferentInfos(
             String tokenId,

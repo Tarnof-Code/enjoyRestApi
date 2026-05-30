@@ -17,4 +17,9 @@ public interface GroupeRepository extends JpaRepository<Groupe, Integer> {
     List<Groupe> findBySejourIdFetchingEnfants(@Param("sejourId") int sejourId);
 
     Optional<Groupe> findByIdAndSejourId(int id, int sejourId);
+
+    @Query(
+            "SELECT COUNT(e) > 0 FROM Groupe g JOIN g.enfants e "
+                    + "WHERE g.id = :groupeId AND e.id = :enfantId")
+    boolean existsEnfantInGroupe(@Param("groupeId") int groupeId, @Param("enfantId") int enfantId);
 }

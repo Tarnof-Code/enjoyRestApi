@@ -13,9 +13,26 @@ public interface ChambreRepository extends JpaRepository<Chambre, Integer> {
     Optional<Chambre> findByIdAndSejourId(int id, int sejourId);
 
     @Query(
-            "SELECT c FROM Chambre c WHERE c.sejour.id = :sejourId "
+            "SELECT DISTINCT c FROM Chambre c "
+                    + "LEFT JOIN FETCH c.occupants o "
+                    + "LEFT JOIN FETCH o.enfant "
+                    + "LEFT JOIN FETCH o.utilisateur "
+                    + "WHERE c.sejour.id = :sejourId "
                     + "ORDER BY c.batiment ASC, c.etage ASC, c.couloir ASC, c.identifiant ASC")
-    List<Chambre> findBySejourIdOrderAffichage(@Param("sejourId") int sejourId);
+    List<Chambre> findBySejourIdOrderAffichageWithOccupants(@Param("sejourId") int sejourId);
+
+    @Query(
+            "SELECT DISTINCT c FROM Chambre c "
+                    + "LEFT JOIN FETCH c.occupants o "
+                    + "LEFT JOIN FETCH o.enfant "
+                    + "LEFT JOIN FETCH o.utilisateur "
+                    + "WHERE c.id = :chambreId AND c.sejour.id = :sejourId")
+    Optional<Chambre> findByIdAndSejourIdWithOccupants(
+            @Param("chambreId") int chambreId, @Param("sejourId") int sejourId);
+
+    /** Deuxième requête dédiée : Hibernate interdit deux JOIN FETCH sur des List (bags) dans la même requête. */
+    @Query("SELECT DISTINCT c FROM Chambre c LEFT JOIN FETCH c.referents WHERE c.id IN :chambreIds")
+    List<Chambre> fetchReferentsByChambreIds(@Param("chambreIds") List<Integer> chambreIds);
 
     @Query(
             "SELECT COUNT(c) > 0 FROM Chambre c WHERE c.sejour.id = :sejourId "

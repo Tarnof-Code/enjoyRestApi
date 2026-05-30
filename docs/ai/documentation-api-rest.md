@@ -380,9 +380,9 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 ### Endpoints des Chambres (`/api/v1/sejours/{sejourId}/chambres`)
 
-**Autorisation** : **`GET`** **`ACCES_SEJOUR`** + appartenance au séjour ; **`POST` / `PUT` / `DELETE`** et gestion référents **`GESTION_SEJOURS`**.
+**Autorisation** : **`GET`** et **`POST` / `PUT` / `DELETE`** (CRUD, référents, occupants) : **`ACCES_SEJOUR`** + **appartenance au séjour** (`verifierAppartenanceAuSejour` côté service — directeur, membre d’équipe ou **ADMIN**).
 
-**Modèle** : hébergement (distinct des **Lieux** d’activité). **`TypeChambre`** : **`ENFANT`** (référents autorisés) ou **`EQUIPE`** (pas de référents). **`identifiant`** obligatoire, **unique par séjour** (casse ignorée) ; **`nom`** optionnel (surnom). **Hors périmètre API** : affectation des occupants (enfants / membres d’équipe) aux chambres.
+**Modèle** : hébergement (distinct des **Lieux** d’activité). **`TypeChambre`** : **`ENFANT`** (référents + **`groupeId`** optionnel) ou **`EQUIPE`** (pas de référents ni de groupe). **`identifiant`** obligatoire, **unique par séjour** (casse ignorée) ; **`nom`** optionnel (surnom). **Occupants** : table **`chambre_occupant`** — **un enfant** ou **un membre d’équipe** au plus **par séjour** (**`uk_chambre_occupant_enfant`**, **`uk_chambre_occupant_utilisateur`**). Réaffectation → suppression de l’ancienne ligne. **`numeroLit`** optionnel (`@Positive`, ≤ **`capaciteMax`**, unique par chambre → **409**). **Genre** : **`ChambreGenreRules`** — occupant compatible avec **`genreAutorise`** (`MIXTE` accepte tous). Chambre **`ENFANT`** avec **`groupe`** : seuls les enfants du groupe peuvent y dormir.
 
 #### GET `/api/v1/sejours/{sejourId}/chambres`
 - **Description** : Lister les chambres du séjour (**tri** : `batiment`, `etage`, `couloir`, `identifiant`)
@@ -396,14 +396,14 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 #### POST `/api/v1/sejours/{sejourId}/chambres`
 - **Description** : Créer une chambre
-- **Body** : `SaveChambreRequest` (`typeChambre`, `identifiant` **@NotBlank** max 50, `nom?` max 150, `capaciteMax` **@Positive**, `genreAutorise`, `description?`, `batiment?`, `couloir?`, `etage?`)
+- **Body** : `SaveChambreRequest` (`typeChambre`, `identifiant` **@NotBlank** max 50, `nom?` max 150, `capaciteMax` **@Positive**, `genreAutorise`, `description?`, `batiment?`, `couloir?`, `etage?`, **`groupeId?`** — chambres **`ENFANT`** uniquement ; interdit si **`EQUIPE`**)
 - **Réponse** : `ChambreDto` (201 Created)
-- **Codes d'erreur** : `400` validation Jakarta, `404` séjour, `409` identifiant déjà utilisé pour ce séjour
+- **Codes d'erreur** : `400` validation Jakarta, `404` séjour ou groupe, `409` identifiant déjà utilisé pour ce séjour
 
 #### PUT `/api/v1/sejours/{sejourId}/chambres/{chambreId}`
-- **Description** : Modifier une chambre (même body que POST). Passage **`ENFANT` → `EQUIPE`** : référents supprimés côté serveur.
+- **Description** : Modifier une chambre (même body que POST). Passage **`ENFANT` → `EQUIPE`** : référents et **`groupe`** supprimés. **Changement de `typeChambre`** : **tous les occupants** effacés. Vérifie cohérence **`genreAutorise`** / **`groupe`** avec occupants restants et **`capaciteMax`** ≥ nombre d’occupants.
 - **Réponse** : `ChambreDto` (200 OK)
-- **Codes d'erreur** : `400` validation, `404` séjour ou chambre, `409` identifiant en conflit
+- **Codes d'erreur** : `400` validation (genre/groupe/capacité incohérents), `404` séjour ou chambre, `409` identifiant en conflit
 
 #### DELETE `/api/v1/sejours/{sejourId}/chambres/{chambreId}`
 - **Description** : Supprimer une chambre
@@ -421,7 +421,45 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Réponse** : `204 No Content`
 - **Codes d'erreur** : `400` chambre **`EQUIPE`**, `404` séjour / chambre / référent absent
 
-**DTO `ChambreDto`** : `id`, `sejourId`, `typeChambre`, `identifiant`, `nom`, `capaciteMax`, `genreAutorise`, `description`, `batiment`, `couloir`, `etage`, `referents[]` (`tokenId`, `nom`, `prenom` — **`[]`** pour **`EQUIPE`**).
+#### POST `/api/v1/sejours/{sejourId}/chambres/{chambreId}/occupants/enfants`
+- **Description** : Affecter **plusieurs** enfants à une chambre **`ENFANT`** (batch)
+- **Body** : `AffecterOccupantsEnfantsRequest` — **`occupants`** : liste de **`AffecterOccupantEnfantItemRequest`** (`enfantId` **@NotNull**, `numeroLit?` **@Positive**)
+- **Réponse** : `ChambreDto` (200 OK) — occupants triés par **`numeroLit`** (nulls en fin)
+- **Règles** : enfant **inscrit** au séjour ; **genre** compatible ; appartenance au **`groupe`** de la chambre si renseigné ; **capacité** ; pas de doublon enfant dans la requête ; réaffectation depuis une autre chambre du séjour autorisée (déplace l’occupant)
+- **Codes d'erreur** : `400` chambre **`EQUIPE`**, enfant non inscrit, genre/groupe incompatible, capacité ; `404` enfant ; `409` numéro de lit déjà pris
+
+#### POST `/api/v1/sejours/{sejourId}/chambres/{chambreId}/occupants/enfants/{enfantId}`
+- **Description** : Affecter **un** enfant (raccourci du batch)
+- **Body** : `AffecterOccupantChambreRequest` optionnel (`numeroLit?` **@Positive**)
+- **Réponse** : `ChambreDto` (200 OK)
+- **Codes d'erreur** : idem batch enfants
+
+#### DELETE `/api/v1/sejours/{sejourId}/chambres/{chambreId}/occupants/enfants/{enfantId}`
+- **Description** : Retirer un enfant de la chambre
+- **Réponse** : `204 No Content`
+- **Codes d'erreur** : `400` chambre **`EQUIPE`**, `404` enfant non affecté à cette chambre
+
+#### POST `/api/v1/sejours/{sejourId}/chambres/{chambreId}/occupants/equipe`
+- **Description** : Affecter **plusieurs** membres d’équipe à une chambre **`EQUIPE`** (batch)
+- **Body** : `AffecterOccupantsEquipeRequest` — **`occupants`** : liste de **`AffecterOccupantEquipeItemRequest`** (`membreTokenId` **@NotBlank**, `numeroLit?` **@Positive**)
+- **Réponse** : `ChambreDto` (200 OK)
+- **Règles** : membre **directeur ou `sejour_equipe`** du séjour ; **genre** compatible ; **capacité** ; unicité membre par séjour ; mêmes règles de lit que pour les enfants
+- **Codes d'erreur** : `400` chambre **`ENFANT`**, genre incompatible, capacité ; `404` membre ; `409` lit occupé
+
+#### POST `/api/v1/sejours/{sejourId}/chambres/{chambreId}/occupants/equipe/{membreTokenId}`
+- **Description** : Affecter **un** membre d’équipe (raccourci du batch)
+- **Body** : `AffecterOccupantChambreRequest` optionnel
+- **Réponse** : `ChambreDto` (200 OK)
+- **Codes d'erreur** : idem batch équipe
+
+#### DELETE `/api/v1/sejours/{sejourId}/chambres/{chambreId}/occupants/equipe/{membreTokenId}`
+- **Description** : Retirer un membre d’équipe de la chambre
+- **Réponse** : `204 No Content`
+- **Codes d'erreur** : `400` chambre **`ENFANT`**, `404` membre non affecté
+
+**DTO `ChambreDto`** : `id`, `sejourId`, `typeChambre`, `identifiant`, `nom`, `capaciteMax`, `genreAutorise`, `description`, `batiment`, `couloir`, `etage`, **`groupe`** (`GroupeResumeDto` : `id`, `libelle` — **`null`** si absent ou **`EQUIPE`**), `referents[]` (`tokenId`, `nom`, `prenom` — **`[]`** pour **`EQUIPE`**), **`occupants[]`** (`ChambreOccupantDto`).
+
+**DTO `ChambreOccupantDto`** : `id`, **`typeOccupant`** (`ENFANT` ou `EQUIPE`), **`enfantId`** ou **`membreTokenId`** (l’autre **`null`**), `nom`, `prenom`, **`numeroLit`** (`null` possible).
 
 **Enums** : **`TypeChambre`** (`ENFANT`, `EQUIPE`), **`GenreChambre`** (`MASCULIN`, `FEMININ`, `MIXTE`).
 
@@ -861,6 +899,7 @@ Tous les types TypeScript sont définis dans `enjoyWebApp/src/types/api.d.ts` :
 - `SaveReferenceAlimentaireRequest`, `UpdateReferenceAlimentaireRequest`
 - `ReferencesAlimentairesAgregeesEnfantsDto`
 - `GroupeDto`, `CreateGroupeRequest`, `AjouterReferentRequest`
+- **`ChambreDto`** (**`groupe?`**, **`occupants[]`**, **`referents[]`**), **`SaveChambreRequest`** (**`groupeId?`**), **`ChambreOccupantDto`**, **`AffecterOccupantsEnfantsRequest`**, **`AffecterOccupantEnfantItemRequest`**, **`AffecterOccupantsEquipeRequest`**, **`AffecterOccupantEquipeItemRequest`**, **`AffecterOccupantChambreRequest`**, enums **`TypeChambre`**, **`GenreChambre`** — **à aligner dans `api.d.ts`**
 - `LieuDto`, `SaveLieuRequest`, `EmplacementLieu`, **`UsageLieu`** (enum API — **à ajouter / aligner** dans `api.d.ts` : **`usages`** sur lieux)
 - `HoraireDto`, `SaveHoraireRequest` (à ajouter dans `api.d.ts` si le frontend gère les horaires)
 - `MomentDto` (**`ordre`**), `SaveMomentRequest`, `ReorderMomentsRequest` (**`momentIds`**)

@@ -34,5 +34,8 @@ public record SaveChambreRequest(
         @Size(max = 100)
         String couloir,
 
-        Integer etage
+        Integer etage,
+
+        /** Optionnel ; chambres {@link TypeChambre#ENFANT} uniquement. */
+        Integer groupeId
 ) {}
