@@ -7,6 +7,7 @@ import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.ReorderMomentsRequest;
 import com.tarnof.enjoyrestapi.payload.request.SaveMomentRequest;
 import com.tarnof.enjoyrestapi.payload.response.MomentDto;
+import com.tarnof.enjoyrestapi.repositories.ActivitePrestataireRepository;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.MomentRepository;
 import com.tarnof.enjoyrestapi.services.MomentService;
@@ -26,14 +27,17 @@ public class MomentServiceImpl implements MomentService {
     private final MomentRepository momentRepository;
     private final SejourVerificationService sejourVerificationService;
     private final ActiviteRepository activiteRepository;
+    private final ActivitePrestataireRepository activitePrestataireRepository;
 
     public MomentServiceImpl(
             MomentRepository momentRepository,
             SejourVerificationService sejourVerificationService,
-            ActiviteRepository activiteRepository) {
+            ActiviteRepository activiteRepository,
+            ActivitePrestataireRepository activitePrestataireRepository) {
         this.momentRepository = momentRepository;
         this.sejourVerificationService = sejourVerificationService;
         this.activiteRepository = activiteRepository;
+        this.activitePrestataireRepository = activitePrestataireRepository;
     }
 
     @Override
@@ -111,6 +115,10 @@ public class MomentServiceImpl implements MomentService {
         if (activiteRepository.existsByMomentId(momentId)) {
             throw new IllegalArgumentException(
                     "Impossible de supprimer ce moment : des activités y sont encore rattachées.");
+        }
+        if (activitePrestataireRepository.existsByMoments_Id(momentId)) {
+            throw new IllegalArgumentException(
+                    "Impossible de supprimer ce moment : des activités prestataires y sont encore rattachées.");
         }
         momentRepository.delete(moment);
     }

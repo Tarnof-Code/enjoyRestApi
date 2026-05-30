@@ -476,9 +476,9 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Codes d'erreur** : `400` validation, `404` séjour ou moment, `409` nouveau nom en conflit
 
 #### DELETE `/api/v1/sejours/{sejourId}/moments/{momentId}`
-- **Description** : Supprimer un moment (impossible si des activités y sont rattachées)
+- **Description** : Supprimer un moment (impossible si des activités internes **ou** des sorties prestataires y sont rattachées)
 - **Réponse** : `204 No Content`
-- **Codes d'erreur** : `404` séjour ou moment, `400` si activités existantes (`IllegalArgumentException`)
+- **Codes d'erreur** : `404` séjour ou moment, `400` si activités ou sorties existantes (`IllegalArgumentException`)
 
 ### Endpoints des réunions / comptes rendus (`/api/v1/sejours/{sejourId}/reunions`)
 
@@ -512,6 +512,47 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 #### DELETE `/api/v1/sejours/{sejourId}/reunions/{reunionId}`
 - **Réponse** : `204 No Content`
 - **Codes d'erreur** : `404`
+
+### Endpoints des activités prestataires / sorties (`/api/v1/sejours/{sejourId}/activites-prestataires`)
+
+**Autorisation** : **`GET` (liste et détail)** **`ACCES_SEJOUR`** + appartenance au séjour. **`POST` / `PUT` / `DELETE`** **`GESTION_SEJOURS`** (direction / adjoint).
+
+**Modèle** :
+- Sortie externalisée : **`nom`**, **`date`** (`yyyy-MM-dd`), **`moments`** (un ou plusieurs, min. 1), **`heureDepart` / `heureRetour`** optionnels (`HH:mm`), **`informations`**, **`telephone`**, **`groupeIds`** optionnel (0 à N).
+- **Animateurs concernés (calendrier)** : référents (`referents[].tokenId`) des groupes listés dans **`groupeIds`**. Si **`groupeIds` vide** → aucune ligne calendrier animateur (liste sorties uniquement).
+- **`nonParticipations`** : `{ tokenId, momentId }[]` — animateur concerné qui **ne voit pas** la sortie sur **ce moment** (granularité par moment). Liste vide par défaut.
+
+**`SaveActivitePrestataireRequest`** :
+- **`momentIds`** : `@NotEmpty`, min. 1.
+- **`nonParticipations`** optionnel : si **fourni** en PUT → **liste complète de remplacement** ; si **omis** (`null`) → conserver l’existant puis **élaguer** (moment retiré, animateur plus référent, groupes vidés). Sync incrémentale côté serveur (réutilise les lignes existantes pour éviter violation **`uk_ap_non_participation`**).
+
+**Règles métier** :
+- **Anti-doublon** : impossible d’avoir deux sorties distinctes pour le même triplet **date + moment + groupe** sur le séjour (**400**, message avec nom du groupe et du moment). Si **`groupeIds` vide**, pas de contrôle. En PUT, la sortie courante est exclue.
+- **Non-participation** : **`tokenId`** doit être référent d’un groupe de **`groupeIds`** ; **`momentId`** ∈ moments de la sortie ; refus si **`groupeIds` vide** et liste non vide.
+
+#### GET `/api/v1/sejours/{sejourId}/activites-prestataires`
+- **Description** : Lister les sorties du séjour (tri **`date` croissante**, puis **`id`**)
+- **Réponse** : `List<ActivitePrestataireDto>` (200 OK)
+
+#### GET `/api/v1/sejours/{sejourId}/activites-prestataires/{activitePrestataireId}`
+- **Réponse** : `ActivitePrestataireDto` (200 OK) — champs : `id`, `nom`, `date`, **`moments`** (`MomentDto[]`, tri chronologique), `sejourId`, `heureDepart`, `heureRetour`, `informations`, `telephone`, `groupeIds`, **`nonParticipations`**
+- **Codes d'erreur** : `404` si absente pour ce séjour ; `403` accès séjour
+
+#### POST `/api/v1/sejours/{sejourId}/activites-prestataires`
+- **Body** : `SaveActivitePrestataireRequest`
+- **Réponse** : `ActivitePrestataireDto` (201 Created)
+- **Codes d'erreur** : `400` validation, date hors séjour, doublon date+moment+groupe, non-participation invalide ; `404` moment / groupe / utilisateur
+
+#### PUT `/api/v1/sejours/{sejourId}/activites-prestataires/{activitePrestataireId}`
+- **Body** : `SaveActivitePrestataireRequest` (même schéma que POST)
+- **Réponse** : `ActivitePrestataireDto` (200 OK)
+- **Codes d'erreur** : idem POST
+
+#### DELETE `/api/v1/sejours/{sejourId}/activites-prestataires/{activitePrestataireId}`
+- **Réponse** : `204 No Content` (cascade suppression **`activite_prestataire_non_participation`**)
+- **Codes d'erreur** : `404`
+
+**Calendrier activités (front)** : afficher une carte sortie sur la ligne `(tokenId, date)` pour chaque moment `m` si l’animateur est référent concerné et **aucune** entrée dans **`nonParticipations`** pour `{ tokenId, m.id }`. Conflit avec activité interne : résolution direction (DELETE activité interne ou PUT avec non-participation) — pas d’endpoint dédié « conflits ».
 
 ### Endpoints des Activités (`/api/v1/sejours/{sejourId}/activites`)
 

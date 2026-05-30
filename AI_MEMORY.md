@@ -14,4 +14,5 @@ Index court du contexte IA du dépôt Enjoy API. Pour une question ciblée, lire
 - Ne jamais lire ni documenter de secrets, `.env*`, credentials ou dumps.
 - Références utilisateur dans les échanges JSON : `tokenId`, jamais l’id SQL.
 - Code Java : injection par constructeur, contrôleurs minces, services sans erreurs masquées.
+- **Activités prestataires** (sorties) : CRUD `/sejours/{id}/activites-prestataires`, `moments[]`, `nonParticipations`, anti-doublon date+moment+groupe — détail : `docs/ai/documentation-api-rest.md`.
 - Mise à jour mémoire : appliquer `.cursor/rules/20-memory-bank.mdc` et garder ce fichier entre 10 et 20 lignes.
