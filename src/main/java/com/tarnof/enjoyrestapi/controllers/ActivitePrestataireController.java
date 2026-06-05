@@ -3,7 +3,9 @@ package com.tarnof.enjoyrestapi.controllers;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.payload.request.SaveActivitePrestataireRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActivitePrestataireDto;
+import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationActivitePrestataireDto;
 import com.tarnof.enjoyrestapi.services.ActivitePrestataireService;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,9 +19,13 @@ import java.util.List;
 public class ActivitePrestataireController {
 
     private final ActivitePrestataireService activitePrestataireService;
+    private final HistoriqueModificationService historiqueModificationService;
 
-    public ActivitePrestataireController(ActivitePrestataireService activitePrestataireService) {
+    public ActivitePrestataireController(
+            ActivitePrestataireService activitePrestataireService,
+            HistoriqueModificationService historiqueModificationService) {
         this.activitePrestataireService = activitePrestataireService;
+        this.historiqueModificationService = historiqueModificationService;
     }
 
     @GetMapping
@@ -41,13 +47,26 @@ public class ActivitePrestataireController {
                 sejourId, activitePrestataireId, utilisateur.getTokenId());
     }
 
+    @GetMapping("/{activitePrestataireId}/historique")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public List<HistoriqueModificationActivitePrestataireDto> historique(
+            @PathVariable("sejourId") int sejourId,
+            @PathVariable("activitePrestataireId") int activitePrestataireId,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return historiqueModificationService.listerHistoriqueActivitePrestataire(
+                sejourId, activitePrestataireId, utilisateur.getTokenId());
+    }
+
     @PostMapping
     @PreAuthorize("hasAuthority('GESTION_SEJOURS')")
     @ResponseStatus(HttpStatus.CREATED)
     public ActivitePrestataireDto creer(
             @PathVariable("sejourId") int sejourId,
-            @Valid @RequestBody SaveActivitePrestataireRequest request) {
-        return activitePrestataireService.creerActivitePrestataire(sejourId, request);
+            @Valid @RequestBody SaveActivitePrestataireRequest request,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return activitePrestataireService.creerActivitePrestataire(sejourId, request, utilisateur.getTokenId());
     }
 
     @PutMapping("/{activitePrestataireId}")
@@ -55,8 +74,11 @@ public class ActivitePrestataireController {
     public ActivitePrestataireDto modifier(
             @PathVariable("sejourId") int sejourId,
             @PathVariable("activitePrestataireId") int activitePrestataireId,
-            @Valid @RequestBody SaveActivitePrestataireRequest request) {
-        return activitePrestataireService.modifierActivitePrestataire(sejourId, activitePrestataireId, request);
+            @Valid @RequestBody SaveActivitePrestataireRequest request,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        return activitePrestataireService.modifierActivitePrestataire(
+                sejourId, activitePrestataireId, request, utilisateur.getTokenId());
     }
 
     @DeleteMapping("/{activitePrestataireId}")
@@ -64,7 +86,10 @@ public class ActivitePrestataireController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(
             @PathVariable("sejourId") int sejourId,
-            @PathVariable("activitePrestataireId") int activitePrestataireId) {
-        activitePrestataireService.supprimerActivitePrestataire(sejourId, activitePrestataireId);
+            @PathVariable("activitePrestataireId") int activitePrestataireId,
+            Authentication authentication) {
+        Utilisateur utilisateur = (Utilisateur) authentication.getPrincipal();
+        activitePrestataireService.supprimerActivitePrestataire(
+                sejourId, activitePrestataireId, utilisateur.getTokenId());
     }
 }

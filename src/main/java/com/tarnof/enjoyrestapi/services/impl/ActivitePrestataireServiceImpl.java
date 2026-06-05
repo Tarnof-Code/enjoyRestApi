@@ -7,6 +7,7 @@ import com.tarnof.enjoyrestapi.entities.Moment;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
+import com.tarnof.enjoyrestapi.enums.HistoriqueModificationAction;
 import com.tarnof.enjoyrestapi.payload.request.SaveActivitePrestataireRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActivitePrestataireDto;
 import com.tarnof.enjoyrestapi.payload.response.MomentDto;
@@ -16,12 +17,14 @@ import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.MomentRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.ActivitePrestataireService;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import com.tarnof.enjoyrestapi.utils.DateFormatHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -35,7 +38,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@SuppressWarnings("null")
 public class ActivitePrestataireServiceImpl implements ActivitePrestataireService {
 
     private final ActivitePrestataireRepository activitePrestataireRepository;
@@ -43,18 +45,21 @@ public class ActivitePrestataireServiceImpl implements ActivitePrestataireServic
     private final MomentRepository momentRepository;
     private final GroupeRepository groupeRepository;
     private final UtilisateurRepository utilisateurRepository;
+    private final HistoriqueModificationService historiqueModificationService;
 
     public ActivitePrestataireServiceImpl(
             ActivitePrestataireRepository activitePrestataireRepository,
             SejourVerificationService sejourVerificationService,
             MomentRepository momentRepository,
             GroupeRepository groupeRepository,
-            UtilisateurRepository utilisateurRepository) {
+            UtilisateurRepository utilisateurRepository,
+            HistoriqueModificationService historiqueModificationService) {
         this.activitePrestataireRepository = activitePrestataireRepository;
         this.sejourVerificationService = sejourVerificationService;
         this.momentRepository = momentRepository;
         this.groupeRepository = groupeRepository;
         this.utilisateurRepository = utilisateurRepository;
+        this.historiqueModificationService = historiqueModificationService;
     }
 
     @Override
@@ -77,7 +82,8 @@ public class ActivitePrestataireServiceImpl implements ActivitePrestataireServic
 
     @Override
     @Transactional
-    public ActivitePrestataireDto creerActivitePrestataire(int sejourId, SaveActivitePrestataireRequest request) {
+    public ActivitePrestataireDto creerActivitePrestataire(
+            int sejourId, SaveActivitePrestataireRequest request, String utilisateurTokenId) {
         Sejour sejour = sejourVerificationService.verifierSejourExiste(sejourId);
         List<Moment> moments = resoudreMomentsDuSejour(sejourId, request.momentIds());
         verifierDateDansSejour(sejour, request.date());
@@ -88,14 +94,26 @@ public class ActivitePrestataireServiceImpl implements ActivitePrestataireServic
         activite.setSejour(sejour);
         appliquerChamps(activite, request, moments, groupes);
         appliquerNonParticipations(activite, sejourId, request.nonParticipations(), moments, groupes, true);
-        return mapToDto(activitePrestataireRepository.save(activite));
+        ActivitePrestataire sauve = activitePrestataireRepository.save(activite);
+        historiqueModificationService.enregistrerActivitePrestataire(
+                utilisateurTokenId,
+                HistoriqueModificationAction.CREATION,
+                sauve.getId(),
+                null,
+                libelleActivitePrestatairePourHistorique(sauve));
+        return mapToDto(sauve);
     }
 
     @Override
     @Transactional
     public ActivitePrestataireDto modifierActivitePrestataire(
-            int sejourId, int activitePrestataireId, SaveActivitePrestataireRequest request) {
+            int sejourId,
+            int activitePrestataireId,
+            SaveActivitePrestataireRequest request,
+            String utilisateurTokenId) {
         ActivitePrestataire activite = findByIdAndSejourOrThrow(activitePrestataireId, sejourId);
+        String signatureAvant = signatureTechniqueActivitePrestataire(activite);
+        String ancienneValeur = libelleActivitePrestatairePourHistorique(activite);
         List<Moment> moments = resoudreMomentsDuSejour(sejourId, request.momentIds());
         verifierDateDansSejour(activite.getSejour(), request.date());
         List<Groupe> groupes = resoudreGroupesDuSejour(sejourId, request.groupeIds());
@@ -104,13 +122,30 @@ public class ActivitePrestataireServiceImpl implements ActivitePrestataireServic
         appliquerChamps(activite, request, moments, groupes);
         appliquerNonParticipations(
                 activite, sejourId, request.nonParticipations(), moments, groupes, request.nonParticipations() != null);
-        return mapToDto(activitePrestataireRepository.save(activite));
+        ActivitePrestataire sauve = activitePrestataireRepository.save(activite);
+        if (!signatureAvant.equals(signatureTechniqueActivitePrestataire(sauve))) {
+            historiqueModificationService.enregistrerActivitePrestataire(
+                    utilisateurTokenId,
+                    HistoriqueModificationAction.MODIFICATION,
+                    sauve.getId(),
+                    ancienneValeur,
+                    libelleActivitePrestatairePourHistorique(sauve));
+        }
+        return mapToDto(sauve);
     }
 
     @Override
     @Transactional
-    public void supprimerActivitePrestataire(int sejourId, int activitePrestataireId) {
+    public void supprimerActivitePrestataire(int sejourId, int activitePrestataireId, String utilisateurTokenId) {
         ActivitePrestataire activite = findByIdAndSejourOrThrow(activitePrestataireId, sejourId);
+        int idSupprime = activite.getId();
+        String ancienneValeur = libelleActivitePrestatairePourHistorique(activite);
+        historiqueModificationService.enregistrerActivitePrestataire(
+                utilisateurTokenId,
+                HistoriqueModificationAction.SUPPRESSION,
+                idSupprime,
+                ancienneValeur,
+                null);
         activitePrestataireRepository.delete(activite);
     }
 
@@ -448,5 +483,134 @@ public class ActivitePrestataireServiceImpl implements ActivitePrestataireServic
     private static MomentDto momentVersDto(Moment moment) {
         int ordreAffiche = moment.getOrdre() != null ? moment.getOrdre() : moment.getId();
         return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId(), ordreAffiche);
+    }
+
+    private String signatureTechniqueActivitePrestataire(ActivitePrestataire a) {
+        String moments =
+                a.getMoments() == null
+                        ? ""
+                        : a.getMoments().stream()
+                                .map(Moment::getId)
+                                .sorted()
+                                .map(String::valueOf)
+                                .collect(Collectors.joining(","));
+        String groupes =
+                a.getGroupes() == null
+                        ? ""
+                        : a.getGroupes().stream()
+                                .map(Groupe::getId)
+                                .sorted()
+                                .map(String::valueOf)
+                                .collect(Collectors.joining(","));
+        String nonParticipations =
+                a.getNonParticipations() == null
+                        ? ""
+                        : a.getNonParticipations().stream()
+                                .map(this::signatureNonParticipationActivitePrestataire)
+                                .sorted()
+                                .collect(Collectors.joining(","));
+        return nullToVide(a.getNom())
+                + "|"
+                + (a.getDate() == null ? "" : a.getDate())
+                + "|"
+                + moments
+                + "|"
+                + heurePourSignature(a.getHeureDepart())
+                + "|"
+                + heurePourSignature(a.getHeureRetour())
+                + "|"
+                + nullToVide(a.getInformations())
+                + "|"
+                + nullToVide(a.getTelephone())
+                + "|"
+                + groupes
+                + "|"
+                + nonParticipations;
+    }
+
+    private String signatureNonParticipationActivitePrestataire(ActivitePrestataireNonParticipation np) {
+        String token =
+                np.getUtilisateur() != null && np.getUtilisateur().getTokenId() != null
+                        ? np.getUtilisateur().getTokenId().trim()
+                        : "";
+        Integer momentId = np.getMoment() != null ? np.getMoment().getId() : null;
+        return token + "|" + (momentId == null ? "" : momentId);
+    }
+
+    private String libelleActivitePrestatairePourHistorique(ActivitePrestataire a) {
+        String moments =
+                a.getMoments() == null || a.getMoments().isEmpty()
+                        ? "-"
+                        : a.getMoments().stream()
+                                .sorted(this::comparerMomentsChronologique)
+                                .map(m -> texteHistorique(m.getNom()))
+                                .collect(Collectors.joining(", "));
+        String groupes =
+                a.getGroupes() == null || a.getGroupes().isEmpty()
+                        ? "-"
+                        : a.getGroupes().stream()
+                                .map(g -> texteHistorique(g.getNom()))
+                                .sorted()
+                                .collect(Collectors.joining(", "));
+        String nonParticipations =
+                a.getNonParticipations() == null || a.getNonParticipations().isEmpty()
+                        ? "-"
+                        : a.getNonParticipations().stream()
+                                .sorted(Comparator.comparing(this::libelleNonParticipationPourHistorique))
+                                .map(this::libelleNonParticipationPourHistorique)
+                                .collect(Collectors.joining(", "));
+        return "Nom: "
+                + texteHistorique(a.getNom())
+                + " | Date: "
+                + (a.getDate() == null ? "-" : a.getDate())
+                + " | Moments: "
+                + moments
+                + " | Heure départ: "
+                + heurePourLibelle(a.getHeureDepart())
+                + " | Heure retour: "
+                + heurePourLibelle(a.getHeureRetour())
+                + " | Informations: "
+                + texteHistorique(a.getInformations())
+                + " | Téléphone: "
+                + texteHistorique(a.getTelephone())
+                + " | Groupes: "
+                + groupes
+                + " | Non-participations: "
+                + nonParticipations;
+    }
+
+    private String libelleNonParticipationPourHistorique(ActivitePrestataireNonParticipation np) {
+        String animateur = libelleUtilisateurPourHistorique(np.getUtilisateur());
+        String moment = np.getMoment() == null ? "?" : texteHistorique(np.getMoment().getNom());
+        return animateur + " (" + moment + ")";
+    }
+
+    private static String libelleUtilisateurPourHistorique(Utilisateur u) {
+        if (u == null) {
+            return "?";
+        }
+        String p = u.getPrenom() != null ? u.getPrenom().trim() : "";
+        String n = u.getNom() != null ? u.getNom().trim() : "";
+        String s = (p + " " + n).trim();
+        return s.isEmpty() ? "?" : s;
+    }
+
+    private static String heurePourSignature(LocalTime heure) {
+        return heure == null ? "" : heure.toString();
+    }
+
+    private static String heurePourLibelle(LocalTime heure) {
+        return heure == null ? "-" : heure.toString();
+    }
+
+    private static String nullToVide(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static String texteHistorique(String value) {
+        if (value == null || value.isBlank()) {
+            return "-";
+        }
+        return value.trim();
     }
 }

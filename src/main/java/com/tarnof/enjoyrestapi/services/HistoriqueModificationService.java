@@ -2,6 +2,7 @@ package com.tarnof.enjoyrestapi.services;
 
 import com.tarnof.enjoyrestapi.enums.HistoriqueModificationAction;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationActiviteDto;
+import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationActivitePrestataireDto;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationCahierInfirmerieDto;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationChambreDto;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationPlanningCelluleDto;
@@ -41,6 +42,13 @@ public interface HistoriqueModificationService {
             String ancienneValeur,
             String nouvelleValeur);
 
+    void enregistrerActivitePrestataire(
+            String modificateurTokenId,
+            HistoriqueModificationAction action,
+            int activitePrestataireId,
+            String ancienneValeur,
+            String nouvelleValeur);
+
     List<HistoriqueModificationPlanningCelluleDto> listerHistoriquePlanningCellules(
             int sejourId, int grilleId, int ligneId, LocalDate jour, String utilisateurTokenId);
 
@@ -52,4 +60,7 @@ public interface HistoriqueModificationService {
 
     List<HistoriqueModificationChambreDto> listerHistoriqueChambre(
             int sejourId, int chambreId, String utilisateurTokenId);
+
+    List<HistoriqueModificationActivitePrestataireDto> listerHistoriqueActivitePrestataire(
+            int sejourId, int activitePrestataireId, String utilisateurTokenId);
 }

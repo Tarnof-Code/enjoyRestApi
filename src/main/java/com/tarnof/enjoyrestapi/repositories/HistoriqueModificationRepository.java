@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.repositories;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModification;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModificationActivite;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModificationCahierInfirmerie;
+import com.tarnof.enjoyrestapi.entities.HistoriqueModificationActivitePrestataire;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModificationChambre;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModificationPlanningCellule;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -49,4 +50,12 @@ public interface HistoriqueModificationRepository extends JpaRepository<Historiq
                     + "WHERE h.chambreId = :chambreId "
                     + "ORDER BY h.dateModification DESC")
     List<HistoriqueModificationChambre> findChambreByChambreId(@Param("chambreId") int chambreId);
+
+    @Query(
+            "SELECT h FROM HistoriqueModificationActivitePrestataire h "
+                    + "JOIN FETCH h.modificateur "
+                    + "WHERE h.activitePrestataireId = :activitePrestataireId "
+                    + "ORDER BY h.dateModification DESC")
+    List<HistoriqueModificationActivitePrestataire> findActivitePrestataireByActivitePrestataireId(
+            @Param("activitePrestataireId") int activitePrestataireId);
 }

@@ -11,10 +11,11 @@ public interface ActivitePrestataireService {
 
     ActivitePrestataireDto getActivitePrestataire(int sejourId, int activitePrestataireId, String utilisateurTokenId);
 
-    ActivitePrestataireDto creerActivitePrestataire(int sejourId, SaveActivitePrestataireRequest request);
+    ActivitePrestataireDto creerActivitePrestataire(
+            int sejourId, SaveActivitePrestataireRequest request, String utilisateurTokenId);
 
     ActivitePrestataireDto modifierActivitePrestataire(
-            int sejourId, int activitePrestataireId, SaveActivitePrestataireRequest request);
+            int sejourId, int activitePrestataireId, SaveActivitePrestataireRequest request, String utilisateurTokenId);
 
-    void supprimerActivitePrestataire(int sejourId, int activitePrestataireId);
+    void supprimerActivitePrestataire(int sejourId, int activitePrestataireId, String utilisateurTokenId);
 }

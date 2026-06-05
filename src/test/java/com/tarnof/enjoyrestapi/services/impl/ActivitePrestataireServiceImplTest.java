@@ -5,6 +5,7 @@ import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.Moment;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.enums.HistoriqueModificationAction;
 import com.tarnof.enjoyrestapi.payload.request.SaveActivitePrestataireRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActivitePrestataireDto;
 import com.tarnof.enjoyrestapi.payload.response.NonParticipationPrestataireDto;
@@ -12,6 +13,7 @@ import com.tarnof.enjoyrestapi.repositories.ActivitePrestataireRepository;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.MomentRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
@@ -49,9 +52,57 @@ class ActivitePrestataireServiceImplTest {
     private GroupeRepository groupeRepository;
     @Mock
     private UtilisateurRepository utilisateurRepository;
+    @Mock
+    private HistoriqueModificationService historiqueModificationService;
 
     @InjectMocks
     private ActivitePrestataireServiceImpl service;
+
+    private static final String MODIFICATEUR_TOKEN = "tok-modif";
+
+    @Test
+    @DisplayName("création enregistre l'historique CREATION")
+    void creer_enregistreHistoriqueCreation() {
+        Sejour sejour = new Sejour();
+        sejour.setId(10);
+        sejour.setDateDebut(java.sql.Date.valueOf("2026-07-01"));
+        sejour.setDateFin(java.sql.Date.valueOf("2026-07-31"));
+
+        Moment matin = moment(1, "Matin", sejour, 0);
+
+        when(sejourVerificationService.verifierSejourExiste(10)).thenReturn(sejour);
+        when(momentRepository.countBySejourId(10)).thenReturn(1L);
+        when(momentRepository.findByIdAndSejourId(1, 10)).thenReturn(Optional.of(matin));
+        when(activitePrestataireRepository.save(any(ActivitePrestataire.class)))
+                .thenAnswer(inv -> {
+                    ActivitePrestataire a = inv.getArgument(0);
+                    if (a.getId() == null) {
+                        a.setId(99);
+                    }
+                    return a;
+                });
+
+        SaveActivitePrestataireRequest request = new SaveActivitePrestataireRequest(
+                "Kayak",
+                LocalDate.of(2026, 7, 15),
+                List.of(1),
+                null,
+                null,
+                null,
+                null,
+                List.of(),
+                null);
+
+        service.creerActivitePrestataire(10, request, MODIFICATEUR_TOKEN);
+
+        verify(historiqueModificationService)
+                .enregistrerActivitePrestataire(
+                        eq(MODIFICATEUR_TOKEN),
+                        eq(HistoriqueModificationAction.CREATION),
+                        eq(99),
+                        isNull(),
+                        anyString());
+    }
 
     @Test
     @DisplayName("création avec non-participation pour un référent concerné")
@@ -90,7 +141,7 @@ class ActivitePrestataireServiceImplTest {
                 List.of(3),
                 List.of(new NonParticipationPrestataireDto("tok-ref", 1)));
 
-        ActivitePrestataireDto dto = service.creerActivitePrestataire(10, request);
+        ActivitePrestataireDto dto = service.creerActivitePrestataire(10, request, MODIFICATEUR_TOKEN);
 
         assertThat(dto.nonParticipations()).containsExactly(new NonParticipationPrestataireDto("tok-ref", 1));
 
@@ -126,7 +177,7 @@ class ActivitePrestataireServiceImplTest {
                 List.of(3),
                 List.of(new NonParticipationPrestataireDto("tok-inconnu", 1)));
 
-        assertThatThrownBy(() -> service.creerActivitePrestataire(10, request))
+        assertThatThrownBy(() -> service.creerActivitePrestataire(10, request, MODIFICATEUR_TOKEN))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("n'est pas référent");
     }
@@ -181,7 +232,7 @@ class ActivitePrestataireServiceImplTest {
                 List.of(3),
                 null);
 
-        ActivitePrestataireDto dto = service.modifierActivitePrestataire(10, 7, request);
+        ActivitePrestataireDto dto = service.modifierActivitePrestataire(10, 7, request, MODIFICATEUR_TOKEN);
 
         assertThat(dto.nonParticipations()).isEmpty();
         assertThat(existante.getNonParticipations()).isEmpty();
@@ -232,7 +283,7 @@ class ActivitePrestataireServiceImplTest {
                 List.of(3),
                 List.of(new NonParticipationPrestataireDto("tok-ref", 1)));
 
-        service.modifierActivitePrestataire(10, 7, request);
+        service.modifierActivitePrestataire(10, 7, request, MODIFICATEUR_TOKEN);
 
         assertThat(existante.getNonParticipations()).hasSize(1);
         assertThat(existante.getNonParticipations().getFirst()).isSameAs(npExistante);
@@ -270,7 +321,7 @@ class ActivitePrestataireServiceImplTest {
                 List.of(3),
                 null);
 
-        assertThatThrownBy(() -> service.creerActivitePrestataire(10, request))
+        assertThatThrownBy(() -> service.creerActivitePrestataire(10, request, MODIFICATEUR_TOKEN))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Les ados")
                 .hasMessageContaining("Matin");
@@ -317,7 +368,7 @@ class ActivitePrestataireServiceImplTest {
                 List.of(3),
                 null);
 
-        ActivitePrestataireDto dto = service.modifierActivitePrestataire(10, 7, request);
+        ActivitePrestataireDto dto = service.modifierActivitePrestataire(10, 7, request, MODIFICATEUR_TOKEN);
 
         assertThat(dto.nom()).isEqualTo("Sortie modifiée");
         verify(activitePrestataireRepository)

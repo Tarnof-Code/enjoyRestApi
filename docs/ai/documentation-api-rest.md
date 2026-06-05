@@ -627,6 +627,15 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Description** : Lister les sorties du séjour (tri **`date` croissante**, puis **`id`**)
 - **Réponse** : `List<ActivitePrestataireDto>` (200 OK)
 
+#### GET `/api/v1/sejours/{sejourId}/activites-prestataires/{activitePrestataireId}/historique`
+- **Description** : Historique des modifications de la sortie (création, modification, suppression) avec **snapshots lisibles** dans `ancienneValeur` / `nouvelleValeur`
+- **Réponse** : `List<HistoriqueModificationActivitePrestataireDto>` (200 OK) — tri **décroissant** par `dateModification`. Champs à plat (`@JsonUnwrapped`) : `id`, **`type`** = **`ACTIVITE_PRESTATAIRE`**, `dateModification`, `modificateurTokenId`, `modificateurNom`, `modificateurPrenom`, `action`, **`ancienneValeur`**, **`nouvelleValeur`**, **`activitePrestataireId`**
+- **Format snapshots** (segments **` | `**, libellés lisibles, pas d’ids SQL ni tokenIds) : `Nom: Kayak | Date: 2026-07-05 | Moments: Matin, Après-midi | Heure départ: 08:00 | Heure retour: 17:00 | Informations: ... | Téléphone: 06... | Groupes: Les ados | Non-participations: Jean Dupont (Matin)`. Champs absents : `-`. Non-participations : `Prénom Nom (Nom du moment)` ; liste vide : `-`
+- **Sémantique** : **CREATION** (`ancienneValeur` null) ; **MODIFICATION** (avant → après, uniquement si changement réel, y compris **`nonParticipations`**) ; **SUPPRESSION** (`nouvelleValeur` null, ligne enregistrée **avant** delete)
+- **Autorisation** : **`ACCES_SEJOUR`** + appartenance au séjour
+- **Mutations tracées automatiquement** : CRUD sortie (y compris **`nonParticipations`** en PUT)
+- **Codes d'erreur** : `404` si sortie absente pour ce séjour
+
 #### GET `/api/v1/sejours/{sejourId}/activites-prestataires/{activitePrestataireId}`
 - **Réponse** : `ActivitePrestataireDto` (200 OK) — champs : `id`, `nom`, `date`, **`moments`** (`MomentDto[]`, tri chronologique), `sejourId`, `heureDepart`, `heureRetour`, `informations`, `telephone`, `groupeIds`, **`nonParticipations`**
 - **Codes d'erreur** : `404` si absente pour ce séjour ; `403` accès séjour
@@ -634,15 +643,18 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 #### POST `/api/v1/sejours/{sejourId}/activites-prestataires`
 - **Body** : `SaveActivitePrestataireRequest`
 - **Réponse** : `ActivitePrestataireDto` (201 Created)
+- **Historique** : enregistrement automatique **CREATION** (`modificateurTokenId` = utilisateur connecté)
 - **Codes d'erreur** : `400` validation, date hors séjour, doublon date+moment+groupe, non-participation invalide ; `404` moment / groupe / utilisateur
 
 #### PUT `/api/v1/sejours/{sejourId}/activites-prestataires/{activitePrestataireId}`
 - **Body** : `SaveActivitePrestataireRequest` (même schéma que POST)
 - **Réponse** : `ActivitePrestataireDto` (200 OK)
+- **Historique** : **MODIFICATION** si la signature métier change (y compris **`nonParticipations`**)
 - **Codes d'erreur** : idem POST
 
 #### DELETE `/api/v1/sejours/{sejourId}/activites-prestataires/{activitePrestataireId}`
 - **Réponse** : `204 No Content` (cascade suppression **`activite_prestataire_non_participation`**)
+- **Historique** : enregistrement **SUPPRESSION** avant delete (`activitePrestataireId` conservé)
 - **Codes d'erreur** : `404`
 
 **Calendrier activités (front)** : afficher une carte sortie sur la ligne `(tokenId, date)` pour chaque moment `m` si l’animateur est référent concerné et **aucune** entrée dans **`nonParticipations`** pour `{ tokenId, m.id }`. Conflit avec activité interne : résolution direction (DELETE activité interne ou PUT avec non-participation) — pas d’endpoint dédié « conflits ».
@@ -914,7 +926,7 @@ Tous les types TypeScript sont définis dans `enjoyWebApp/src/types/api.d.ts` :
 - **`ReunionDto`** (`id`, `sejourId`, **`date`** `yyyy-MM-dd`, **`ordreDuJour`** optionnel, **`contenu`** objet JSON TipTap), **`SaveReunionRequest`** — **à aligner dans `api.d.ts`**
 - `ActiviteDto` (**`moment`**, **`lieu`**, **`typeActivite`**, **`avertissementLieu`**, `groupeIds`), `CreateActiviteRequest`, `UpdateActiviteRequest` (**`typeActiviteId`** obligatoire)
 - `TypeActiviteDto` (**`sejourId`**, **`predefini`**), `SaveTypeActiviteRequest`
-- `HistoriqueModificationActiviteDto`, `HistoriqueModificationPlanningCelluleDto`, **`HistoriqueModificationCahierInfirmerieDto`** (**`cahierInfirmerieEntreeId`**), **`HistoriqueModificationChambreDto`** (**`chambreId`**), `HistoriqueModificationBaseDto` (inclut **`type`** dont **`CAHIER_INFIRMERIE`**, **`CHAMBRE`**, **`ancienneValeur`** et **`nouvelleValeur`** : texte lisible pour l’historique ; pas du JSON binaire ; DTOs historique avec **`@JsonUnwrapped`** → champs à plat en JSON)
+- `HistoriqueModificationActiviteDto`, `HistoriqueModificationPlanningCelluleDto`, **`HistoriqueModificationCahierInfirmerieDto`** (**`cahierInfirmerieEntreeId`**), **`HistoriqueModificationChambreDto`** (**`chambreId`**), **`HistoriqueModificationActivitePrestataireDto`** (**`activitePrestataireId`**), `HistoriqueModificationBaseDto` (inclut **`type`** dont **`CAHIER_INFIRMERIE`**, **`CHAMBRE`**, **`ACTIVITE_PRESTATAIRE`**, **`ancienneValeur`** et **`nouvelleValeur`** : texte lisible pour l’historique ; pas du JSON binaire ; DTOs historique avec **`@JsonUnwrapped`** → champs à plat en JSON)
 - **`CahierInfirmerieEntreeDto`** (**`createurTokenId`**, **`createurNom`**, **`createurPrenom`**, **`soigneurTokenId`**, **`soigneurNom`**, **`soigneurPrenom`**, **`temperatureCelsius`** : `BigDecimal` ou `null`, `enfantId`, enums **`TypeSoinInfirmerie`**, **`TypeAppelInfirmerie`**), **`SaveCahierInfirmerieEntreeRequest`**
 - `PlanningGrilleSummaryDto`, `PlanningGrilleDetailDto`, `PlanningLigneDto`, **`PlanningCelluleDto`** (listes **`horaireIds`**, **`horaireLibelles`**, **`momentIds`**, **`groupeIds`**, **`lieuIds`**, **`membreTokenIds`**), `UpsertPlanningCellulesRequest`, **`PlanningCellulePayload`**
 - `CreateSejourRequest`

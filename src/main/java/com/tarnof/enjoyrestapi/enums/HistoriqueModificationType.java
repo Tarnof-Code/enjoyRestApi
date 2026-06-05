@@ -4,5 +4,6 @@ public enum HistoriqueModificationType {
     PLANNING_CELLULE,
     ACTIVITE,
     CAHIER_INFIRMERIE,
-    CHAMBRE
+    CHAMBRE,
+    ACTIVITE_PRESTATAIRE
 }

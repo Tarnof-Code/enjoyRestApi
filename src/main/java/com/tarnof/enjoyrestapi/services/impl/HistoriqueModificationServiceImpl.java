@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.services.impl;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModification;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModificationActivite;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModificationCahierInfirmerie;
+import com.tarnof.enjoyrestapi.entities.HistoriqueModificationActivitePrestataire;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModificationChambre;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModificationPlanningCellule;
 import com.tarnof.enjoyrestapi.entities.PlanningLigne;
@@ -11,10 +12,12 @@ import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.enums.HistoriqueModificationAction;
 import com.tarnof.enjoyrestapi.enums.HistoriqueModificationType;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationActiviteDto;
+import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationActivitePrestataireDto;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationBaseDto;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationCahierInfirmerieDto;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationChambreDto;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationPlanningCelluleDto;
+import com.tarnof.enjoyrestapi.repositories.ActivitePrestataireRepository;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.CahierInfirmerieEntreeRepository;
 import com.tarnof.enjoyrestapi.repositories.ChambreRepository;
@@ -39,6 +42,7 @@ public class HistoriqueModificationServiceImpl implements HistoriqueModification
     private final ActiviteRepository activiteRepository;
     private final CahierInfirmerieEntreeRepository cahierInfirmerieEntreeRepository;
     private final ChambreRepository chambreRepository;
+    private final ActivitePrestataireRepository activitePrestataireRepository;
     private final SejourVerificationService sejourVerificationService;
 
     public HistoriqueModificationServiceImpl(
@@ -48,6 +52,7 @@ public class HistoriqueModificationServiceImpl implements HistoriqueModification
             ActiviteRepository activiteRepository,
             CahierInfirmerieEntreeRepository cahierInfirmerieEntreeRepository,
             ChambreRepository chambreRepository,
+            ActivitePrestataireRepository activitePrestataireRepository,
             SejourVerificationService sejourVerificationService) {
         this.historiqueModificationRepository = historiqueModificationRepository;
         this.utilisateurRepository = utilisateurRepository;
@@ -55,6 +60,7 @@ public class HistoriqueModificationServiceImpl implements HistoriqueModification
         this.activiteRepository = activiteRepository;
         this.cahierInfirmerieEntreeRepository = cahierInfirmerieEntreeRepository;
         this.chambreRepository = chambreRepository;
+        this.activitePrestataireRepository = activitePrestataireRepository;
         this.sejourVerificationService = sejourVerificationService;
     }
 
@@ -139,6 +145,25 @@ public class HistoriqueModificationServiceImpl implements HistoriqueModification
     }
 
     @Override
+    @Transactional
+    public void enregistrerActivitePrestataire(
+            String modificateurTokenId,
+            HistoriqueModificationAction action,
+            int activitePrestataireId,
+            String ancienneValeur,
+            String nouvelleValeur) {
+        Utilisateur modificateur = resoudreModificateur(modificateurTokenId);
+        HistoriqueModificationActivitePrestataire entree = new HistoriqueModificationActivitePrestataire();
+        entree.setAction(action);
+        entree.setDateModification(Instant.now());
+        entree.setModificateur(modificateur);
+        entree.setActivitePrestataireId(activitePrestataireId);
+        entree.setAncienneValeur(ancienneValeur);
+        entree.setNouvelleValeur(nouvelleValeur);
+        historiqueModificationRepository.save(entree);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<HistoriqueModificationPlanningCelluleDto> listerHistoriquePlanningCellules(
             int sejourId, int grilleId, int ligneId, LocalDate jour, String utilisateurTokenId) {
@@ -198,6 +223,22 @@ public class HistoriqueModificationServiceImpl implements HistoriqueModification
         }
         return historiqueModificationRepository.findChambreByChambreId(chambreId).stream()
                 .map(this::toDtoChambre)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<HistoriqueModificationActivitePrestataireDto> listerHistoriqueActivitePrestataire(
+            int sejourId, int activitePrestataireId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
+        if (activitePrestataireRepository.findByIdAndSejour_Id(activitePrestataireId, sejourId).isEmpty()) {
+            throw new ResourceNotFoundException(
+                    "Activité prestataire non trouvée pour ce séjour (id: " + activitePrestataireId + ")");
+        }
+        return historiqueModificationRepository
+                .findActivitePrestataireByActivitePrestataireId(activitePrestataireId)
+                .stream()
+                .map(this::toDtoActivitePrestataire)
                 .toList();
     }
 
@@ -262,5 +303,14 @@ public class HistoriqueModificationServiceImpl implements HistoriqueModification
         }
         HistoriqueModificationBaseDto base = toBaseDto(h, HistoriqueModificationType.CHAMBRE);
         return new HistoriqueModificationChambreDto(base, c.getChambreId());
+    }
+
+    private HistoriqueModificationActivitePrestataireDto toDtoActivitePrestataire(HistoriqueModification h) {
+        if (!(h instanceof HistoriqueModificationActivitePrestataire a)) {
+            throw new IllegalStateException(
+                    "Type d'historique inattendu pour activité prestataire: " + h.getClass().getName());
+        }
+        HistoriqueModificationBaseDto base = toBaseDto(h, HistoriqueModificationType.ACTIVITE_PRESTATAIRE);
+        return new HistoriqueModificationActivitePrestataireDto(base, a.getActivitePrestataireId());
     }
 }
