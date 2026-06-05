@@ -394,6 +394,14 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Réponse** : `ChambreDto` (200 OK)
 - **Codes d'erreur** : `404` : Séjour ou chambre non trouvé / mauvais séjour
 
+#### GET `/api/v1/sejours/{sejourId}/chambres/{chambreId}/historique`
+- **Description** : Historique des modifications de la chambre (création, modification, suppression) avec **snapshots lisibles** dans `ancienneValeur` / `nouvelleValeur`
+- **Réponse** : `List<HistoriqueModificationChambreDto>` (200 OK) — tri **décroissant** par `dateModification`. Champs à plat (`@JsonUnwrapped`) : `id`, **`type`** = **`CHAMBRE`**, `dateModification`, `modificateurTokenId`, `modificateurNom`, `modificateurPrenom`, `action`, **`ancienneValeur`**, **`nouvelleValeur`**, **`chambreId`**
+- **Format snapshots** (segments **` | `**, libellés lisibles, pas d’ids SQL) : `Type: ENFANT | Identifiant: 101 | Nom: Les copains | Capacité: 4 | Genre: MIXTE | Description: ... | Bâtiment: A | Couloir: Nord | Étage: 1 | Groupe: Groupe A | Référents: Jean Dupont | Occupants: lit 1: Marie Martin, lit 2: Paul Durand`. Champs absents : `-`. Occupants sans lit : prénom nom ; avec lit : `lit N: Prénom Nom`
+- **Sémantique** : **CREATION** (`ancienneValeur` null) ; **MODIFICATION** (avant → après, uniquement si changement réel) ; **SUPPRESSION** (`nouvelleValeur` null, ligne enregistrée **avant** delete)
+- **Mutations tracées automatiquement** : CRUD chambre, ajout/retrait référents, affectation/retrait enfants ou membres d’équipe (y compris changement de numéro de lit)
+- **Codes d'erreur** : `404` si chambre introuvable pour ce séjour
+
 #### POST `/api/v1/sejours/{sejourId}/chambres`
 - **Description** : Créer une chambre
 - **Body** : `SaveChambreRequest` (`typeChambre`, `identifiant` **@NotBlank** max 50, `nom?` max 150, `capaciteMax` **@Positive**, `genreAutorise`, `description?`, `batiment?`, `couloir?`, `etage?`, **`groupeId?`** — chambres **`ENFANT`** uniquement ; interdit si **`EQUIPE`**)
@@ -906,7 +914,7 @@ Tous les types TypeScript sont définis dans `enjoyWebApp/src/types/api.d.ts` :
 - **`ReunionDto`** (`id`, `sejourId`, **`date`** `yyyy-MM-dd`, **`ordreDuJour`** optionnel, **`contenu`** objet JSON TipTap), **`SaveReunionRequest`** — **à aligner dans `api.d.ts`**
 - `ActiviteDto` (**`moment`**, **`lieu`**, **`typeActivite`**, **`avertissementLieu`**, `groupeIds`), `CreateActiviteRequest`, `UpdateActiviteRequest` (**`typeActiviteId`** obligatoire)
 - `TypeActiviteDto` (**`sejourId`**, **`predefini`**), `SaveTypeActiviteRequest`
-- `HistoriqueModificationActiviteDto`, `HistoriqueModificationPlanningCelluleDto`, **`HistoriqueModificationCahierInfirmerieDto`** (**`cahierInfirmerieEntreeId`**), `HistoriqueModificationBaseDto` (inclut **`type`** dont **`CAHIER_INFIRMERIE`**, **`ancienneValeur`** et **`nouvelleValeur`** : texte lisible pour l’historique ; pas du JSON binaire)
+- `HistoriqueModificationActiviteDto`, `HistoriqueModificationPlanningCelluleDto`, **`HistoriqueModificationCahierInfirmerieDto`** (**`cahierInfirmerieEntreeId`**), **`HistoriqueModificationChambreDto`** (**`chambreId`**), `HistoriqueModificationBaseDto` (inclut **`type`** dont **`CAHIER_INFIRMERIE`**, **`CHAMBRE`**, **`ancienneValeur`** et **`nouvelleValeur`** : texte lisible pour l’historique ; pas du JSON binaire ; DTOs historique avec **`@JsonUnwrapped`** → champs à plat en JSON)
 - **`CahierInfirmerieEntreeDto`** (**`createurTokenId`**, **`createurNom`**, **`createurPrenom`**, **`soigneurTokenId`**, **`soigneurNom`**, **`soigneurPrenom`**, **`temperatureCelsius`** : `BigDecimal` ou `null`, `enfantId`, enums **`TypeSoinInfirmerie`**, **`TypeAppelInfirmerie`**), **`SaveCahierInfirmerieEntreeRequest`**
 - `PlanningGrilleSummaryDto`, `PlanningGrilleDetailDto`, `PlanningLigneDto`, **`PlanningCelluleDto`** (listes **`horaireIds`**, **`horaireLibelles`**, **`momentIds`**, **`groupeIds`**, **`lieuIds`**, **`membreTokenIds`**), `UpsertPlanningCellulesRequest`, **`PlanningCellulePayload`**
 - `CreateSejourRequest`

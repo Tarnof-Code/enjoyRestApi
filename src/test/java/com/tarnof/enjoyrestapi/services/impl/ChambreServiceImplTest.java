@@ -28,6 +28,7 @@ import com.tarnof.enjoyrestapi.repositories.SejourEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -72,6 +73,8 @@ class ChambreServiceImplTest {
     private SejourEnfantRepository sejourEnfantRepository;
     @Mock
     private GroupeRepository groupeRepository;
+    @Mock
+    private HistoriqueModificationService historiqueModificationService;
 
     private ChambreServiceImpl chambreService;
 
@@ -87,7 +90,8 @@ class ChambreServiceImplTest {
                 utilisateurRepository,
                 enfantRepository,
                 sejourEnfantRepository,
-                groupeRepository);
+                groupeRepository,
+                historiqueModificationService);
         sejour = new Sejour();
         sejour.setId(1);
         appelantAdmin = Utilisateur.builder()

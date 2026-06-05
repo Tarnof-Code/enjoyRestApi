@@ -17,7 +17,8 @@ import java.time.Instant;
             @Index(name = "idx_hist_mod_activite", columnList = "activite_id,date_modification"),
             @Index(
                     name = "idx_hist_mod_cahier_inf",
-                    columnList = "cahier_infirmerie_entree_id,date_modification")
+                    columnList = "cahier_infirmerie_entree_id,date_modification"),
+            @Index(name = "idx_hist_mod_chambre", columnList = "chambre_id,date_modification")
         })
 public abstract class HistoriqueModification {
 

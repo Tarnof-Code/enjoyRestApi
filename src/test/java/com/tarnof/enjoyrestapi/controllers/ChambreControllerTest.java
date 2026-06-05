@@ -15,6 +15,7 @@ import com.tarnof.enjoyrestapi.payload.request.AffecterOccupantEquipeItemRequest
 import com.tarnof.enjoyrestapi.payload.request.SaveChambreRequest;
 import com.tarnof.enjoyrestapi.payload.response.ChambreDto;
 import com.tarnof.enjoyrestapi.services.ChambreService;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,8 @@ class ChambreControllerTest {
 
     @Mock
     private ChambreService chambreService;
+    @Mock
+    private HistoriqueModificationService historiqueModificationService;
 
     @InjectMocks
     private ChambreController chambreController;

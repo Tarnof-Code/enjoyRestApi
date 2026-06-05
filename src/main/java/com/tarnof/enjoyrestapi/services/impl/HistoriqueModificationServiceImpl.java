@@ -3,6 +3,7 @@ package com.tarnof.enjoyrestapi.services.impl;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModification;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModificationActivite;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModificationCahierInfirmerie;
+import com.tarnof.enjoyrestapi.entities.HistoriqueModificationChambre;
 import com.tarnof.enjoyrestapi.entities.HistoriqueModificationPlanningCellule;
 import com.tarnof.enjoyrestapi.entities.PlanningLigne;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
@@ -12,9 +13,11 @@ import com.tarnof.enjoyrestapi.enums.HistoriqueModificationType;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationActiviteDto;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationBaseDto;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationCahierInfirmerieDto;
+import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationChambreDto;
 import com.tarnof.enjoyrestapi.payload.response.HistoriqueModificationPlanningCelluleDto;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.CahierInfirmerieEntreeRepository;
+import com.tarnof.enjoyrestapi.repositories.ChambreRepository;
 import com.tarnof.enjoyrestapi.repositories.HistoriqueModificationRepository;
 import com.tarnof.enjoyrestapi.repositories.PlanningLigneRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
@@ -35,6 +38,7 @@ public class HistoriqueModificationServiceImpl implements HistoriqueModification
     private final PlanningLigneRepository planningLigneRepository;
     private final ActiviteRepository activiteRepository;
     private final CahierInfirmerieEntreeRepository cahierInfirmerieEntreeRepository;
+    private final ChambreRepository chambreRepository;
     private final SejourVerificationService sejourVerificationService;
 
     public HistoriqueModificationServiceImpl(
@@ -43,12 +47,14 @@ public class HistoriqueModificationServiceImpl implements HistoriqueModification
             PlanningLigneRepository planningLigneRepository,
             ActiviteRepository activiteRepository,
             CahierInfirmerieEntreeRepository cahierInfirmerieEntreeRepository,
+            ChambreRepository chambreRepository,
             SejourVerificationService sejourVerificationService) {
         this.historiqueModificationRepository = historiqueModificationRepository;
         this.utilisateurRepository = utilisateurRepository;
         this.planningLigneRepository = planningLigneRepository;
         this.activiteRepository = activiteRepository;
         this.cahierInfirmerieEntreeRepository = cahierInfirmerieEntreeRepository;
+        this.chambreRepository = chambreRepository;
         this.sejourVerificationService = sejourVerificationService;
     }
 
@@ -114,6 +120,25 @@ public class HistoriqueModificationServiceImpl implements HistoriqueModification
     }
 
     @Override
+    @Transactional
+    public void enregistrerChambre(
+            String modificateurTokenId,
+            HistoriqueModificationAction action,
+            int chambreId,
+            String ancienneValeur,
+            String nouvelleValeur) {
+        Utilisateur modificateur = resoudreModificateur(modificateurTokenId);
+        HistoriqueModificationChambre entree = new HistoriqueModificationChambre();
+        entree.setAction(action);
+        entree.setDateModification(Instant.now());
+        entree.setModificateur(modificateur);
+        entree.setChambreId(chambreId);
+        entree.setAncienneValeur(ancienneValeur);
+        entree.setNouvelleValeur(nouvelleValeur);
+        historiqueModificationRepository.save(entree);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<HistoriqueModificationPlanningCelluleDto> listerHistoriquePlanningCellules(
             int sejourId, int grilleId, int ligneId, LocalDate jour, String utilisateurTokenId) {
@@ -160,6 +185,19 @@ public class HistoriqueModificationServiceImpl implements HistoriqueModification
         }
         return historiqueModificationRepository.findCahierInfirmerieByEntreeId(entreeId).stream()
                 .map(this::toDtoCahierInfirmerie)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<HistoriqueModificationChambreDto> listerHistoriqueChambre(
+            int sejourId, int chambreId, String utilisateurTokenId) {
+        sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
+        if (chambreRepository.findByIdAndSejourId(chambreId, sejourId).isEmpty()) {
+            throw new ResourceNotFoundException("Chambre non trouvée avec l'ID: " + chambreId);
+        }
+        return historiqueModificationRepository.findChambreByChambreId(chambreId).stream()
+                .map(this::toDtoChambre)
                 .toList();
     }
 
@@ -215,5 +253,14 @@ public class HistoriqueModificationServiceImpl implements HistoriqueModification
         }
         HistoriqueModificationBaseDto base = toBaseDto(h, HistoriqueModificationType.CAHIER_INFIRMERIE);
         return new HistoriqueModificationCahierInfirmerieDto(base, c.getCahierInfirmerieEntreeId());
+    }
+
+    private HistoriqueModificationChambreDto toDtoChambre(HistoriqueModification h) {
+        if (!(h instanceof HistoriqueModificationChambre c)) {
+            throw new IllegalStateException(
+                    "Type d'historique inattendu pour chambre: " + h.getClass().getName());
+        }
+        HistoriqueModificationBaseDto base = toBaseDto(h, HistoriqueModificationType.CHAMBRE);
+        return new HistoriqueModificationChambreDto(base, c.getChambreId());
     }
 }

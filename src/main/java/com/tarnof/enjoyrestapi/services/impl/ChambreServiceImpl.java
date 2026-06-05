@@ -7,6 +7,7 @@ import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.SejourEnfantId;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
+import com.tarnof.enjoyrestapi.enums.HistoriqueModificationAction;
 import com.tarnof.enjoyrestapi.enums.TypeChambre;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
@@ -27,6 +28,7 @@ import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.ChambreService;
+import com.tarnof.enjoyrestapi.services.HistoriqueModificationService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import com.tarnof.enjoyrestapi.utils.ChambreGenreRules;
 import org.springframework.stereotype.Service;
@@ -50,6 +52,7 @@ public class ChambreServiceImpl implements ChambreService {
     private final EnfantRepository enfantRepository;
     private final SejourEnfantRepository sejourEnfantRepository;
     private final GroupeRepository groupeRepository;
+    private final HistoriqueModificationService historiqueModificationService;
 
     public ChambreServiceImpl(
             ChambreRepository chambreRepository,
@@ -58,7 +61,8 @@ public class ChambreServiceImpl implements ChambreService {
             UtilisateurRepository utilisateurRepository,
             EnfantRepository enfantRepository,
             SejourEnfantRepository sejourEnfantRepository,
-            GroupeRepository groupeRepository) {
+            GroupeRepository groupeRepository,
+            HistoriqueModificationService historiqueModificationService) {
         this.chambreRepository = chambreRepository;
         this.chambreOccupantRepository = chambreOccupantRepository;
         this.sejourVerificationService = sejourVerificationService;
@@ -66,6 +70,7 @@ public class ChambreServiceImpl implements ChambreService {
         this.enfantRepository = enfantRepository;
         this.sejourEnfantRepository = sejourEnfantRepository;
         this.groupeRepository = groupeRepository;
+        this.historiqueModificationService = historiqueModificationService;
     }
 
     @Override
@@ -97,7 +102,14 @@ public class ChambreServiceImpl implements ChambreService {
         appliquerRequete(chambre, request, identifiant);
         chambre.setSejour(sejour);
         appliquerGroupe(chambre, sejourId, request);
-        return mapToDto(chambreRepository.save(chambre));
+        Chambre sauve = chambreRepository.save(chambre);
+        historiqueModificationService.enregistrerChambre(
+                utilisateurTokenId,
+                HistoriqueModificationAction.CREATION,
+                sauve.getId(),
+                null,
+                libelleChambrePourHistorique(sauve));
+        return mapToDto(sauve);
     }
 
     @Override
@@ -106,6 +118,9 @@ public class ChambreServiceImpl implements ChambreService {
             int sejourId, int chambreId, SaveChambreRequest request, String utilisateurTokenId) {
         sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         Chambre chambre = getChambreEtVerifierSejour(sejourId, chambreId);
+        preparerChambrePourSnapshotHistorique(chambre);
+        String signatureAvant = signatureTechniqueChambre(chambre);
+        String ancienneValeur = libelleChambrePourHistorique(chambre);
         TypeChambre ancienType = chambre.getTypeChambre();
         String identifiant = normaliserIdentifiant(request.identifiant());
         verifierIdentifiantChambreUniquePourSejour(sejourId, identifiant, chambreId);
@@ -117,14 +132,33 @@ public class ChambreServiceImpl implements ChambreService {
         verifierOccupantsCompatiblesAvecGroupe(chambre);
         verifierOccupantsCompatiblesAvecGenreAutorise(chambre);
         verifierCapaciteCoherenteAvecOccupants(chambre);
-        return mapToDto(chambreRepository.save(chambre));
+        Chambre sauve = chambreRepository.save(chambre);
+        preparerChambrePourSnapshotHistorique(sauve);
+        if (!signatureAvant.equals(signatureTechniqueChambre(sauve))) {
+            historiqueModificationService.enregistrerChambre(
+                    utilisateurTokenId,
+                    HistoriqueModificationAction.MODIFICATION,
+                    sauve.getId(),
+                    ancienneValeur,
+                    libelleChambrePourHistorique(sauve));
+        }
+        return mapToDto(sauve);
     }
 
     @Override
     @Transactional
     public void supprimerChambre(int sejourId, int chambreId, String utilisateurTokenId) {
         sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
-        Chambre chambre = getChambreEtVerifierSejour(sejourId, chambreId);
+        Chambre chambre = getChambreEtVerifierSejourAvecOccupants(sejourId, chambreId);
+        preparerChambrePourSnapshotHistorique(chambre);
+        int idSupprime = chambre.getId();
+        String ancienneValeur = libelleChambrePourHistorique(chambre);
+        historiqueModificationService.enregistrerChambre(
+                utilisateurTokenId,
+                HistoriqueModificationAction.SUPPRESSION,
+                idSupprime,
+                ancienneValeur,
+                null);
         chambreRepository.delete(chambre);
     }
 
@@ -135,6 +169,9 @@ public class ChambreServiceImpl implements ChambreService {
         sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         Chambre chambre = getChambreEtVerifierSejour(sejourId, chambreId);
         verifierChambreAccepteReferents(chambre);
+        preparerChambrePourSnapshotHistorique(chambre);
+        String signatureAvant = signatureTechniqueChambre(chambre);
+        String ancienneValeur = libelleChambrePourHistorique(chambre);
         Utilisateur referent = utilisateurRepository.findByTokenId(request.referentTokenId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Référent non trouvé avec l'ID: " + request.referentTokenId()));
@@ -143,6 +180,14 @@ public class ChambreServiceImpl implements ChambreService {
         }
         chambre.getReferents().add(referent);
         chambreRepository.save(chambre);
+        if (!signatureAvant.equals(signatureTechniqueChambre(chambre))) {
+            historiqueModificationService.enregistrerChambre(
+                    utilisateurTokenId,
+                    HistoriqueModificationAction.MODIFICATION,
+                    chambre.getId(),
+                    ancienneValeur,
+                    libelleChambrePourHistorique(chambre));
+        }
     }
 
     @Override
@@ -152,6 +197,9 @@ public class ChambreServiceImpl implements ChambreService {
         sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         Chambre chambre = getChambreEtVerifierSejour(sejourId, chambreId);
         verifierChambreAccepteReferents(chambre);
+        preparerChambrePourSnapshotHistorique(chambre);
+        String signatureAvant = signatureTechniqueChambre(chambre);
+        String ancienneValeur = libelleChambrePourHistorique(chambre);
         Utilisateur referent = utilisateurRepository.findByTokenId(referentTokenId)
                 .orElseThrow(() -> new ResourceNotFoundException("Référent non trouvé avec l'ID: " + referentTokenId));
         boolean removed = chambre.getReferents().removeIf(r -> r.getId() == referent.getId());
@@ -159,6 +207,14 @@ public class ChambreServiceImpl implements ChambreService {
             throw new ResourceNotFoundException("Ce référent ne fait pas partie de la chambre");
         }
         chambreRepository.save(chambre);
+        if (!signatureAvant.equals(signatureTechniqueChambre(chambre))) {
+            historiqueModificationService.enregistrerChambre(
+                    utilisateurTokenId,
+                    HistoriqueModificationAction.MODIFICATION,
+                    chambre.getId(),
+                    ancienneValeur,
+                    libelleChambrePourHistorique(chambre));
+        }
     }
 
     @Override
@@ -184,6 +240,9 @@ public class ChambreServiceImpl implements ChambreService {
         sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         Chambre chambre = getChambreEtVerifierSejour(sejourId, chambreId);
         verifierChambreAccepteEnfants(chambre);
+        preparerChambrePourSnapshotHistorique(chambre);
+        String signatureAvant = signatureTechniqueChambre(chambre);
+        String ancienneValeur = libelleChambrePourHistorique(chambre);
         List<AffecterOccupantEnfantItemRequest> items = request.occupants();
         verifierDoublonsEnfantsDansRequete(items);
         verifierCapaciteBatchEnfants(chambre, sejourId, items);
@@ -205,7 +264,16 @@ public class ChambreServiceImpl implements ChambreService {
             appliquerAffectationEnfant(chambre, sejourId, enfant, item.numeroLit());
         }
         chambreRepository.save(chambre);
-        return mapToDto(rechargerChambreAvecOccupants(sejourId, chambreId));
+        Chambre reloaded = rechargerChambreAvecOccupants(sejourId, chambreId);
+        if (!signatureAvant.equals(signatureTechniqueChambre(reloaded))) {
+            historiqueModificationService.enregistrerChambre(
+                    utilisateurTokenId,
+                    HistoriqueModificationAction.MODIFICATION,
+                    reloaded.getId(),
+                    ancienneValeur,
+                    libelleChambrePourHistorique(reloaded));
+        }
+        return mapToDto(reloaded);
     }
 
     @Override
@@ -214,10 +282,21 @@ public class ChambreServiceImpl implements ChambreService {
         sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         Chambre chambre = getChambreEtVerifierSejour(sejourId, chambreId);
         verifierChambreAccepteEnfants(chambre);
+        preparerChambrePourSnapshotHistorique(chambre);
+        String signatureAvant = signatureTechniqueChambre(chambre);
+        String ancienneValeur = libelleChambrePourHistorique(chambre);
         ChambreOccupant occupant = trouverOccupantEnfantDansChambre(chambre, enfantId);
         chambre.getOccupants().remove(occupant);
         chambreOccupantRepository.delete(occupant);
         chambreRepository.save(chambre);
+        if (!signatureAvant.equals(signatureTechniqueChambre(chambre))) {
+            historiqueModificationService.enregistrerChambre(
+                    utilisateurTokenId,
+                    HistoriqueModificationAction.MODIFICATION,
+                    chambre.getId(),
+                    ancienneValeur,
+                    libelleChambrePourHistorique(chambre));
+        }
     }
 
     @Override
@@ -244,6 +323,9 @@ public class ChambreServiceImpl implements ChambreService {
         sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         Chambre chambre = getChambreEtVerifierSejour(sejourId, chambreId);
         verifierChambreAccepteEquipe(chambre);
+        preparerChambrePourSnapshotHistorique(chambre);
+        String signatureAvant = signatureTechniqueChambre(chambre);
+        String ancienneValeur = libelleChambrePourHistorique(chambre);
         List<AffecterOccupantEquipeItemRequest> items = request.occupants().stream()
                 .map(item -> new AffecterOccupantEquipeItemRequest(
                         normaliserMembreTokenId(item.membreTokenId()), item.numeroLit()))
@@ -265,7 +347,16 @@ public class ChambreServiceImpl implements ChambreService {
             appliquerAffectationMembreEquipe(chambre, sejourId, membre, item.numeroLit());
         }
         chambreRepository.save(chambre);
-        return mapToDto(rechargerChambreAvecOccupants(sejourId, chambreId));
+        Chambre reloaded = rechargerChambreAvecOccupants(sejourId, chambreId);
+        if (!signatureAvant.equals(signatureTechniqueChambre(reloaded))) {
+            historiqueModificationService.enregistrerChambre(
+                    utilisateurTokenId,
+                    HistoriqueModificationAction.MODIFICATION,
+                    reloaded.getId(),
+                    ancienneValeur,
+                    libelleChambrePourHistorique(reloaded));
+        }
+        return mapToDto(reloaded);
     }
 
     @Override
@@ -274,6 +365,9 @@ public class ChambreServiceImpl implements ChambreService {
         sejourVerificationService.verifierAppartenanceAuSejour(sejourId, utilisateurTokenId);
         Chambre chambre = getChambreEtVerifierSejour(sejourId, chambreId);
         verifierChambreAccepteEquipe(chambre);
+        preparerChambrePourSnapshotHistorique(chambre);
+        String signatureAvant = signatureTechniqueChambre(chambre);
+        String ancienneValeur = libelleChambrePourHistorique(chambre);
         Utilisateur membre = utilisateurRepository.findByTokenId(membreTokenId)
                 .orElseThrow(() -> new ResourceNotFoundException("Membre non trouvé avec l'ID: " + membreTokenId));
         ChambreOccupant occupant = chambre.getOccupants().stream()
@@ -283,6 +377,14 @@ public class ChambreServiceImpl implements ChambreService {
         chambre.getOccupants().remove(occupant);
         chambreOccupantRepository.delete(occupant);
         chambreRepository.save(chambre);
+        if (!signatureAvant.equals(signatureTechniqueChambre(chambre))) {
+            historiqueModificationService.enregistrerChambre(
+                    utilisateurTokenId,
+                    HistoriqueModificationAction.MODIFICATION,
+                    chambre.getId(),
+                    ancienneValeur,
+                    libelleChambrePourHistorique(chambre));
+        }
     }
 
     private Chambre getChambreEtVerifierSejour(int sejourId, int chambreId) {
@@ -734,5 +836,148 @@ public class ChambreServiceImpl implements ChambreService {
                 membre.getNom(),
                 membre.getPrenom(),
                 occupant.getNumeroLit());
+    }
+
+    private void preparerChambrePourSnapshotHistorique(Chambre chambre) {
+        if (chambre.getTypeChambre() == TypeChambre.ENFANT && chambre.getId() != null) {
+            initialiserReferents(List.of(chambre));
+        }
+    }
+
+    private String signatureTechniqueChambre(Chambre c) {
+        String groupePart = c.getGroupe() == null ? "-" : String.valueOf(c.getGroupe().getId());
+        String referents =
+                c.getReferents() == null
+                        ? ""
+                        : c.getReferents().stream()
+                                .map(Utilisateur::getId)
+                                .sorted()
+                                .map(String::valueOf)
+                                .collect(Collectors.joining(","));
+        String occupants =
+                c.getOccupants() == null
+                        ? ""
+                        : c.getOccupants().stream()
+                                .map(this::signatureOccupantChambre)
+                                .sorted()
+                                .collect(Collectors.joining(","));
+        return c.getTypeChambre()
+                + "|"
+                + nullToVide(c.getIdentifiant())
+                + "|"
+                + nullToVide(c.getNom())
+                + "|"
+                + c.getCapaciteMax()
+                + "|"
+                + c.getGenreAutorise()
+                + "|"
+                + nullToVide(c.getDescription())
+                + "|"
+                + nullToVide(c.getBatiment())
+                + "|"
+                + nullToVide(c.getCouloir())
+                + "|"
+                + (c.getEtage() == null ? "" : c.getEtage())
+                + "|"
+                + groupePart
+                + "|"
+                + referents
+                + "|"
+                + occupants;
+    }
+
+    private String signatureOccupantChambre(ChambreOccupant o) {
+        String lit = o.getNumeroLit() == null ? "" : String.valueOf(o.getNumeroLit());
+        if (o.getEnfant() != null) {
+            return "E" + o.getEnfant().getId() + ":" + lit;
+        }
+        if (o.getUtilisateur() != null) {
+            return "U" + o.getUtilisateur().getId() + ":" + lit;
+        }
+        return "?";
+    }
+
+    private String libelleChambrePourHistorique(Chambre c) {
+        String groupePart = c.getGroupe() == null ? "-" : nullToDash(c.getGroupe().getNom());
+        String referents =
+                c.getReferents() == null || c.getReferents().isEmpty()
+                        ? "-"
+                        : c.getReferents().stream()
+                                .map(ChambreServiceImpl::libelleUtilisateurPourHistorique)
+                                .sorted()
+                                .collect(Collectors.joining(", "));
+        String occupants =
+                c.getOccupants() == null || c.getOccupants().isEmpty()
+                        ? "-"
+                        : c.getOccupants().stream()
+                                .sorted(Comparator.comparing(
+                                        ChambreOccupant::getNumeroLit,
+                                        Comparator.nullsLast(Integer::compareTo)))
+                                .map(this::libelleOccupantPourHistorique)
+                                .collect(Collectors.joining(", "));
+        return "Type: "
+                + c.getTypeChambre()
+                + " | Identifiant: "
+                + nullToDash(c.getIdentifiant())
+                + " | Nom: "
+                + nullToDash(c.getNom())
+                + " | Capacité: "
+                + c.getCapaciteMax()
+                + " | Genre: "
+                + c.getGenreAutorise()
+                + " | Description: "
+                + nullToDash(c.getDescription())
+                + " | Bâtiment: "
+                + nullToDash(c.getBatiment())
+                + " | Couloir: "
+                + nullToDash(c.getCouloir())
+                + " | Étage: "
+                + (c.getEtage() == null ? "-" : c.getEtage())
+                + " | Groupe: "
+                + groupePart
+                + " | Référents: "
+                + referents
+                + " | Occupants: "
+                + occupants;
+    }
+
+    private String libelleOccupantPourHistorique(ChambreOccupant o) {
+        String nom =
+                o.getEnfant() != null
+                        ? libelleEnfantPourHistorique(o.getEnfant())
+                        : libelleUtilisateurPourHistorique(o.getUtilisateur());
+        if (o.getNumeroLit() == null) {
+            return nom;
+        }
+        return "lit " + o.getNumeroLit() + ": " + nom;
+    }
+
+    private static String libelleEnfantPourHistorique(Enfant e) {
+        String p = e.getPrenom() != null ? e.getPrenom().trim() : "";
+        String n = e.getNom() != null ? e.getNom().trim() : "";
+        String s = (p + " " + n).trim();
+        return s.isEmpty() ? "?" : s;
+    }
+
+    private static String libelleUtilisateurPourHistorique(Utilisateur u) {
+        if (u == null) {
+            return "?";
+        }
+        String p = u.getPrenom() != null ? u.getPrenom().trim() : "";
+        String n = u.getNom() != null ? u.getNom().trim() : "";
+        String s = (p + " " + n).trim();
+        return s.isEmpty() ? "?" : s;
+    }
+
+    private static String nullToDash(String s) {
+        if (s == null) {
+            return "-";
+        }
+        String t = s.trim();
+        return t.isEmpty() ? "-" : t;
+    }
+
+    private static String nullToVide(String s) {
+        return s == null ? "" : s.trim();
     }
 }
