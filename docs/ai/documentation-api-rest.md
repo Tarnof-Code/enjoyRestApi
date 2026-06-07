@@ -679,16 +679,17 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Description** : Créer une activité
 - **Body** :
 
-`CreateActiviteRequest` (`date`, `nom`, `description` optionnelle, **`lieuId` optionnel** — si renseigné, le lieu doit porter l’usage **`ACTIVITE`** (`UsageLieu`) sinon **400**, **`momentId`** — obligatoire côté service si au moins un moment existe pour le séjour ; si **aucun moment** → **400** avec consigne de faire créer des moments par la direction, **`typeActiviteId` obligatoire** (`@NotNull`), `membreTokenIds`, **`groupeIds`**). **Partage lieu** : cohérence **jour + moment + lieu** (voir `ActiviteRepository`).
-- **Réponse** : `ActiviteDto` (201 Created) — **`moment`**, **`typeActivite`**, `groupeIds`, **`lieu`** (**`LieuDto.usages`**), éventuellement **`avertissementLieu`** si le lieu était déjà occupé **ce jour et ce moment** mais le partage le permet
+`CreateActiviteRequest` (`date`, `nom`, `description` optionnelle, **`lieuId` optionnel** — si renseigné, le lieu doit porter l’usage **`ACTIVITE`** (`UsageLieu`) sinon **400**, **`momentId`** — obligatoire côté service si au moins un moment existe pour le séjour ; si **aucun moment** → **400** avec consigne de faire créer des moments par la direction, **`typeActiviteId` obligatoire** (`@NotNull`), `membreTokenIds`, **`groupeIds`**). **Partage lieu** : cohérence **jour + lieu + moments chevauchants** (même moment ou ancêtre/descendant — **`countBySejour_IdAndLieu_IdAndDateAndMoment_IdIn`**).
+- **Réponse** : `ActiviteDto` (201 Created) — **`moment`**, **`typeActivite`**, `groupeIds`, **`lieu`** (**`LieuDto.usages`**), éventuellement **`avertissementLieu`** si le lieu était déjà occupé **ce jour sur un moment chevauchant** mais le partage le permet
 - **Conflit animateur (hiérarchie)** : un même membre ne peut pas encadrer deux activités le **même jour** sur des moments qui **se chevauchent dans la hiérarchie** (même moment, ou l’un **ancêtre/descendant** de l’autre sur toute la profondeur). Ex. activité sur `Matin` ⇒ conflit avec `Matin 1`. Refus **bloquant** : **`ConflitPlanningAnimateurException`** → **HTTP 400**, corps JSON `code` = **`ANIMATEUR_DEJA_AFFECTE_CRENEAU`**, `message` (cite le **moment réellement occupé**, et le chevauchement si nom différent), `error`.
+- **Occupation lieu (hiérarchie)** : un même lieu ne peut pas être affecté à deux activités le **même jour** sur des moments **chevauchants** (symétrique : `Matin` ↔ `Matin 1`). Lieu **non partageable** → **400** ; partageable **limite atteinte** → **400** ; partageable **sous la limite** → succès avec **`avertissementLieu`**.
 - **Codes d'erreur** : `400` : validation Jakarta (dont **`typeActiviteId`** manquant), date / équipe / groupe / **moments**, **lieu non « lieu d’activité »** (**`IllegalArgumentException`**, message avec id lieu), **lieu déjà pris** ou **limite de partage**, **conflit animateur** (`ANIMATEUR_DEJA_AFFECTE_CRENEAU`) ; `404` : séjour, membre, groupe, lieu, **moment**, **type d’activité** (**id inconnu** ou **pas pour ce séjour**) ; `403` : pas d’accès au séjour ; `500` théorique si lieu partageable sans max en base
 
 #### PUT `/api/v1/sejours/{sejourId}/activites/{activiteId}`
 - **Description** : Modifier une activité
 - **Body** : `UpdateActiviteRequest` (comme la création ; **`lieuId` null** retire le lieu ; **`typeActiviteId` obligatoire** pour pointer vers un type du séjour — pas de retrait du type ; **`momentId`** requis selon les mêmes règles que POST)
 - **Réponse** : `ActiviteDto` (200 OK), **`avertissementLieu`** possible comme en POST
-- **Codes d'erreur** : `400` / `404` comme POST (comptage lieu **exclut** l’activité modifiée) ; `403` si l’utilisateur n’a pas la gestion complète du séjour **et** n’est pas affecté à l’activité
+- **Codes d'erreur** : `400` / `404` comme POST (comptage lieu sur **moments chevauchants**, **exclut** l’activité modifiée) ; `403` si l’utilisateur n’a pas la gestion complète du séjour **et** n’est pas affecté à l’activité
 
 #### DELETE `/api/v1/sejours/{sejourId}/activites/{activiteId}`
 - **Description** : Supprimer une activité

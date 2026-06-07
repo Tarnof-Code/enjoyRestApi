@@ -223,7 +223,8 @@ class ActiviteServiceImplTest {
         givenMomentsAuMoinsUnPourSejour1();
         givenTypeActivitePourSejour1();
         when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
-        when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(1, 42, LocalDate.of(2026, 7, 5), MOMENT_ID))
+        when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_IdIn(
+                        eq(1), eq(42), eq(LocalDate.of(2026, 7, 5)), any(), isNull()))
                 .thenReturn(0L);
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
@@ -300,7 +301,8 @@ class ActiviteServiceImplTest {
         givenMomentsAuMoinsUnPourSejour1();
         givenTypeActivitePourSejour1();
         when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
-        when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(1, 42, LocalDate.of(2026, 7, 5), MOMENT_ID))
+        when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_IdIn(
+                        eq(1), eq(42), eq(LocalDate.of(2026, 7, 5)), any(), isNull()))
                 .thenReturn(1L);
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
@@ -338,7 +340,8 @@ class ActiviteServiceImplTest {
         givenMomentsAuMoinsUnPourSejour1();
         givenTypeActivitePourSejour1();
         when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
-        when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(1, 42, LocalDate.of(2026, 7, 5), MOMENT_ID))
+        when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_IdIn(
+                        eq(1), eq(42), eq(LocalDate.of(2026, 7, 5)), any(), isNull()))
                 .thenReturn(1L);
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
@@ -381,7 +384,8 @@ class ActiviteServiceImplTest {
         givenMomentsAuMoinsUnPourSejour1();
         givenTypeActivitePourSejour1();
         when(lieuRepository.findByIdAndSejourId(42, 1)).thenReturn(Optional.of(lieu));
-        when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(1, 42, LocalDate.of(2026, 7, 5), MOMENT_ID))
+        when(activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_IdIn(
+                        eq(1), eq(42), eq(LocalDate.of(2026, 7, 5)), any(), isNull()))
                 .thenReturn(2L);
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);

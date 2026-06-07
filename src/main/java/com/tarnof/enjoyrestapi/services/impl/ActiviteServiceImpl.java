@@ -447,12 +447,9 @@ public class ActiviteServiceImpl implements ActiviteService {
         if (lieu == null) {
             return null;
         }
-        int momentId = moment.getId();
-        long autres = excludeActiviteId == null
-                ? activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_Id(
-                        sejourId, lieu.getId(), date, momentId)
-                : activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_IdAndIdNot(
-                        sejourId, lieu.getId(), date, momentId, excludeActiviteId);
+        Set<Integer> momentsEnConflit = momentsEnConflit(sejourId, moment);
+        long autres = activiteRepository.countBySejour_IdAndLieu_IdAndDateAndMoment_IdIn(
+                sejourId, lieu.getId(), date, momentsEnConflit, excludeActiviteId);
 
         if (autres == 0) {
             return null;

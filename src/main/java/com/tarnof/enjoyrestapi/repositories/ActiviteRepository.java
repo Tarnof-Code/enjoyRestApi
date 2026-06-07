@@ -19,11 +19,21 @@ public interface ActiviteRepository extends JpaRepository<Activite, Integer> {
 
     Optional<Activite> findByIdAndSejourId(int id, int sejourId);
 
-    long countBySejour_IdAndLieu_IdAndDateAndMoment_Id(
-            int sejourId, int lieuId, LocalDate date, int momentId);
-
-    long countBySejour_IdAndLieu_IdAndDateAndMoment_IdAndIdNot(
-            int sejourId, int lieuId, LocalDate date, int momentId, int activiteId);
+    /**
+     * Compte les activités sur ce lieu, ce jour, pour l'un des moments de {@code momentIds}
+     * (moment visé, ancêtres et descendants — chevauchement hiérarchique).
+     * Si {@code excludeActiviteId} n'est pas null, cette activité est exclue (mise à jour).
+     */
+    @Query("SELECT COUNT(a) FROM Activite a "
+            + "WHERE a.sejour.id = :sejourId AND a.lieu.id = :lieuId AND a.date = :date "
+            + "AND a.moment.id IN :momentIds "
+            + "AND (:excludeActiviteId IS NULL OR a.id <> :excludeActiviteId)")
+    long countBySejour_IdAndLieu_IdAndDateAndMoment_IdIn(
+            @Param("sejourId") int sejourId,
+            @Param("lieuId") int lieuId,
+            @Param("date") LocalDate date,
+            @Param("momentIds") Collection<Integer> momentIds,
+            @Param("excludeActiviteId") Integer excludeActiviteId);
 
     boolean existsByMomentId(int momentId);
 
