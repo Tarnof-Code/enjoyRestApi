@@ -542,6 +542,7 @@ public class ChambreServiceImpl implements ChambreService {
                 return;
             }
             chambreOccupantRepository.delete(existant);
+            chambreOccupantRepository.flush();
             existant.getChambre().getOccupants().remove(existant);
         }
         ChambreOccupant occupant = new ChambreOccupant();
@@ -562,6 +563,7 @@ public class ChambreServiceImpl implements ChambreService {
                 return;
             }
             chambreOccupantRepository.delete(existant);
+            chambreOccupantRepository.flush();
             existant.getChambre().getOccupants().remove(existant);
         }
         ChambreOccupant occupant = new ChambreOccupant();

@@ -382,7 +382,7 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 **Autorisation** : **`GET`** et **`POST` / `PUT` / `DELETE`** (CRUD, référents, occupants) : **`ACCES_SEJOUR`** + **appartenance au séjour** (`verifierAppartenanceAuSejour` côté service — directeur, membre d’équipe ou **ADMIN**).
 
-**Modèle** : hébergement (distinct des **Lieux** d’activité). **`TypeChambre`** : **`ENFANT`** (référents + **`groupeId`** optionnel) ou **`EQUIPE`** (pas de référents ni de groupe). **`identifiant`** obligatoire, **unique par séjour** (casse ignorée) ; **`nom`** optionnel (surnom). **Occupants** : table **`chambre_occupant`** — **un enfant** ou **un membre d’équipe** au plus **par séjour** (**`uk_chambre_occupant_enfant`**, **`uk_chambre_occupant_utilisateur`**). Réaffectation → suppression de l’ancienne ligne. **`numeroLit`** optionnel (`@Positive`, ≤ **`capaciteMax`**, unique par chambre → **409**). **Genre** : **`ChambreGenreRules`** — occupant compatible avec **`genreAutorise`** (`MIXTE` accepte tous). Chambre **`ENFANT`** avec **`groupe`** : seuls les enfants du groupe peuvent y dormir.
+**Modèle** : hébergement (distinct des **Lieux** d’activité). **`TypeChambre`** : **`ENFANT`** (référents + **`groupeId`** optionnel) ou **`EQUIPE`** (pas de référents ni de groupe). **`identifiant`** obligatoire, **unique par séjour** (casse ignorée) ; **`nom`** optionnel (surnom). **Occupants** : table **`chambre_occupant`** — **un enfant** ou **un membre d’équipe** au plus **par séjour** (**`uk_chambre_occupant_enfant`**, **`uk_chambre_occupant_utilisateur`**). **Réaffectation inter-chambres** : déplacement (suppression de l’ancienne ligne puis création sur la nouvelle chambre) ; côté service **`ChambreServiceImpl`** exécute **`chambreOccupantRepository.flush()`** après le **`delete`** pour garantir l’ordre SQL (évite erreur de contrainte d’unicité au flush Hibernate). **`numeroLit`** optionnel (`@Positive`, ≤ **`capaciteMax`**, unique par chambre → **409**). **Genre** : **`ChambreGenreRules`** — occupant compatible avec **`genreAutorise`** (`MIXTE` accepte tous). Chambre **`ENFANT`** avec **`groupe`** : seuls les enfants du groupe peuvent y dormir.
 
 #### GET `/api/v1/sejours/{sejourId}/chambres`
 - **Description** : Lister les chambres du séjour (**tri** : `batiment`, `etage`, `couloir`, `identifiant`)
@@ -433,7 +433,7 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Description** : Affecter **plusieurs** enfants à une chambre **`ENFANT`** (batch)
 - **Body** : `AffecterOccupantsEnfantsRequest` — **`occupants`** : liste de **`AffecterOccupantEnfantItemRequest`** (`enfantId` **@NotNull**, `numeroLit?` **@Positive**)
 - **Réponse** : `ChambreDto` (200 OK) — occupants triés par **`numeroLit`** (nulls en fin)
-- **Règles** : enfant **inscrit** au séjour ; **genre** compatible ; appartenance au **`groupe`** de la chambre si renseigné ; **capacité** ; pas de doublon enfant dans la requête ; réaffectation depuis une autre chambre du séjour autorisée (déplace l’occupant)
+- **Règles** : enfant **inscrit** au séjour ; **genre** compatible ; appartenance au **`groupe`** de la chambre si renseigné ; **capacité** ; pas de doublon enfant dans la requête ; **réaffectation** depuis une autre chambre du séjour autorisée en un seul appel (déplace l’occupant)
 - **Codes d'erreur** : `400` chambre **`EQUIPE`**, enfant non inscrit, genre/groupe incompatible, capacité ; `404` enfant ; `409` numéro de lit déjà pris
 
 #### POST `/api/v1/sejours/{sejourId}/chambres/{chambreId}/occupants/enfants/{enfantId}`
@@ -451,7 +451,7 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Description** : Affecter **plusieurs** membres d’équipe à une chambre **`EQUIPE`** (batch)
 - **Body** : `AffecterOccupantsEquipeRequest` — **`occupants`** : liste de **`AffecterOccupantEquipeItemRequest`** (`membreTokenId` **@NotBlank**, `numeroLit?` **@Positive**)
 - **Réponse** : `ChambreDto` (200 OK)
-- **Règles** : membre **directeur ou `sejour_equipe`** du séjour ; **genre** compatible ; **capacité** ; unicité membre par séjour ; mêmes règles de lit que pour les enfants
+- **Règles** : membre **directeur ou `sejour_equipe`** du séjour ; **genre** compatible ; **capacité** ; unicité membre par séjour ; **réaffectation** depuis une autre chambre du séjour autorisée en un seul appel ; mêmes règles de lit que pour les enfants
 - **Codes d'erreur** : `400` chambre **`ENFANT`**, genre incompatible, capacité ; `404` membre ; `409` lit occupé
 
 #### POST `/api/v1/sejours/{sejourId}/chambres/{chambreId}/occupants/equipe/{membreTokenId}`

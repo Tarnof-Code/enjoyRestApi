@@ -45,6 +45,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -733,6 +734,78 @@ class ChambreServiceImplTest {
 
         assertThat(chambre.getOccupants()).hasSize(2);
         assertThat(dto.occupants()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("affecterMembreEquipe - réaffecte un membre depuis une autre chambre")
+    void affecterMembreEquipe_reaffectationFromOtherChambre_success() {
+        Chambre ancienneChambre = chambreEquipe(3);
+        Chambre nouvelleChambre = chambreEquipe(9);
+        nouvelleChambre.setOccupants(new ArrayList<>());
+        Utilisateur membre = membreEquipe(66, "membre-token", Genre.Masculin);
+        ChambreOccupant occupantExistant = new ChambreOccupant();
+        occupantExistant.setId(100);
+        occupantExistant.setChambre(ancienneChambre);
+        occupantExistant.setUtilisateur(membre);
+        occupantExistant.setNumeroLit(1);
+        ancienneChambre.setOccupants(new ArrayList<>(List.of(occupantExistant)));
+        when(chambreRepository.findById(9)).thenReturn(Optional.of(nouvelleChambre));
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        when(utilisateurRepository.findByTokenId("membre-token")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsBySejour_IdAndUtilisateur_Id(1, 66)).thenReturn(true);
+        when(chambreOccupantRepository.findByUtilisateurIdAndSejourId(66, 1))
+                .thenReturn(Optional.of(occupantExistant));
+        when(chambreRepository.save(nouvelleChambre)).thenAnswer(inv -> {
+            nouvelleChambre.getOccupants().stream().filter(o -> o.getId() == null).forEach(o -> o.setId(201));
+            return nouvelleChambre;
+        });
+        when(chambreRepository.findByIdAndSejourIdWithOccupants(9, 1)).thenReturn(Optional.of(nouvelleChambre));
+
+        var dto = chambreService.affecterMembreEquipe(1, 9, "membre-token", null, APPELANT_TOKEN);
+
+        assertThat(ancienneChambre.getOccupants()).isEmpty();
+        assertThat(nouvelleChambre.getOccupants()).hasSize(1);
+        assertThat(nouvelleChambre.getOccupants().getFirst().getUtilisateur().getId()).isEqualTo(66);
+        assertThat(dto.occupants()).hasSize(1);
+        assertThat(dto.occupants().getFirst().membreTokenId()).isEqualTo("membre-token");
+        var inOrder = inOrder(chambreOccupantRepository);
+        inOrder.verify(chambreOccupantRepository).delete(occupantExistant);
+        inOrder.verify(chambreOccupantRepository).flush();
+    }
+
+    @Test
+    @DisplayName("affecterEnfant - réaffecte un enfant depuis une autre chambre")
+    void affecterEnfant_reaffectationFromOtherChambre_success() {
+        Chambre ancienneChambre = chambreEnfant(3);
+        Chambre nouvelleChambre = chambreEnfant(9);
+        nouvelleChambre.setOccupants(new ArrayList<>());
+        Enfant enfant = enfant(42, Genre.Féminin);
+        ChambreOccupant occupantExistant = new ChambreOccupant();
+        occupantExistant.setId(100);
+        occupantExistant.setChambre(ancienneChambre);
+        occupantExistant.setEnfant(enfant);
+        occupantExistant.setNumeroLit(1);
+        ancienneChambre.setOccupants(new ArrayList<>(List.of(occupantExistant)));
+        when(chambreRepository.findById(9)).thenReturn(Optional.of(nouvelleChambre));
+        when(sejourEnfantRepository.existsById(new SejourEnfantId(1, 42))).thenReturn(true);
+        when(enfantRepository.findById(42)).thenReturn(Optional.of(enfant));
+        when(chambreOccupantRepository.findByEnfantIdAndSejourId(42, 1)).thenReturn(Optional.of(occupantExistant));
+        when(chambreRepository.save(nouvelleChambre)).thenAnswer(inv -> {
+            nouvelleChambre.getOccupants().stream().filter(o -> o.getId() == null).forEach(o -> o.setId(201));
+            return nouvelleChambre;
+        });
+        when(chambreRepository.findByIdAndSejourIdWithOccupants(9, 1)).thenReturn(Optional.of(nouvelleChambre));
+
+        var dto = chambreService.affecterEnfant(1, 9, 42, null, APPELANT_TOKEN);
+
+        assertThat(ancienneChambre.getOccupants()).isEmpty();
+        assertThat(nouvelleChambre.getOccupants()).hasSize(1);
+        assertThat(nouvelleChambre.getOccupants().getFirst().getEnfant().getId()).isEqualTo(42);
+        assertThat(dto.occupants()).hasSize(1);
+        assertThat(dto.occupants().getFirst().enfantId()).isEqualTo(42);
+        var inOrder = inOrder(chambreOccupantRepository);
+        inOrder.verify(chambreOccupantRepository).delete(occupantExistant);
+        inOrder.verify(chambreOccupantRepository).flush();
     }
 
     private static Enfant enfant(int id, Genre genre) {

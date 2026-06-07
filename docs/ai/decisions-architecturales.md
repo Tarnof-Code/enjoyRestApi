@@ -94,7 +94,7 @@
    - Entité **`Chambre`** **distincte de `Lieu`** : `Lieu` = activités / surveillance / rassemblements ; `Chambre` = hébergement (enfants ou équipe).
    - **`TypeChambre`** : **`ENFANT`** (référents via **`chambre_referent`**, **`groupe`** optionnel — restreint les enfants affectables) ; **`EQUIPE`** (pas de référents ni de groupe — **400** si tentative).
    - **`identifiant`** obligatoire, **unique par séjour** (**`uk_chambre_sejour_identifiant`**, casse ignorée) ; **`nom`** optionnel (surnom).
-   - **Occupants** : entité **`ChambreOccupant`** (**`chambre_occupant`**) — **exactement un** de **`enfant`** ou **`utilisateur`** ; **`uk_chambre_occupant_enfant`** / **`uk_chambre_occupant_utilisateur`** garantissent **une chambre max par enfant / membre sur le séjour**. Réaffectation = déplacement. **`numeroLit`** optionnel, unique par chambre si renseigné.
+   - **Occupants** : entité **`ChambreOccupant`** (**`chambre_occupant`**) — **exactement un** de **`enfant`** ou **`utilisateur`** ; **`uk_chambre_occupant_enfant`** / **`uk_chambre_occupant_utilisateur`** garantissent **une chambre max par enfant / membre sur le séjour**. Réaffectation = déplacement (suppression ancienne ligne + **`ChambreOccupantRepository.flush()`** avant insert — ordre Hibernate / contrainte d’unicité). **`numeroLit`** optionnel, unique par chambre si renseigné.
    - **`ChambreGenreRules`** : **`Genre`** occupant compatible avec **`GenreChambre`** (`MIXTE` = tous).
    - CRUD + affectation sous **`/api/v1/sejours/{sejourId}/chambres`** ; **lecture et écriture** **`ACCES_SEJOUR`** + **`verifierAppartenanceAuSejour`** (toute l’équipe du séjour).
 
