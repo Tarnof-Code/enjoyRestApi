@@ -11,4 +11,6 @@ public interface PlanningLigneRepository extends JpaRepository<PlanningLigne, In
     List<PlanningLigne> findByGrille_Id(int grilleId);
 
     Optional<PlanningLigne> findByIdAndGrille_Id(int id, int grilleId);
+
+    boolean existsByLibelleMoment_Id(int momentId);
 }

@@ -4,5 +4,6 @@ public record MomentDto(
         int id,
         String nom,
         int sejourId,
-        int ordre
+        int ordre,
+        Integer parentId
 ) {}

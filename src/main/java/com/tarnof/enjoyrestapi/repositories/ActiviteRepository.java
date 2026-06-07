@@ -1,12 +1,14 @@
 package com.tarnof.enjoyrestapi.repositories;
 
 import com.tarnof.enjoyrestapi.entities.Activite;
+import com.tarnof.enjoyrestapi.entities.Moment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,16 +30,17 @@ public interface ActiviteRepository extends JpaRepository<Activite, Integer> {
     long countByTypeActivite_Id(int typeActiviteId);
 
     /**
-     * Compte les activités du séjour, ce jour, ce moment, assignées à l'utilisateur.
+     * Moments déjà encadrés par l'utilisateur ce jour-là parmi l'ensemble {@code momentIds} (le
+     * moment visé, ses ancêtres et ses descendants), pour détecter un chevauchement de hiérarchie.
      * Si {@code excludeActiviteId} n'est pas null, cette activité est exclue (mise à jour d'une fiche existante).
      */
-    @Query("SELECT COUNT(a) FROM Activite a JOIN a.membres m "
-            + "WHERE a.sejour.id = :sejourId AND a.date = :date AND a.moment.id = :momentId "
+    @Query("SELECT DISTINCT a.moment FROM Activite a JOIN a.membres m "
+            + "WHERE a.sejour.id = :sejourId AND a.date = :date AND a.moment.id IN :momentIds "
             + "AND m.id = :utilisateurId AND (:excludeActiviteId IS NULL OR a.id <> :excludeActiviteId)")
-    long countActivitesAvecMembreMemeCreneau(
+    List<Moment> findMomentsEnConflitPourMembre(
             @Param("sejourId") int sejourId,
             @Param("date") LocalDate date,
-            @Param("momentId") int momentId,
+            @Param("momentIds") Collection<Integer> momentIds,
             @Param("utilisateurId") int utilisateurId,
             @Param("excludeActiviteId") Integer excludeActiviteId);
 

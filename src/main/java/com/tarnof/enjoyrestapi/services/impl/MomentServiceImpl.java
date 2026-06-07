@@ -10,6 +10,8 @@ import com.tarnof.enjoyrestapi.payload.response.MomentDto;
 import com.tarnof.enjoyrestapi.repositories.ActivitePrestataireRepository;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.MomentRepository;
+import com.tarnof.enjoyrestapi.repositories.PlanningCelluleRepository;
+import com.tarnof.enjoyrestapi.repositories.PlanningLigneRepository;
 import com.tarnof.enjoyrestapi.services.MomentService;
 import com.tarnof.enjoyrestapi.services.SejourVerificationService;
 import org.springframework.stereotype.Service;
@@ -28,16 +30,22 @@ public class MomentServiceImpl implements MomentService {
     private final SejourVerificationService sejourVerificationService;
     private final ActiviteRepository activiteRepository;
     private final ActivitePrestataireRepository activitePrestataireRepository;
+    private final PlanningLigneRepository planningLigneRepository;
+    private final PlanningCelluleRepository planningCelluleRepository;
 
     public MomentServiceImpl(
             MomentRepository momentRepository,
             SejourVerificationService sejourVerificationService,
             ActiviteRepository activiteRepository,
-            ActivitePrestataireRepository activitePrestataireRepository) {
+            ActivitePrestataireRepository activitePrestataireRepository,
+            PlanningLigneRepository planningLigneRepository,
+            PlanningCelluleRepository planningCelluleRepository) {
         this.momentRepository = momentRepository;
         this.sejourVerificationService = sejourVerificationService;
         this.activiteRepository = activiteRepository;
         this.activitePrestataireRepository = activitePrestataireRepository;
+        this.planningLigneRepository = planningLigneRepository;
+        this.planningCelluleRepository = planningCelluleRepository;
     }
 
     @Override
@@ -62,9 +70,11 @@ public class MomentServiceImpl implements MomentService {
         Sejour sejour = sejourVerificationService.verifierSejourExiste(sejourId);
         String nom = normaliserNom(request.nom());
         verifierNomMomentUniquePourSejour(sejourId, nom, null);
+        Moment parent = resoudreParent(sejourId, request.parentId(), null);
         Moment moment = new Moment();
         moment.setNom(nom);
         moment.setSejour(sejour);
+        moment.setParent(parent);
         moment.setOrdre(prochainOrdrePourSejour(sejourId));
         return mapToDto(momentRepository.save(moment));
     }
@@ -75,7 +85,9 @@ public class MomentServiceImpl implements MomentService {
         Moment moment = getMomentEtVerifierSejour(sejourId, momentId);
         String nom = normaliserNom(request.nom());
         verifierNomMomentUniquePourSejour(sejourId, nom, momentId);
+        Moment parent = resoudreParent(sejourId, request.parentId(), momentId);
         moment.setNom(nom);
+        moment.setParent(parent);
         return mapToDto(momentRepository.save(moment));
     }
 
@@ -112,6 +124,10 @@ public class MomentServiceImpl implements MomentService {
     @Transactional
     public void supprimerMoment(int sejourId, int momentId) {
         Moment moment = getMomentEtVerifierSejour(sejourId, momentId);
+        if (momentRepository.existsByParentId(momentId)) {
+            throw new IllegalArgumentException(
+                    "Impossible de supprimer ce moment : des sous-moments y sont encore rattachés.");
+        }
         if (activiteRepository.existsByMomentId(momentId)) {
             throw new IllegalArgumentException(
                     "Impossible de supprimer ce moment : des activités y sont encore rattachées.");
@@ -120,7 +136,53 @@ public class MomentServiceImpl implements MomentService {
             throw new IllegalArgumentException(
                     "Impossible de supprimer ce moment : des activités prestataires y sont encore rattachées.");
         }
+        if (planningLigneRepository.existsByLibelleMoment_Id(momentId)) {
+            throw new IllegalArgumentException(
+                    "Impossible de supprimer ce moment : il est encore utilisé comme libellé de ligne dans une grille de planning.");
+        }
+        if (planningCelluleRepository.existsByMoments_Id(momentId)) {
+            throw new IllegalArgumentException(
+                    "Impossible de supprimer ce moment : il est encore utilisé dans des cellules de planning.");
+        }
         momentRepository.delete(moment);
+    }
+
+    /**
+     * Résout et valide le parent demandé. Profondeur de hiérarchie libre : le parent doit
+     * appartenir au même séjour et ne pas créer de cycle (un moment ne peut pas être rattaché à
+     * lui-même ni à l'un de ses propres descendants).
+     */
+    private Moment resoudreParent(int sejourId, Integer parentId, Integer momentIdEnCours) {
+        if (parentId == null) {
+            return null;
+        }
+        Moment parent = momentRepository.findByIdAndSejourId(parentId, sejourId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Moment parent non trouvé avec l'ID: " + parentId + " pour ce séjour"));
+        if (momentIdEnCours != null) {
+            verifierAbsenceDeCycle(parent, momentIdEnCours);
+        }
+        return parent;
+    }
+
+    /**
+     * Vérifie qu'aucun cycle n'est introduit en remontant la chaîne des parents : si le moment en
+     * cours figure parmi le parent visé ou ses ancêtres, le rattachement est refusé.
+     */
+    private void verifierAbsenceDeCycle(Moment parent, int momentIdEnCours) {
+        Moment courant = parent;
+        Set<Integer> visites = new HashSet<>();
+        while (courant != null) {
+            if (courant.getId().equals(momentIdEnCours)) {
+                throw new IllegalArgumentException(
+                        "Rattachement impossible : un moment ne peut pas être son propre parent "
+                                + "ni être rattaché à l'un de ses sous-moments.");
+            }
+            if (!visites.add(courant.getId())) {
+                break;
+            }
+            courant = courant.getParent();
+        }
     }
 
     private Moment getMomentEtVerifierSejour(int sejourId, int momentId) {
@@ -148,7 +210,8 @@ public class MomentServiceImpl implements MomentService {
     private MomentDto mapToDto(Moment moment) {
         int ordreAffiche =
                 moment.getOrdre() != null ? moment.getOrdre() : moment.getId();
-        return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId(), ordreAffiche);
+        Integer parentId = moment.getParent() != null ? moment.getParent().getId() : null;
+        return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId(), ordreAffiche, parentId);
     }
 
     private int prochainOrdrePourSejour(int sejourId) {

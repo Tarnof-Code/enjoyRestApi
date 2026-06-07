@@ -72,7 +72,7 @@ class ActiviteControllerTest {
         LocalDate date = LocalDate.of(2026, 7, 5);
         LieuDto lieu =
                 new LieuDto(8, "Terrain", EmplacementLieu.EXTERIEUR, null, false, null, Set.of(UsageLieu.ACTIVITE), 3);
-        MomentDto moment = new MomentDto(2, "Matin", 3, 0);
+        MomentDto moment = new MomentDto(2, "Matin", 3, 0, null);
         TypeActiviteDto typeActivite = new TypeActiviteDto(5, "Sport", true, 3);
         List<ActiviteDto.MembreEquipeInfo> membres =
                 List.of(new ActiviteDto.MembreEquipeInfo("t1", "N", "P"));
@@ -103,7 +103,7 @@ class ActiviteControllerTest {
         CreateActiviteRequest req = new CreateActiviteRequest(
                 date, "Kayak", null, lieuId, momentId, typeActiviteId, membreTokenIds, reqGroupes);
 
-        MomentDto momentResponse = new MomentDto(momentId, "Après-midi", 3, 1);
+        MomentDto momentResponse = new MomentDto(momentId, "Après-midi", 3, 1, null);
         LieuDto lieuResponse = null;
         TypeActiviteDto typeActiviteResponse = new TypeActiviteDto(typeActiviteId, "Sport", false, 3);
         List<ActiviteDto.MembreEquipeInfo> membresResponse = Collections.emptyList();

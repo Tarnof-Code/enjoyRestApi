@@ -540,9 +540,11 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 **Autorisation** : **`GET`** **`ACCES_SEJOUR`** + appartenance au séjour ; **`POST` / `PUT` / `DELETE`** **`GESTION_SEJOURS`** (incl. **`PUT .../moments/reorder`**).
 
+**Hiérarchie parent/enfants** : un moment peut avoir un **parent** (`parentId`) et donc des **enfants** (ex. groupe `Matin` contenant `Matin 1`, `Matin 2`). **Profondeur libre** (un enfant peut lui-même être parent). Un moment a **au plus un parent** (`@ManyToOne` auto-référent `parent_id`) et **plusieurs enfants** (`@OneToMany`). La **liste est plate** : le front reconstruit l’arbre via `parentId`.
+
 #### GET `/api/v1/sejours/{sejourId}/moments`
 - **Description** : Lister les moments du séjour (**tri chronologique** : `COALESCE(ordre, id)` croissant, puis `id`)
-- **Réponse** : `List<MomentDto>` (200 OK) — champs `id`, `nom`, `sejourId`, **`ordre`** (si `ordre` null en base, valeur renvoyée = `id` pour cohérence d’affichage)
+- **Réponse** : `List<MomentDto>` (200 OK) — champs `id`, `nom`, `sejourId`, **`ordre`** (si `ordre` null en base, valeur renvoyée = `id` pour cohérence d’affichage), **`parentId`** (`Integer` nullable : `null` = moment racine)
 - **Codes d'erreur** : `404` : Séjour non trouvé
 
 #### GET `/api/v1/sejours/{sejourId}/moments/{momentId}`
@@ -552,9 +554,9 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 #### POST `/api/v1/sejours/{sejourId}/moments`
 - **Description** : Créer un moment pour le séjour (**`ordre` calculé côté serveur** : placé après les moments existants, voir mémo « Dernières modifications »)
-- **Body** : `SaveMomentRequest` (`nom`, `@NotBlank`, `@Size(max=200)`) — pas d’`ordre` dans le body
+- **Body** : `SaveMomentRequest` (`nom`, `@NotBlank`, `@Size(max=200)` ; **`parentId`** optionnel — id d’un moment **du même séjour** pour rattacher le nouveau moment comme enfant ; `null`/absent = moment racine)
 - **Réponse** : `MomentDto` (201 Created)
-- **Codes d'erreur** : `400` validation, `404` séjour, `409` nom déjà utilisé pour ce séjour (casse ignorée)
+- **Codes d'erreur** : `400` validation, `404` séjour **ou parent inexistant pour ce séjour**, `409` nom déjà utilisé pour ce séjour (casse ignorée)
 
 #### PUT `/api/v1/sejours/{sejourId}/moments/reorder`
 - **Description** : Réordonner **tous** les moments du séjour en une fois (ex. après drag-and-drop)
@@ -563,15 +565,15 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 - **Codes d'erreur** : `400` : liste invalide (`IllegalArgumentException` — taille, doublons, id inconnu / manquant) ; `404` séjour
 
 #### PUT `/api/v1/sejours/{sejourId}/moments/{momentId}`
-- **Description** : Modifier un moment
-- **Body** : `SaveMomentRequest`
+- **Description** : Modifier un moment (renommage et/ou **regroupement** : changer `parentId` rattache/détache le moment). `parentId = null` = détacher (rendre racine).
+- **Body** : `SaveMomentRequest` (`nom`, **`parentId`** optionnel)
 - **Réponse** : `MomentDto` (200 OK)
-- **Codes d'erreur** : `400` validation, `404` séjour ou moment, `409` nouveau nom en conflit
+- **Codes d'erreur** : `400` validation **ou cycle** (`parentId` = le moment lui-même ou l’un de ses descendants → `IllegalArgumentException`), `404` séjour, moment **ou parent**, `409` nouveau nom en conflit
 
 #### DELETE `/api/v1/sejours/{sejourId}/moments/{momentId}`
-- **Description** : Supprimer un moment (impossible si des activités internes **ou** des sorties prestataires y sont rattachées)
+- **Description** : Supprimer un moment (impossible s’il a des **sous-moments**, ou si des activités internes **ou** des sorties prestataires y sont rattachées). Les enfants ne sont **pas** supprimés en cascade : les détacher ou les réaffecter d’abord.
 - **Réponse** : `204 No Content`
-- **Codes d'erreur** : `404` séjour ou moment, `400` si activités ou sorties existantes (`IllegalArgumentException`)
+- **Codes d'erreur** : `404` séjour ou moment, `400` si sous-moments, activités ou sorties existantes (`IllegalArgumentException`)
 
 ### Endpoints des réunions / comptes rendus (`/api/v1/sejours/{sejourId}/reunions`)
 
@@ -679,7 +681,8 @@ Un seul menu par couple **`(sejour, date du repas, type de repas)`** (contrainte
 
 `CreateActiviteRequest` (`date`, `nom`, `description` optionnelle, **`lieuId` optionnel** — si renseigné, le lieu doit porter l’usage **`ACTIVITE`** (`UsageLieu`) sinon **400**, **`momentId`** — obligatoire côté service si au moins un moment existe pour le séjour ; si **aucun moment** → **400** avec consigne de faire créer des moments par la direction, **`typeActiviteId` obligatoire** (`@NotNull`), `membreTokenIds`, **`groupeIds`**). **Partage lieu** : cohérence **jour + moment + lieu** (voir `ActiviteRepository`).
 - **Réponse** : `ActiviteDto` (201 Created) — **`moment`**, **`typeActivite`**, `groupeIds`, **`lieu`** (**`LieuDto.usages`**), éventuellement **`avertissementLieu`** si le lieu était déjà occupé **ce jour et ce moment** mais le partage le permet
-- **Codes d'erreur** : `400` : validation Jakarta (dont **`typeActiviteId`** manquant), date / équipe / groupe / **moments**, **lieu non « lieu d’activité »** (**`IllegalArgumentException`**, message avec id lieu), **lieu déjà pris** ou **limite de partage** ; `404` : séjour, membre, groupe, lieu, **moment**, **type d’activité** (**id inconnu** ou **pas pour ce séjour**) ; `403` : pas d’accès au séjour ; `500` théorique si lieu partageable sans max en base
+- **Conflit animateur (hiérarchie)** : un même membre ne peut pas encadrer deux activités le **même jour** sur des moments qui **se chevauchent dans la hiérarchie** (même moment, ou l’un **ancêtre/descendant** de l’autre sur toute la profondeur). Ex. activité sur `Matin` ⇒ conflit avec `Matin 1`. Refus **bloquant** : **`ConflitPlanningAnimateurException`** → **HTTP 400**, corps JSON `code` = **`ANIMATEUR_DEJA_AFFECTE_CRENEAU`**, `message` (cite le **moment réellement occupé**, et le chevauchement si nom différent), `error`.
+- **Codes d'erreur** : `400` : validation Jakarta (dont **`typeActiviteId`** manquant), date / équipe / groupe / **moments**, **lieu non « lieu d’activité »** (**`IllegalArgumentException`**, message avec id lieu), **lieu déjà pris** ou **limite de partage**, **conflit animateur** (`ANIMATEUR_DEJA_AFFECTE_CRENEAU`) ; `404` : séjour, membre, groupe, lieu, **moment**, **type d’activité** (**id inconnu** ou **pas pour ce séjour**) ; `403` : pas d’accès au séjour ; `500` théorique si lieu partageable sans max en base
 
 #### PUT `/api/v1/sejours/{sejourId}/activites/{activiteId}`
 - **Description** : Modifier une activité

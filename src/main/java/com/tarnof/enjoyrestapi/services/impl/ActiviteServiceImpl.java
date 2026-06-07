@@ -34,11 +34,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -382,23 +387,59 @@ public class ActiviteServiceImpl implements ActiviteService {
 
     private void verifierMembresDisponiblesPourCreneau(
             int sejourId, LocalDate date, Moment moment, List<Utilisateur> membres, Integer excludeActiviteId) {
-        int momentId = moment.getId();
+        Set<Integer> momentsEnConflit = momentsEnConflit(sejourId, moment);
         for (Utilisateur m : membres) {
-            long conflits = activiteRepository.countActivitesAvecMembreMemeCreneau(
-                    sejourId, date, momentId, m.getId(), excludeActiviteId);
-            if (conflits > 0) {
+            List<Moment> momentsOccupes = activiteRepository.findMomentsEnConflitPourMembre(
+                    sejourId, date, momentsEnConflit, m.getId(), excludeActiviteId);
+            if (!momentsOccupes.isEmpty()) {
                 String prenomOuNom = m.getPrenom() != null && !m.getPrenom().isBlank()
                         ? m.getPrenom().strip()
                         : (m.getNom() != null ? m.getNom().strip() : "");
+                String nomOccupe = momentsOccupes.get(0).getNom();
+                String chevauchement = Objects.equals(nomOccupe, moment.getNom())
+                        ? ""
+                        : " (en chevauchement avec \"" + moment.getNom() + "\")";
                 throw new ConflitPlanningAnimateurException(
                         prenomOuNom
                                 + " encadre déjà une autre activité le "
                                 + DateFormatHelper.formatDdMmYyyy(date)
                                 + " au moment \""
-                                + moment.getNom()
-                                + "\".");
+                                + nomOccupe
+                                + "\""
+                                + chevauchement
+                                + ".");
             }
         }
+    }
+
+    /**
+     * Ensemble des identifiants de moments en chevauchement avec {@code moment} pour un même jour :
+     * le moment lui-même, tous ses ancêtres et tous ses descendants. Permet de considérer qu'une
+     * activité sur un moment parent occupe aussi ses sous-moments (et inversement).
+     */
+    private Set<Integer> momentsEnConflit(int sejourId, Moment moment) {
+        Map<Integer, List<Moment>> enfantsParParent =
+                momentRepository.findBySejourIdOrderChronologique(sejourId).stream()
+                        .filter(m -> m.getParent() != null)
+                        .collect(Collectors.groupingBy(m -> m.getParent().getId()));
+
+        Set<Integer> ids = new HashSet<>();
+        ids.add(moment.getId());
+        for (Moment ancetre = moment.getParent(); ancetre != null; ancetre = ancetre.getParent()) {
+            if (!ids.add(ancetre.getId())) {
+                break;
+            }
+        }
+        Deque<Integer> aExplorer = new ArrayDeque<>();
+        aExplorer.push(moment.getId());
+        while (!aExplorer.isEmpty()) {
+            for (Moment enfant : enfantsParParent.getOrDefault(aExplorer.pop(), List.of())) {
+                if (ids.add(enfant.getId())) {
+                    aExplorer.push(enfant.getId());
+                }
+            }
+        }
+        return ids;
     }
 
     private String verifierDisponibiliteLieuPourActivite(
@@ -472,7 +513,8 @@ public class ActiviteServiceImpl implements ActiviteService {
     private static MomentDto momentVersDto(Moment moment) {
         int ordreAffiche =
                 moment.getOrdre() != null ? moment.getOrdre() : moment.getId();
-        return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId(), ordreAffiche);
+        Integer parentId = moment.getParent() != null ? moment.getParent().getId() : null;
+        return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId(), ordreAffiche, parentId);
     }
 
     private static TypeActiviteDto typeActiviteVersDto(TypeActivite typeActivite) {

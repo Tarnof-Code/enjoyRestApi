@@ -482,7 +482,8 @@ public class ActivitePrestataireServiceImpl implements ActivitePrestataireServic
 
     private static MomentDto momentVersDto(Moment moment) {
         int ordreAffiche = moment.getOrdre() != null ? moment.getOrdre() : moment.getId();
-        return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId(), ordreAffiche);
+        Integer parentId = moment.getParent() != null ? moment.getParent().getId() : null;
+        return new MomentDto(moment.getId(), moment.getNom(), moment.getSejour().getId(), ordreAffiche, parentId);
     }
 
     private String signatureTechniqueActivitePrestataire(ActivitePrestataire a) {

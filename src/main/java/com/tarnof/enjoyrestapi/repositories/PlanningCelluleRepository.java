@@ -15,4 +15,6 @@ public interface PlanningCelluleRepository extends JpaRepository<PlanningCellule
     List<PlanningCellule> findByLigne_IdIn(Collection<Integer> ligneIds);
 
     Optional<PlanningCellule> findByLigne_IdAndJour(int ligneId, LocalDate jour);
+
+    boolean existsByMoments_Id(int momentId);
 }

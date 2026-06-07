@@ -482,9 +482,9 @@ class ActiviteServiceImplTest {
         givenMomentsAuMoinsUnPourSejour1();
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
-        when(activiteRepository.countActivitesAvecMembreMemeCreneau(
-                        eq(1), eq(LocalDate.of(2026, 7, 5)), eq(MOMENT_ID), eq(10), isNull()))
-                .thenReturn(1L);
+        when(activiteRepository.findMomentsEnConflitPourMembre(
+                        eq(1), eq(LocalDate.of(2026, 7, 5)), any(), eq(10), isNull()))
+                .thenReturn(List.of(momentMatin));
 
         CreateActiviteRequest req = new CreateActiviteRequest(
                 LocalDate.of(2026, 7, 5),
@@ -633,9 +633,9 @@ class ActiviteServiceImplTest {
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
         when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
-        when(activiteRepository.countActivitesAvecMembreMemeCreneau(
-                        eq(1), eq(LocalDate.of(2026, 7, 5)), eq(MOMENT_ID), eq(10), eq(4)))
-                .thenReturn(0L);
+        when(activiteRepository.findMomentsEnConflitPourMembre(
+                        eq(1), eq(LocalDate.of(2026, 7, 5)), any(), eq(10), eq(4)))
+                .thenReturn(List.of());
         when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> inv.getArgument(0));
 
         UpdateActiviteRequest req = new UpdateActiviteRequest(
@@ -652,7 +652,7 @@ class ActiviteServiceImplTest {
 
         assertThat(dto.nom()).isEqualTo("Renommé");
         verify(activiteRepository)
-                .countActivitesAvecMembreMemeCreneau(1, LocalDate.of(2026, 7, 5), MOMENT_ID, 10, 4);
+                .findMomentsEnConflitPourMembre(eq(1), eq(LocalDate.of(2026, 7, 5)), any(), eq(10), eq(4));
     }
 
     @Test
@@ -663,9 +663,9 @@ class ActiviteServiceImplTest {
         givenMomentsAuMoinsUnPourSejour1();
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
-        when(activiteRepository.countActivitesAvecMembreMemeCreneau(
-                        eq(1), eq(LocalDate.of(2026, 7, 5)), eq(MOMENT_ID), eq(10), eq(4)))
-                .thenReturn(1L);
+        when(activiteRepository.findMomentsEnConflitPourMembre(
+                        eq(1), eq(LocalDate.of(2026, 7, 5)), any(), eq(10), eq(4)))
+                .thenReturn(List.of(momentMatin));
 
         UpdateActiviteRequest req = new UpdateActiviteRequest(
                 LocalDate.of(2026, 7, 5),
@@ -756,9 +756,9 @@ class ActiviteServiceImplTest {
         when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
         when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
         when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
-        when(activiteRepository.countActivitesAvecMembreMemeCreneau(
-                        eq(1), eq(LocalDate.of(2026, 7, 5)), eq(MOMENT_ID), eq(10), eq(4)))
-                .thenReturn(0L);
+        when(activiteRepository.findMomentsEnConflitPourMembre(
+                        eq(1), eq(LocalDate.of(2026, 7, 5)), any(), eq(10), eq(4)))
+                .thenReturn(List.of());
         when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> inv.getArgument(0));
 
         UpdateActiviteRequest req = new UpdateActiviteRequest(

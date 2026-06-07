@@ -24,4 +24,6 @@ public interface MomentRepository extends JpaRepository<Moment, Integer> {
     boolean existsBySejourIdAndNomIgnoreCase(int sejourId, String nom);
 
     boolean existsBySejourIdAndNomIgnoreCaseAndIdNot(int sejourId, String nom, int id);
+
+    boolean existsByParentId(int parentId);
 }
