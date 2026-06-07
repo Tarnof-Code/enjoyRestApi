@@ -1,28 +1,34 @@
 package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.Activite;
+import com.tarnof.enjoyrestapi.entities.Enfant;
 import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.Lieu;
 import com.tarnof.enjoyrestapi.entities.Moment;
 import com.tarnof.enjoyrestapi.entities.Sejour;
+import com.tarnof.enjoyrestapi.entities.SejourEnfantId;
 import com.tarnof.enjoyrestapi.entities.SejourEquipe;
 import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
 import com.tarnof.enjoyrestapi.entities.TypeActivite;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.EmplacementLieu;
+import com.tarnof.enjoyrestapi.enums.Genre;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.enums.RoleSejour;
 import com.tarnof.enjoyrestapi.enums.TypeGroupe;
 import com.tarnof.enjoyrestapi.enums.UsageLieu;
 import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningAnimateurException;
+import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningEnfantException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateActiviteRequest;
 import com.tarnof.enjoyrestapi.payload.response.ActiviteDto;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
+import com.tarnof.enjoyrestapi.repositories.EnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.LieuRepository;
 import com.tarnof.enjoyrestapi.repositories.MomentRepository;
+import com.tarnof.enjoyrestapi.repositories.SejourEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.TypeActiviteRepository;
@@ -72,6 +78,10 @@ class ActiviteServiceImplTest {
     @Mock
     private GroupeRepository groupeRepository;
     @Mock
+    private EnfantRepository enfantRepository;
+    @Mock
+    private SejourEnfantRepository sejourEnfantRepository;
+    @Mock
     private LieuRepository lieuRepository;
     @Mock
     private MomentRepository momentRepository;
@@ -95,6 +105,8 @@ class ActiviteServiceImplTest {
                 utilisateurRepository,
                 sejourEquipeRepository,
                 groupeRepository,
+                enfantRepository,
+                sejourEnfantRepository,
                 lieuRepository,
                 momentRepository,
                 typeActiviteRepository,
@@ -197,7 +209,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(6, 5));
+                List.of(6, 5), List.of());
 
         ActiviteDto dto = activiteService.creerActivite(1, req, "appelant-token");
 
@@ -243,7 +255,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         ActiviteDto dto = activiteService.creerActivite(1, req, "appelant-token");
 
@@ -278,7 +290,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -316,7 +328,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -360,7 +372,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         ActiviteDto dto = activiteService.creerActivite(1, req, "appelant-token");
 
@@ -399,7 +411,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -427,7 +439,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -471,7 +483,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("dir-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         ActiviteDto dto = activiteService.creerActivite(1, req, "dir-1");
 
@@ -498,7 +510,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(ConflitPlanningAnimateurException.class)
@@ -523,7 +535,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -550,7 +562,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(7));
+                List.of(7), List.of());
 
         assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -570,7 +582,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -591,7 +603,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -618,7 +630,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -650,7 +662,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         ActiviteDto dto = activiteService.modifierActivite(1, 4, req, "appelant-token");
 
@@ -679,7 +691,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.modifierActivite(1, 4, req, "appelant-token"))
                 .isInstanceOf(ConflitPlanningAnimateurException.class)
@@ -702,7 +714,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.modifierActivite(1, 4, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -734,7 +746,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.modifierActivite(1, 4, req, "mem-2"))
                 .isInstanceOf(AccessDeniedException.class)
@@ -773,7 +785,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         ActiviteDto dto = activiteService.modifierActivite(1, 4, req, "mem-1");
         assertThat(dto.nom()).isEqualTo("Par membre");
@@ -813,7 +825,7 @@ class ActiviteServiceImplTest {
                 MOMENT_ID,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -836,11 +848,110 @@ class ActiviteServiceImplTest {
                 null,
                 TYPE_ACTIVITE_ID,
                 List.of("mem-1"),
-                List.of(5));
+                List.of(5), List.of());
 
         assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("obligatoire");
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("creerActivite - succès avec liste d'enfants")
+    void creer_withEnfants_shouldPersistEnfants() {
+        Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        Enfant enfant = Enfant.builder().id(20).nom("Martin").prenom("Luc").genre(Genre.Masculin).build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
+        givenTypeActivitePourSejour1();
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(sejourEnfantRepository.existsById(new SejourEnfantId(1, 20))).thenReturn(true);
+        when(enfantRepository.findById(20)).thenReturn(Optional.of(enfant));
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
+        when(activiteRepository.save(any(Activite.class))).thenAnswer(inv -> {
+            Activite saved = inv.getArgument(0);
+            saved.setId(100);
+            return saved;
+        });
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                null,
+                MOMENT_ID,
+                TYPE_ACTIVITE_ID,
+                List.of("mem-1"),
+                List.of(5),
+                List.of(20));
+
+        ActiviteDto dto = activiteService.creerActivite(1, req, "appelant-token");
+
+        assertThat(dto.enfants()).hasSize(1);
+        assertThat(dto.enfants().getFirst().id()).isEqualTo(20);
+        assertThat(dto.enfants().getFirst().prenom()).isEqualTo("Luc");
+    }
+
+    @Test
+    @DisplayName("creerActivite - enfant déjà sur une autre activité au même créneau")
+    void creer_whenEnfantDejaSurAutreActiviteMemeCreneau_shouldThrow() {
+        Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        Enfant enfant = Enfant.builder().id(20).nom("Martin").prenom("Luc").genre(Genre.Masculin).build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(sejourEnfantRepository.existsById(new SejourEnfantId(1, 20))).thenReturn(true);
+        when(enfantRepository.findById(20)).thenReturn(Optional.of(enfant));
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
+        when(activiteRepository.findMomentsEnConflitPourEnfant(
+                        eq(1), eq(LocalDate.of(2026, 7, 5)), any(), eq(20), isNull()))
+                .thenReturn(List.of(momentMatin));
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                null,
+                MOMENT_ID,
+                TYPE_ACTIVITE_ID,
+                List.of("mem-1"),
+                List.of(5),
+                List.of(20));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
+                .isInstanceOf(ConflitPlanningEnfantException.class)
+                .hasMessageContaining("participe déjà à une autre activité")
+                .hasMessageContaining("Matin");
+        verify(activiteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("creerActivite - enfant non inscrit au séjour")
+    void creer_whenEnfantPasDansSejour_shouldThrow() {
+        Groupe g5 = Groupe.builder().id(5).nom("G5").typeGroupe(TypeGroupe.THEMATIQUE).sejour(sejour).build();
+        when(sejourRepository.findById(1)).thenReturn(Optional.of(sejour));
+        givenMomentsAuMoinsUnPourSejour1();
+        when(utilisateurRepository.findByTokenId("mem-1")).thenReturn(Optional.of(membre));
+        when(sejourEquipeRepository.existsById(new SejourEquipeId(1, 10))).thenReturn(true);
+        when(groupeRepository.findById(5)).thenReturn(Optional.of(g5));
+        when(sejourEnfantRepository.existsById(new SejourEnfantId(1, 99))).thenReturn(false);
+
+        CreateActiviteRequest req = new CreateActiviteRequest(
+                LocalDate.of(2026, 7, 5),
+                "Kayak",
+                null,
+                null,
+                MOMENT_ID,
+                TYPE_ACTIVITE_ID,
+                List.of("mem-1"),
+                List.of(5),
+                List.of(99));
+
+        assertThatThrownBy(() -> activiteService.creerActivite(1, req, "appelant-token"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("inscrit au séjour");
         verify(activiteRepository, never()).save(any());
     }
 
@@ -855,6 +966,7 @@ class ActiviteServiceImplTest {
         a.setTypeActivite(typeActiviteSport);
         a.setMembres(new ArrayList<>(membres));
         a.setGroupes(new ArrayList<>());
+        a.setEnfants(new ArrayList<>());
         return a;
     }
 }

@@ -30,5 +30,7 @@ public record UpdateActiviteRequest(
         List<@NotBlank(message = "Identifiant membre invalide") String> membreTokenIds,
 
         @NotEmpty(message = "Au moins un groupe est requis")
-        List<@NotNull(message = "Identifiant de groupe invalide") Integer> groupeIds
+        List<@NotNull(message = "Identifiant de groupe invalide") Integer> groupeIds,
+
+        List<@NotNull(message = "Identifiant d'enfant invalide") Integer> enfantIds
 ) {}

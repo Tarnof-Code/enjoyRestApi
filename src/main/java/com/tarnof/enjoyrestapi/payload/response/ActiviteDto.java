@@ -14,10 +14,17 @@ public record ActiviteDto(
         TypeActiviteDto typeActivite,
         List<MembreEquipeInfo> membres,
         List<Integer> groupeIds,
-        String avertissementLieu
+        String avertissementLieu,
+        List<EnfantParticipantInfo> enfants
 ) {
     public record MembreEquipeInfo(
             String tokenId,
+            String nom,
+            String prenom
+    ) {}
+
+    public record EnfantParticipantInfo(
+            int id,
             String nom,
             String prenom
     ) {}

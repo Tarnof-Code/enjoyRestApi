@@ -54,6 +54,21 @@ public interface ActiviteRepository extends JpaRepository<Activite, Integer> {
             @Param("utilisateurId") int utilisateurId,
             @Param("excludeActiviteId") Integer excludeActiviteId);
 
+    /**
+     * Moments déjà occupés par l'enfant ce jour-là parmi l'ensemble {@code momentIds} (le moment visé,
+     * ses ancêtres et ses descendants), pour détecter un chevauchement de hiérarchie.
+     * Si {@code excludeActiviteId} n'est pas null, cette activité est exclue (mise à jour d'une fiche existante).
+     */
+    @Query("SELECT DISTINCT a.moment FROM Activite a JOIN a.enfants e "
+            + "WHERE a.sejour.id = :sejourId AND a.date = :date AND a.moment.id IN :momentIds "
+            + "AND e.id = :enfantId AND (:excludeActiviteId IS NULL OR a.id <> :excludeActiviteId)")
+    List<Moment> findMomentsEnConflitPourEnfant(
+            @Param("sejourId") int sejourId,
+            @Param("date") LocalDate date,
+            @Param("momentIds") Collection<Integer> momentIds,
+            @Param("enfantId") int enfantId,
+            @Param("excludeActiviteId") Integer excludeActiviteId);
+
     @Query("SELECT COUNT(a) FROM Activite a JOIN a.groupes g WHERE g.id = :groupeId")
     long countByGroupeId(@Param("groupeId") int groupeId);
 }

@@ -14,6 +14,6 @@ Index court du contexte IA du dépôt Enjoy API. Pour une question ciblée, lire
 - Ne jamais lire ni documenter de secrets, `.env*`, credentials ou dumps.
 - Références utilisateur dans les échanges JSON : `tokenId`, jamais l’id SQL.
 - Code Java : injection par constructeur, contrôleurs minces, services sans erreurs masquées.
-- **Activités prestataires** (sorties) : CRUD + **historique** (`GET .../activites-prestataires/{id}/historique`, type **`ACTIVITE_PRESTATAIRE`**) — détail : `docs/ai/documentation-api-rest.md`. ⚠️ Front : aligner `api.d.ts`.
+- **Activités** (internes) : CRUD + **historique** ; **`enfantIds`** / **`enfants[]`** sur activité ; conflit créneau enfant **`ENFANT_DEJA_AFFECTE_CRENEAU`** — détail : `docs/ai/documentation-api-rest.md`. ⚠️ Front : **`api.d.ts`**.
 - **Chambres** : CRUD, affectation occupants (réaffectation inter-chambres : **`flush()`** après delete), historique **`CHAMBRE`** — `docs/ai/documentation-api-rest.md`. ⚠️ Front : `api.d.ts`.
 - Mise à jour mémoire : appliquer `.cursor/rules/20-memory-bank.mdc` et garder ce fichier entre 10 et 20 lignes.

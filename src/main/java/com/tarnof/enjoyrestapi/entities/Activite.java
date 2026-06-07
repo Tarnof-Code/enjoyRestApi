@@ -60,6 +60,13 @@ public class Activite {
             inverseJoinColumns = @JoinColumn(name = "groupe_id"))
     private List<Groupe> groupes = new ArrayList<>();
 
+    @ManyToMany
+    @JoinTable(
+            name = "activite_enfant",
+            joinColumns = @JoinColumn(name = "activite_id"),
+            inverseJoinColumns = @JoinColumn(name = "enfant_id"))
+    private List<Enfant> enfants = new ArrayList<>();
+
     public Activite() {
     }
 
@@ -141,6 +148,14 @@ public class Activite {
 
     public void setGroupes(List<Groupe> groupes) {
         this.groupes = groupes;
+    }
+
+    public List<Enfant> getEnfants() {
+        return enfants;
+    }
+
+    public void setEnfants(List<Enfant> enfants) {
+        this.enfants = enfants;
     }
 
     /**

@@ -1,14 +1,17 @@
 package com.tarnof.enjoyrestapi.services.impl;
 
 import com.tarnof.enjoyrestapi.entities.Activite;
+import com.tarnof.enjoyrestapi.entities.Enfant;
 import com.tarnof.enjoyrestapi.entities.Groupe;
 import com.tarnof.enjoyrestapi.entities.Lieu;
 import com.tarnof.enjoyrestapi.entities.Moment;
 import com.tarnof.enjoyrestapi.entities.Sejour;
+import com.tarnof.enjoyrestapi.entities.SejourEnfantId;
 import com.tarnof.enjoyrestapi.entities.SejourEquipeId;
 import com.tarnof.enjoyrestapi.entities.TypeActivite;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningAnimateurException;
+import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningEnfantException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.enums.HistoriqueModificationAction;
 import com.tarnof.enjoyrestapi.payload.request.CreateActiviteRequest;
@@ -18,9 +21,11 @@ import com.tarnof.enjoyrestapi.payload.response.LieuDto;
 import com.tarnof.enjoyrestapi.payload.response.MomentDto;
 import com.tarnof.enjoyrestapi.payload.response.TypeActiviteDto;
 import com.tarnof.enjoyrestapi.repositories.ActiviteRepository;
+import com.tarnof.enjoyrestapi.repositories.EnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.GroupeRepository;
 import com.tarnof.enjoyrestapi.repositories.LieuRepository;
 import com.tarnof.enjoyrestapi.repositories.MomentRepository;
+import com.tarnof.enjoyrestapi.repositories.SejourEnfantRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourEquipeRepository;
 import com.tarnof.enjoyrestapi.repositories.TypeActiviteRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
@@ -54,6 +59,8 @@ public class ActiviteServiceImpl implements ActiviteService {
     private final UtilisateurRepository utilisateurRepository;
     private final SejourEquipeRepository sejourEquipeRepository;
     private final GroupeRepository groupeRepository;
+    private final EnfantRepository enfantRepository;
+    private final SejourEnfantRepository sejourEnfantRepository;
     private final LieuRepository lieuRepository;
     private final MomentRepository momentRepository;
     private final TypeActiviteRepository typeActiviteRepository;
@@ -65,6 +72,8 @@ public class ActiviteServiceImpl implements ActiviteService {
             UtilisateurRepository utilisateurRepository,
             SejourEquipeRepository sejourEquipeRepository,
             GroupeRepository groupeRepository,
+            EnfantRepository enfantRepository,
+            SejourEnfantRepository sejourEnfantRepository,
             LieuRepository lieuRepository,
             MomentRepository momentRepository,
             TypeActiviteRepository typeActiviteRepository,
@@ -74,6 +83,8 @@ public class ActiviteServiceImpl implements ActiviteService {
         this.utilisateurRepository = utilisateurRepository;
         this.sejourEquipeRepository = sejourEquipeRepository;
         this.groupeRepository = groupeRepository;
+        this.enfantRepository = enfantRepository;
+        this.sejourEnfantRepository = sejourEnfantRepository;
         this.lieuRepository = lieuRepository;
         this.momentRepository = momentRepository;
         this.typeActiviteRepository = typeActiviteRepository;
@@ -110,6 +121,8 @@ public class ActiviteServiceImpl implements ActiviteService {
         List<Utilisateur> membres = resoudreEtVerifierMembresEquipe(sejour, request.membreTokenIds());
         verifierMembresDisponiblesPourCreneau(sejourId, request.date(), moment, membres, null);
         List<Groupe> groupes = resoudreGroupesDuSejour(sejourId, request.groupeIds());
+        List<Enfant> enfants = resoudreEnfantsDuSejour(sejourId, request.enfantIds());
+        verifierEnfantsDisponiblesPourCreneau(sejourId, request.date(), moment, enfants, null);
         Lieu lieu = resoudreLieuPourSejour(sejourId, request.lieuId());
         TypeActivite typeActivite = resoudreTypeActivite(sejourId, request.typeActiviteId());
         String avertissementLieu = verifierDisponibiliteLieuPourActivite(
@@ -125,6 +138,7 @@ public class ActiviteServiceImpl implements ActiviteService {
         activite.setSejour(sejour);
         activite.setMembres(new ArrayList<>(membres));
         activite.setGroupes(new ArrayList<>(groupes));
+        activite.setEnfants(new ArrayList<>(enfants));
         activite = activiteRepository.save(activite);
         String nouvelleValeur = snapshotActivite(activite);
         historiqueModificationService.enregistrerActivite(
@@ -150,6 +164,8 @@ public class ActiviteServiceImpl implements ActiviteService {
         List<Utilisateur> membres = resoudreEtVerifierMembresEquipe(activite.getSejour(), request.membreTokenIds());
         verifierMembresDisponiblesPourCreneau(sejourId, request.date(), moment, membres, activite.getId());
         List<Groupe> groupes = resoudreGroupesDuSejour(sejourId, request.groupeIds());
+        List<Enfant> enfants = resoudreEnfantsDuSejour(sejourId, request.enfantIds());
+        verifierEnfantsDisponiblesPourCreneau(sejourId, request.date(), moment, enfants, activite.getId());
         Lieu lieu = resoudreLieuPourSejour(sejourId, request.lieuId());
         TypeActivite typeActivite = resoudreTypeActivite(sejourId, request.typeActiviteId());
         String avertissementLieu = verifierDisponibiliteLieuPourActivite(
@@ -165,6 +181,8 @@ public class ActiviteServiceImpl implements ActiviteService {
         activite.getMembres().addAll(membres);
         activite.getGroupes().clear();
         activite.getGroupes().addAll(groupes);
+        activite.getEnfants().clear();
+        activite.getEnfants().addAll(enfants);
         activite = activiteRepository.save(activite);
         if (!signatureAvant.equals(signatureActivite(activite))) {
             String nouvelleValeur = snapshotActivite(activite);
@@ -205,6 +223,12 @@ public class ActiviteServiceImpl implements ActiviteService {
                         .sorted()
                         .map(String::valueOf)
                         .collect(Collectors.joining(","));
+        String enfants =
+                a.getEnfants().stream()
+                        .map(Enfant::getId)
+                        .sorted()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
         String desc = a.getDescription() == null ? "" : a.getDescription();
         return a.getDate()
                 + "|"
@@ -220,7 +244,9 @@ public class ActiviteServiceImpl implements ActiviteService {
                 + "|"
                 + membres
                 + "|"
-                + groupes;
+                + groupes
+                + "|"
+                + enfants;
     }
 
     private String snapshotActivite(Activite a) {
@@ -246,6 +272,11 @@ public class ActiviteServiceImpl implements ActiviteService {
                         .filter(s -> !s.isEmpty())
                         .sorted()
                         .collect(Collectors.joining(", "));
+        String enfants =
+                a.getEnfants().stream()
+                        .map(this::libelleEnfantPourHistorique)
+                        .sorted()
+                        .collect(Collectors.joining(", "));
         String desc = a.getDescription() == null ? "" : a.getDescription();
         return a.getDate()
                 + "|"
@@ -261,7 +292,16 @@ public class ActiviteServiceImpl implements ActiviteService {
                 + "|"
                 + membres
                 + "|"
-                + groupes;
+                + groupes
+                + "|"
+                + enfants;
+    }
+
+    private String libelleEnfantPourHistorique(Enfant e) {
+        String p = e.getPrenom() != null ? e.getPrenom().trim() : "";
+        String n = e.getNom() != null ? e.getNom().trim() : "";
+        String s = (p + " " + n).trim();
+        return s.isEmpty() ? "?" : s;
     }
 
     private String libelleUtilisateurPourHistorique(Utilisateur u) {
@@ -342,6 +382,23 @@ public class ActiviteServiceImpl implements ActiviteService {
         return result;
     }
 
+    private List<Enfant> resoudreEnfantsDuSejour(int sejourId, List<Integer> enfantIds) {
+        if (enfantIds == null || enfantIds.isEmpty()) {
+            return List.of();
+        }
+        LinkedHashSet<Integer> uniques = new LinkedHashSet<>(enfantIds);
+        List<Enfant> result = new ArrayList<>();
+        for (int enfantId : uniques) {
+            if (!sejourEnfantRepository.existsById(new SejourEnfantId(sejourId, enfantId))) {
+                throw new IllegalArgumentException("L'enfant doit d'abord être inscrit au séjour (id: " + enfantId + ")");
+            }
+            Enfant enfant = enfantRepository.findById(enfantId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Enfant non trouvé avec l'ID: " + enfantId));
+            result.add(enfant);
+        }
+        return result;
+    }
+
     private Lieu resoudreLieuPourSejour(int sejourId, Integer lieuId) {
         if (lieuId == null) {
             return null;
@@ -402,6 +459,33 @@ public class ActiviteServiceImpl implements ActiviteService {
                 throw new ConflitPlanningAnimateurException(
                         prenomOuNom
                                 + " encadre déjà une autre activité le "
+                                + DateFormatHelper.formatDdMmYyyy(date)
+                                + " au moment \""
+                                + nomOccupe
+                                + "\""
+                                + chevauchement
+                                + ".");
+            }
+        }
+    }
+
+    private void verifierEnfantsDisponiblesPourCreneau(
+            int sejourId, LocalDate date, Moment moment, List<Enfant> enfants, Integer excludeActiviteId) {
+        Set<Integer> momentsEnConflit = momentsEnConflit(sejourId, moment);
+        for (Enfant e : enfants) {
+            List<Moment> momentsOccupes = activiteRepository.findMomentsEnConflitPourEnfant(
+                    sejourId, date, momentsEnConflit, e.getId(), excludeActiviteId);
+            if (!momentsOccupes.isEmpty()) {
+                String prenomOuNom = e.getPrenom() != null && !e.getPrenom().isBlank()
+                        ? e.getPrenom().strip()
+                        : (e.getNom() != null ? e.getNom().strip() : "");
+                String nomOccupe = momentsOccupes.get(0).getNom();
+                String chevauchement = Objects.equals(nomOccupe, moment.getNom())
+                        ? ""
+                        : " (en chevauchement avec \"" + moment.getNom() + "\")";
+                throw new ConflitPlanningEnfantException(
+                        prenomOuNom
+                                + " participe déjà à une autre activité le "
                                 + DateFormatHelper.formatDdMmYyyy(date)
                                 + " au moment \""
                                 + nomOccupe
@@ -531,6 +615,10 @@ public class ActiviteServiceImpl implements ActiviteService {
                 .map(Groupe::getId)
                 .sorted()
                 .collect(Collectors.toList());
+        List<ActiviteDto.EnfantParticipantInfo> enfantsInfos = a.getEnfants() == null ? List.of() : a.getEnfants().stream()
+                .map(e -> new ActiviteDto.EnfantParticipantInfo(e.getId(), e.getNom(), e.getPrenom()))
+                .sorted((e1, e2) -> Integer.compare(e1.id(), e2.id()))
+                .collect(Collectors.toList());
         return new ActiviteDto(
                 a.getId(),
                 a.getDate(),
@@ -542,6 +630,7 @@ public class ActiviteServiceImpl implements ActiviteService {
                 typeActiviteVersDto(a.getTypeActivite()),
                 membresInfos,
                 groupeIds,
-                avertissementLieu);
+                avertissementLieu,
+                enfantsInfos);
     }
 }

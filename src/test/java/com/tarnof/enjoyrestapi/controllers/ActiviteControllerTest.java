@@ -77,7 +77,7 @@ class ActiviteControllerTest {
         List<ActiviteDto.MembreEquipeInfo> membres =
                 List.of(new ActiviteDto.MembreEquipeInfo("t1", "N", "P"));
         List<Integer> groupeIds = List.of(2, 4);
-        ActiviteDto dto = new ActiviteDto(1, date, "Kayak", "Desc", 3, moment, lieu, typeActivite, membres, groupeIds, null);
+        ActiviteDto dto = new ActiviteDto(1, date, "Kayak", "Desc", 3, moment, lieu, typeActivite, membres, groupeIds, null, List.of());
 
         Utilisateur utilisateur = Utilisateur.builder().tokenId("user-token-123").build();
         Authentication authentication = new UsernamePasswordAuthenticationToken(
@@ -101,7 +101,7 @@ class ActiviteControllerTest {
         List<String> membreTokenIds = List.of("tok");
         List<Integer> reqGroupes = List.of(12, 11);
         CreateActiviteRequest req = new CreateActiviteRequest(
-                date, "Kayak", null, lieuId, momentId, typeActiviteId, membreTokenIds, reqGroupes);
+                date, "Kayak", null, lieuId, momentId, typeActiviteId, membreTokenIds, reqGroupes, List.of());
 
         MomentDto momentResponse = new MomentDto(momentId, "Après-midi", 3, 1, null);
         LieuDto lieuResponse = null;
@@ -119,7 +119,8 @@ class ActiviteControllerTest {
                 typeActiviteResponse,
                 membresResponse,
                 dtoGroupes,
-                null);
+                null,
+                List.of());
         Utilisateur createur = Utilisateur.builder().tokenId("user-token-create").build();
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 createur, null, Collections.emptyList());

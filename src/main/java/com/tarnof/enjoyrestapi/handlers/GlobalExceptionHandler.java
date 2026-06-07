@@ -2,6 +2,7 @@ package com.tarnof.enjoyrestapi.handlers;
 
 import com.tarnof.enjoyrestapi.config.CustomAccessDeniedHandler;
 import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningAnimateurException;
+import com.tarnof.enjoyrestapi.exceptions.ConflitPlanningEnfantException;
 import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceAlreadyExistsException;
 import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
@@ -75,6 +76,16 @@ public class GlobalExceptionHandler {
         log.warn("Conflit planning animateur: {}", ex.getMessage());
         Map<String, String> body = new HashMap<>();
         body.put("code", ConflitPlanningAnimateurException.CODE);
+        body.put("message", ex.getMessage());
+        body.put("error", ex.getMessage());
+        return ResponseEntity.status(400).body(body);
+    }
+
+    @ExceptionHandler(ConflitPlanningEnfantException.class)
+    public ResponseEntity<?> handleConflitPlanningEnfant(ConflitPlanningEnfantException ex) {
+        log.warn("Conflit planning enfant: {}", ex.getMessage());
+        Map<String, String> body = new HashMap<>();
+        body.put("code", ConflitPlanningEnfantException.CODE);
         body.put("message", ex.getMessage());
         body.put("error", ex.getMessage());
         return ResponseEntity.status(400).body(body);
