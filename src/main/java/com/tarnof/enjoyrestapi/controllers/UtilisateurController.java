@@ -1,5 +1,6 @@
 package com.tarnof.enjoyrestapi.controllers;
 
+import com.tarnof.enjoyrestapi.payload.response.PhotoProfilContenu;
 import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
@@ -9,13 +10,17 @@ import com.tarnof.enjoyrestapi.payload.request.ChangePasswordRequest;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
 import com.tarnof.enjoyrestapi.services.UtilisateurService;
 import jakarta.validation.Valid;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.List;
@@ -163,6 +168,44 @@ public class UtilisateurController {
             );
         }
         return ResponseEntity.ok().body(Map.of("message", "Mot de passe modifié avec succès"));
+    }
+
+    @PostMapping(value = "/{tokenId}/photo-profil", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProfilDto> mettreAJourPhotoProfil(
+            @PathVariable String tokenId,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
+        Utilisateur currentUser = (Utilisateur) authentication.getPrincipal();
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("GESTION_UTILISATEURS"::equals);
+        ProfilDto profil = utilisateurService.mettreAJourPhotoProfil(
+                tokenId, file, currentUser.getTokenId(), isAdmin);
+        return ResponseEntity.ok(profil);
+    }
+
+    @GetMapping("/{tokenId}/photo-profil")
+    @PreAuthorize("hasAuthority('ACCES_SEJOUR')")
+    public ResponseEntity<InputStreamResource> chargerPhotoProfil(@PathVariable String tokenId) {
+        PhotoProfilContenu photo = utilisateurService.chargerPhotoProfil(tokenId);
+        InputStreamResource resource = new InputStreamResource(photo.contenu());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, photo.mimeType())
+                .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(photo.taille()))
+                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=3600")
+                .body(resource);
+    }
+
+    @DeleteMapping("/{tokenId}/photo-profil")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void supprimerPhotoProfil(
+            @PathVariable String tokenId,
+            Authentication authentication) {
+        Utilisateur currentUser = (Utilisateur) authentication.getPrincipal();
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("GESTION_UTILISATEURS"::equals);
+        utilisateurService.supprimerPhotoProfil(tokenId, currentUser.getTokenId(), isAdmin);
     }
 
 }

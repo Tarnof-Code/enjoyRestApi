@@ -869,6 +869,31 @@ Grille = **`PlanningGrille`** (titre, consigne, **`sourceLibelleLignes`**, **`so
   - `403` : Tentative de modification du mot de passe d'un autre utilisateur (pour utilisateur non-admin)
   - `404` : Utilisateur non trouvé
 
+#### POST `/api/v1/utilisateurs/{tokenId}/photo-profil`
+- **Description** : Mettre à jour la photo de profil d'un animateur / utilisateur
+- **Autorisation** : Utilisateur connecté modifiant **sa propre** photo, ou **`GESTION_UTILISATEURS`** (admin)
+- **Body** : `multipart/form-data`, champ **`file`** (JPEG, PNG ou WebP, max **2 Mo**)
+- **Réponse** : `ProfilDto` (200 OK) — champ **`photoProfilUrl`** renseigné si une photo existe
+- **Stockage** : Cloudflare R2 si `R2_ENABLED=true`, sinon dossier local `./uploads/` (voir [stockage-photos-cloudflare-r2.md](./stockage-photos-cloudflare-r2.md))
+- **Codes d'erreur** :
+  - `400` : Fichier vide, format ou taille invalide
+  - `403` : Modification de la photo d'un autre utilisateur sans droit admin
+  - `404` : Utilisateur non trouvé
+
+#### GET `/api/v1/utilisateurs/{tokenId}/photo-profil`
+- **Description** : Télécharger la photo de profil
+- **Autorisation** : `ACCES_SEJOUR` (utilisateur authentifié)
+- **Réponse** : flux binaire image (`Content-Type` : `image/jpeg`, `image/png` ou `image/webp`)
+- **Codes d'erreur** :
+  - `404` : Utilisateur ou photo introuvable
+
+#### DELETE `/api/v1/utilisateurs/{tokenId}/photo-profil`
+- **Description** : Supprimer la photo de profil
+- **Autorisation** : Même règle que **POST** photo-profil
+- **Réponse** : `204 No Content`
+
+**Champ `ProfilDto.photoProfilUrl`** : URL relative API (`/api/v1/utilisateurs/{tokenId}/photo-profil`) ou `null` si aucune photo. Présent aussi dans la liste **`equipe`** des **`SejourDto`**.
+
 ### Gestion des Erreurs
 
 #### Format des Erreurs

@@ -3,6 +3,7 @@
 ## Roadmap
 
 ### Complété ✅
+- [x] **Photos de profil animateur** : stockage objet (**Cloudflare R2** ou local **`./uploads`**), endpoints **`POST/GET/DELETE .../photo-profil`**, champ **`ProfilDto.photoProfilUrl`**, guide [stockage-photos-cloudflare-r2.md](./stockage-photos-cloudflare-r2.md). ⚠️ Front : **`api.d.ts`** + affichage via fetch blob JWT. ✅
 - [x] Créer un fichier de types TypeScript synchronisé avec les DTOs Java (`api.d.ts`)
 - [x] Utiliser progressivement les types de `api.d.ts` dans les nouveaux fichiers frontend
 - [x] Migrer progressivement les types locaux existants vers `api.d.ts` (séjours et équipes migrés)

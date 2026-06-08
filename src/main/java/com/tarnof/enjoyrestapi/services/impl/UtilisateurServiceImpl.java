@@ -6,19 +6,25 @@ import com.tarnof.enjoyrestapi.entities.Sejour;
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
 import com.tarnof.enjoyrestapi.exceptions.EmailDejaUtiliseException;
+import com.tarnof.enjoyrestapi.exceptions.ResourceNotFoundException;
 import com.tarnof.enjoyrestapi.exceptions.UtilisateurException;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
+import com.tarnof.enjoyrestapi.payload.response.PhotoProfilContenu;
+import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import com.tarnof.enjoyrestapi.repositories.RefreshTokenRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
 import com.tarnof.enjoyrestapi.services.UtilisateurService;
+import com.tarnof.enjoyrestapi.services.storage.ObjectStorageService;
+import com.tarnof.enjoyrestapi.utils.ImageUploadValidator;
+import com.tarnof.enjoyrestapi.utils.PhotoProfilUrls;
 
 import jakarta.transaction.Transactional;
 
-import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -31,13 +37,16 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final SejourRepository sejourRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    private final ObjectStorageService objectStorageService;
 
     public UtilisateurServiceImpl(UtilisateurRepository utilisateurRepository, RefreshTokenRepository refreshTokenRepository,
-                                  SejourRepository sejourRepository, BCryptPasswordEncoder bCryptPasswordEncoder) {
+                                  SejourRepository sejourRepository, BCryptPasswordEncoder bCryptPasswordEncoder,
+                                  ObjectStorageService objectStorageService) {
         this.utilisateurRepository = utilisateurRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.sejourRepository = sejourRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+        this.objectStorageService = objectStorageService;
     }
 
     @Override
@@ -87,7 +96,8 @@ public class UtilisateurServiceImpl implements UtilisateurService {
             utilisateur.getEmail(),
             utilisateur.getTelephone(),
             utilisateur.getDateNaissance(),
-            utilisateur.getDateExpirationCompte()
+            utilisateur.getDateExpirationCompte(),
+            PhotoProfilUrls.urlPhotoProfilUtilisateur(utilisateur.getTokenId(), utilisateur.getPhotoProfilCle())
         );
     }
 
@@ -153,11 +163,85 @@ public class UtilisateurServiceImpl implements UtilisateurService {
     public void supprimerUtilisateur(String tokenId) {
         Optional<Utilisateur> utilisateur = utilisateurRepository.findByTokenId(tokenId);
         if (utilisateur.isPresent()) {
-            // La suppression en cascade gérera automatiquement les SejourEquipe liés
-            // grâce à cascade = CascadeType.ALL dans l'entité Utilisateur
+            supprimerPhotoProfilStockage(utilisateur.get());
             utilisateurRepository.deleteByTokenId(tokenId);
         } else {
             throw new UtilisateurException("L'utilisateur n'existe pas");
+        }
+    }
+
+    @Override
+    @Transactional
+    public ProfilDto mettreAJourPhotoProfil(String tokenId, MultipartFile file, String appelantTokenId, boolean appelantEstAdmin) {
+        verifierDroitModificationPhotoProfil(tokenId, appelantTokenId, appelantEstAdmin);
+        ImageUploadValidator.validerPhotoProfil(file);
+
+        Utilisateur utilisateur = utilisateurRepository.findByTokenId(tokenId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec le token ID: " + tokenId));
+
+        String mimeType = file.getContentType();
+        String extension = ImageUploadValidator.extensionDepuisMimeType(mimeType);
+        String nouvelleCle = objectStorageService.buildPhotoProfilUtilisateurKey(tokenId, extension);
+
+        supprimerPhotoProfilStockage(utilisateur);
+
+        try {
+            objectStorageService.upload(nouvelleCle, file.getInputStream(), file.getSize(), mimeType);
+        } catch (Exception e) {
+            throw new RuntimeException("Impossible d'enregistrer la photo de profil", e);
+        }
+
+        utilisateur.setPhotoProfilCle(nouvelleCle);
+        utilisateur.setPhotoProfilMimeType(mimeType);
+        Utilisateur saved = utilisateurRepository.save(utilisateur);
+        return mapUtilisateurToProfilDTO(saved);
+    }
+
+    @Override
+    @Transactional
+    public void supprimerPhotoProfil(String tokenId, String appelantTokenId, boolean appelantEstAdmin) {
+        verifierDroitModificationPhotoProfil(tokenId, appelantTokenId, appelantEstAdmin);
+
+        Utilisateur utilisateur = utilisateurRepository.findByTokenId(tokenId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec le token ID: " + tokenId));
+
+        supprimerPhotoProfilStockage(utilisateur);
+        utilisateur.setPhotoProfilCle(null);
+        utilisateur.setPhotoProfilMimeType(null);
+        utilisateurRepository.save(utilisateur);
+    }
+
+    @Override
+    public PhotoProfilContenu chargerPhotoProfil(String tokenId) {
+        Utilisateur utilisateur = utilisateurRepository.findByTokenId(tokenId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec le token ID: " + tokenId));
+
+        String cle = utilisateur.getPhotoProfilCle();
+        if (cle == null || cle.isBlank()) {
+            throw new ResourceNotFoundException("Aucune photo de profil pour cet utilisateur");
+        }
+
+        ObjectStorageService.StoredObject storedObject = objectStorageService.download(cle)
+                .orElseThrow(() -> new ResourceNotFoundException("Photo de profil introuvable"));
+
+        String mimeType = Objects.requireNonNull(Objects.requireNonNullElse(
+                utilisateur.getPhotoProfilMimeType(),
+                storedObject.contentType()));
+
+        return new PhotoProfilContenu(storedObject.content(), storedObject.size(), mimeType);
+    }
+
+    private void verifierDroitModificationPhotoProfil(String tokenId, String appelantTokenId, boolean appelantEstAdmin) {
+        if (appelantEstAdmin || tokenId.equals(appelantTokenId)) {
+            return;
+        }
+        throw new AccessDeniedException("Vous ne pouvez modifier que votre propre photo de profil");
+    }
+
+    private void supprimerPhotoProfilStockage(Utilisateur utilisateur) {
+        String cle = utilisateur.getPhotoProfilCle();
+        if (cle != null && !cle.isBlank()) {
+            objectStorageService.delete(cle);
         }
     }
 

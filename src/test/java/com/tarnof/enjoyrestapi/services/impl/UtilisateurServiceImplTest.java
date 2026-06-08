@@ -12,6 +12,7 @@ import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import com.tarnof.enjoyrestapi.repositories.RefreshTokenRepository;
 import com.tarnof.enjoyrestapi.repositories.SejourRepository;
 import com.tarnof.enjoyrestapi.repositories.UtilisateurRepository;
+import com.tarnof.enjoyrestapi.services.storage.ObjectStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,9 @@ public class UtilisateurServiceImplTest {
 
     @Mock
     private BCryptPasswordEncoder bCryptPasswordEncoder;
+
+    @Mock
+    private ObjectStorageService objectStorageService;
     
     @InjectMocks
     private UtilisateurServiceImpl utilisateurService;
@@ -355,6 +359,7 @@ public class UtilisateurServiceImplTest {
         assertThat(result.telephone()).isEqualTo("0123456789");
         assertThat(result.dateNaissance()).isEqualTo(dateNaissance);
         assertThat(result.dateExpirationCompte()).isEqualTo(refreshToken.getExpiryDate());
+        assertThat(result.photoProfilUrl()).isNull();
     }
 
     @Test
@@ -931,5 +936,26 @@ public class UtilisateurServiceImplTest {
         verify(utilisateurRepository).findByTokenId(tokenId);
         verify(bCryptPasswordEncoder, never()).matches(anyString(), anyString());
         verify(utilisateurRepository, never()).save(any(Utilisateur.class));
+    }
+
+    @Test
+    @DisplayName("mettreAJourPhotoProfil - Devrait refuser la modification de la photo d'un autre utilisateur")
+    void mettreAJourPhotoProfil_WhenNotOwnerNorAdmin_ShouldThrowAccessDenied() {
+        org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
+                "file", "photo.jpg", "image/jpeg", new byte[]{1, 2, 3});
+
+        assertThatThrownBy(() -> utilisateurService.mettreAJourPhotoProfil(
+                "autre-token", file, "user-token-123", false))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("mapUtilisateurToProfilDTO - Devrait exposer l'URL photo quand une clé est présente")
+    void mapUtilisateurToProfilDTO_WhenPhotoPresent_ShouldExposeUrl() {
+        utilisateur.setPhotoProfilCle("utilisateurs/user-token-123/photo-profil.jpg");
+
+        ProfilDto result = utilisateurService.mapUtilisateurToProfilDTO(utilisateur);
+
+        assertThat(result.photoProfilUrl()).isEqualTo("/api/v1/utilisateurs/user-token-123/photo-profil");
     }
 }

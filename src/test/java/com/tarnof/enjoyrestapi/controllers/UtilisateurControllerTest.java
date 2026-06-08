@@ -99,7 +99,8 @@ class UtilisateurControllerTest {
                 "jean.dupont@test.fr",
                 "0123456789",
                 dateNaissance,
-                dateExpiration
+                dateExpiration,
+                null
         );
 
         updateUserRequest = new UpdateUserRequest(
@@ -382,7 +383,8 @@ class UtilisateurControllerTest {
                 "pierre.martin@test.fr",
                 "0987654321",
                 updateUserRequest.dateNaissance(),
-                updateUserRequest.dateExpirationCompte()
+                updateUserRequest.dateExpirationCompte(),
+                null
         );
 
         when(utilisateurService.profilUtilisateur("token-123"))
@@ -434,7 +436,8 @@ class UtilisateurControllerTest {
                 "pierre.martin@test.fr",
                 "0987654321",
                 updateUserRequest.dateNaissance(),
-                updateUserRequest.dateExpirationCompte()
+                updateUserRequest.dateExpirationCompte(),
+                null
         );
 
         when(utilisateurService.profilUtilisateur("token-123"))
@@ -490,7 +493,8 @@ class UtilisateurControllerTest {
                 "nouveau.email@test.fr",
                 "0123456789",
                 updateUserRequest.dateNaissance(),
-                updateUserRequest.dateExpirationCompte()
+                updateUserRequest.dateExpirationCompte(),
+                null
         );
 
         when(utilisateurService.profilUtilisateur("token-123"))

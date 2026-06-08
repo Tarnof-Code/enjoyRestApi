@@ -2,8 +2,10 @@ package com.tarnof.enjoyrestapi.services;
 
 import com.tarnof.enjoyrestapi.entities.Utilisateur;
 import com.tarnof.enjoyrestapi.enums.Role;
+import com.tarnof.enjoyrestapi.payload.response.PhotoProfilContenu;
 import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import com.tarnof.enjoyrestapi.payload.request.UpdateUserRequest;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
@@ -22,4 +24,7 @@ public interface UtilisateurService {
     ProfilDto mapUtilisateurToProfilDTO(Utilisateur utilisateur);
     Utilisateur changerMotDePasseParAdmin(String tokenId, String nouveauMotDePasse);
     Utilisateur changerMotDePasseParUtilisateur(String tokenId, String ancienMotDePasse, String nouveauMotDePasse);
+    ProfilDto mettreAJourPhotoProfil(String tokenId, MultipartFile file, String appelantTokenId, boolean appelantEstAdmin);
+    void supprimerPhotoProfil(String tokenId, String appelantTokenId, boolean appelantEstAdmin);
+    PhotoProfilContenu chargerPhotoProfil(String tokenId);
 }

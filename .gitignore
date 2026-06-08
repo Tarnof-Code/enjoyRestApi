@@ -46,5 +46,9 @@ build/
 # Fichiers SQL
 *.sql
 
+# Stockage local des photos (dev)
+uploads/
+target/test-uploads/
+
 # Fichiers textes
 *.txt

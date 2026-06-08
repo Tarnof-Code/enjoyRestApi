@@ -17,5 +17,6 @@ public record ProfilDto(
     String email,
     String telephone,
     Date dateNaissance,
-    Instant dateExpirationCompte
+    Instant dateExpirationCompte,
+    String photoProfilUrl
 ) {}

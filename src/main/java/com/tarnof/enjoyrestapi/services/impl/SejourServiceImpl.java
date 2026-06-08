@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import com.tarnof.enjoyrestapi.utils.PhotoProfilUrls;
 import com.tarnof.enjoyrestapi.payload.response.ProfilDto;
 import com.tarnof.enjoyrestapi.payload.response.SejourDto;
 import com.tarnof.enjoyrestapi.entities.Activite;
@@ -350,7 +351,8 @@ public class SejourServiceImpl implements SejourService {
                         membre.getEmail(),
                         membre.getTelephone(),
                         membre.getDateNaissance(),
-                        membre.getDateExpirationCompte()
+                        membre.getDateExpirationCompte(),
+                        PhotoProfilUrls.urlPhotoProfilUtilisateur(membre.getTokenId(), membre.getPhotoProfilCle())
                     );
                 })
                 .collect(Collectors.toList());

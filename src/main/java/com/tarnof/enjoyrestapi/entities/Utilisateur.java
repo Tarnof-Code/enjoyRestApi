@@ -56,6 +56,13 @@ public class Utilisateur implements UserDetails {
     @ManyToMany(mappedBy = "referents")
     private List<Chambre> chambresReferent = new ArrayList<>();
 
+    /** Clé objet dans le stockage (R2 ou local), ex. utilisateurs/{tokenId}/photo-profil.jpg */
+    @Column(name = "photo_profil_cle", length = 500)
+    private String photoProfilCle;
+
+    @Column(name = "photo_profil_mime_type", length = 100)
+    private String photoProfilMimeType;
+
     public Utilisateur() {
     }
 
@@ -79,7 +86,9 @@ public class Utilisateur implements UserDetails {
                 .dateExpirationCompte(this.dateExpirationCompte)
                 .refreshToken(this.refreshToken)
                 .groupesReferent(this.groupesReferent)
-                .chambresReferent(this.chambresReferent);
+                .chambresReferent(this.chambresReferent)
+                .photoProfilCle(this.photoProfilCle)
+                .photoProfilMimeType(this.photoProfilMimeType);
     }
 
     public int getId() {
@@ -198,6 +207,22 @@ public class Utilisateur implements UserDetails {
         this.chambresReferent = chambresReferent;
     }
 
+    public String getPhotoProfilCle() {
+        return photoProfilCle;
+    }
+
+    public void setPhotoProfilCle(String photoProfilCle) {
+        this.photoProfilCle = photoProfilCle;
+    }
+
+    public String getPhotoProfilMimeType() {
+        return photoProfilMimeType;
+    }
+
+    public void setPhotoProfilMimeType(String photoProfilMimeType) {
+        this.photoProfilMimeType = photoProfilMimeType;
+    }
+
     @Override
     public String toString() {
         return "Utilisateur{" +
@@ -280,6 +305,8 @@ public class Utilisateur implements UserDetails {
         private RefreshToken refreshToken;
         private List<Groupe> groupesReferent;
         private List<Chambre> chambresReferent;
+        private String photoProfilCle;
+        private String photoProfilMimeType;
 
         public UtilisateurBuilder id(int id) {
             this.id = id;
@@ -356,6 +383,16 @@ public class Utilisateur implements UserDetails {
             return this;
         }
 
+        public UtilisateurBuilder photoProfilCle(String photoProfilCle) {
+            this.photoProfilCle = photoProfilCle;
+            return this;
+        }
+
+        public UtilisateurBuilder photoProfilMimeType(String photoProfilMimeType) {
+            this.photoProfilMimeType = photoProfilMimeType;
+            return this;
+        }
+
         public Utilisateur build() {
             Utilisateur u = new Utilisateur();
             u.setId(id);
@@ -373,6 +410,8 @@ public class Utilisateur implements UserDetails {
             u.setRefreshToken(refreshToken);
             u.setGroupesReferent(groupesReferent != null ? groupesReferent : new ArrayList<>());
             u.setChambresReferent(chambresReferent != null ? chambresReferent : new ArrayList<>());
+            u.setPhotoProfilCle(photoProfilCle);
+            u.setPhotoProfilMimeType(photoProfilMimeType);
             return u;
         }
     }

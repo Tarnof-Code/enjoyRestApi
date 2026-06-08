@@ -7,7 +7,7 @@
 - **Packaging** : WAR (`<packaging>war</packaging>`)
 - **Base de Données** : MySQL
 - **Sécurité** : Spring Security avec JWT (jjwt)
-- **Outils** : Jakarta Validation, Java Records — **pas de Lombok** dans le dépôt (`pom.xml` sans dépendance Lombok ; aucune annotation Lombok dans `src/`). Entités / services / contrôleurs : **constructeurs explicites** et POJO JPA classiques où pertinent (**`Lieu`**, **`Moment`**, **`Horaire`**, etc.).
+- **Outils** : Jakarta Validation, Java Records — **pas de Lombok** dans le dépôt (`pom.xml` sans dépendance Lombok ; aucune annotation Lombok dans `src/`). Entités / services / contrôleurs : **constructeurs explicites** et POJO JPA classiques où pertinent (**`Lieu`**, **`Moment`**, **`Horaire`**, etc.). **Stockage fichiers** : SDK **AWS S3** (`software.amazon.awssdk:s3`) pour **Cloudflare R2** ; fallback disque local via **`ObjectStorageService`**.
 - **Build** : `pom.xml` — Spring Boot parent **3.5.6**, `maven-compiler-plugin` hérité du parent (Java 21), **sans** `annotationProcessorPaths` Lombok.
 - **Utilitaires** : `ExcelHelper` (import Excel), `DateFormatHelper` (`formatDdMmYyyy(LocalDate)` pour messages utilisateur en `dd/MM/yyyy`, refuse `null`)
 - **Tests** : JUnit 5, Mockito
